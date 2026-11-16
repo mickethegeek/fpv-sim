@@ -81,6 +81,117 @@ const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
   console.log(`     physics steps run in browser: ${steps[0]}`);
 }
 
+// --- M2: controller input (keyboard, then a simulated USB radio through the real Gamepad API path) ---
+{
+  const hold = async (code, ms) => { await page.keyboard.down(code); await page.waitForTimeout(ms); await page.keyboard.up(code); };
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} window.__sim.input.clear(); window.__sim.setMode('angle'); window.__sim.useInput(); });
+  let s = await snap();
+  check('M2 keyboard is the fallback and its keys are shown', s.source === 'keyboard' && await page.isVisible('#keys') && (await page.textContent('#keys')).includes('Space'));
+  await shot('07-m2-keyboard-help');
+  await hold('KeyW', 500);
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(150);
+  s = await snap();
+  check('M2 arming refused while throttle is up, with a hint', !s.armed && /throttle/i.test(s.hint) && await page.isVisible('#hint'), `(throttle ${(s.sticks.throttle * 100).toFixed(0)} %, hint "${s.hint}")`);
+  await shot('08-m2-arm-refused');
+  await hold('KeyS', 900);
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(150);
+  s = await snap();
+  check('M2 Space arms with throttle low', s.armed && s.sticks.throttle === 0);
+  await hold('KeyW', 800);
+  await page.waitForTimeout(800);
+  s = await snap();
+  check('M2 W raises throttle and the quad takes off', s.sticks.throttle > 0.4 && s.pos[1] > 0.5, `(throttle ${(s.sticks.throttle * 100).toFixed(0)} %, alt ${s.pos[1].toFixed(1)} m)`);
+  const z0 = s.pos[2];
+  await hold('ArrowUp', 1200);
+  s = await snap();
+  check('M2 arrow up flies forward', s.pos[2] < z0 - 0.5, `(moved ${(z0 - s.pos[2]).toFixed(1)} m)`);
+  await page.keyboard.press('KeyM');
+  await page.waitForTimeout(100);
+  check('M2 M switches to acro', (await snap()).mode === 'acro');
+  await page.keyboard.press('KeyM');
+  await page.keyboard.press('KeyR');
+  await page.waitForTimeout(200);
+  s = await snap();
+  check('M2 R resets to the start, disarmed', !s.armed && s.onGround && Math.hypot(s.pos[0], s.pos[2]) < 0.01);
+
+  // A fake USB radio: 6 axes in an unusual order, no "standard" layout, so it must go through the setup screen.
+  // Axes: 0 roll, 1 pitch (forward +1), 2 throttle (up = -1), 3 yaw (right = -1), 4 arm switch, 5 unused. Button 0 = mode.
+  await page.evaluate(() => {
+    const pad = { id: 'Test Radio (USB Joystick)', index: 0, connected: true, mapping: '', timestamp: 0,
+      axes: [0, 0, 1, 0, -1, 0], buttons: [{ pressed: false, value: 0 }, { pressed: false, value: 0 }] };
+    window.__pad = pad;
+    Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [pad, null, null, null] });
+  });
+  const axes = (a) => page.evaluate((v) => { window.__pad.axes = v; }, a);
+  const button = (i, on) => page.evaluate(([j, v]) => { window.__pad.buttons[j] = { pressed: v, value: v ? 1 : 0 }; }, [i, on]);
+  await page.waitForTimeout(200);
+  check('M2 unknown controller is detected and asks for setup', (await page.textContent('#controller')).includes('needs setup'), `("${await page.textContent('#controller')}")`);
+  await page.click('#btn-setup');
+  await page.waitForTimeout(900);
+  check('M2 setup screen asks for throttle first', (await page.textContent('#setup .prompt')).includes('THROTTLE'));
+  await shot('09-m2-setup-throttle');
+  const wizardStep = () => page.evaluate(() => (window.__sim.setup.wizard ? window.__sim.setup.wizard.step : -1));
+  const waitStep = (n) => page.waitForFunction((k) => { const w = window.__sim.setup.wizard; return !w || w.step >= k; }, n, { timeout: 15000 });
+  await axes([0, 0, -1, 0, -1, 0]); await waitStep(1);                         // throttle up, left up like a radio
+  await page.waitForTimeout(800);
+  await axes([0, 0, -1, -1, -1, 0]); await waitStep(2); await axes([0, 0, -1, 0, -1, 0]);   // yaw right
+  await page.waitForTimeout(800);
+  await shot('10-m2-setup-pitch');
+  check('M2 setup screen reaches the pitch step', (await page.textContent('#setup .prompt')).includes('PITCH'));
+  await axes([0, 1, -1, 0, -1, 0]); await waitStep(3); await axes([0, 0, -1, 0, -1, 0]);    // pitch forward
+  await page.waitForTimeout(800);
+  await axes([1, 0, -1, 0, -1, 0]); await waitStep(4); await axes([0, 0, -1, 0, -1, 0]);    // roll right
+  await page.waitForTimeout(800);
+  await axes([0, 0, -1, 0, 1, 0]); await waitStep(5);                          // arm switch (an axis)
+  await page.waitForTimeout(800);
+  await shot('11-m2-setup-mode');
+  await button(0, true); await page.waitForTimeout(150); await button(0, false);          // mode = push button
+  await page.waitForFunction(() => !window.__sim.setup.open, null, { timeout: 15000 });
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fpvsim.controller.v1')));
+  const want = { throttle: { index: 2, sign: -1 }, yaw: { index: 3, sign: -1 }, pitch: { index: 1, sign: 1 }, roll: { index: 0, sign: 1 } };
+  check('M2 setup saved the right axes and inversions', JSON.stringify(saved && saved.axes) === JSON.stringify(want), JSON.stringify(saved && saved.axes));
+  check('M2 setup saved arm switch and mode button', saved && saved.arm.type === 'axis' && saved.arm.index === 4 && saved.mode.type === 'button' && saved.mode.kind === 'toggle', JSON.stringify(saved && [saved.arm, saved.mode]));
+
+  // Fly with the mapped radio. The arm switch is still on with throttle up: must not arm until both are safe.
+  await page.waitForTimeout(300);
+  s = await snap();
+  check('M2 radio: no arming with throttle up', !s.armed && s.source === 'gamepad' && s.sticks.throttle > 0.9, `(hint "${s.hint}")`);
+  await axes([0, 0, 1, 0, -1, 0]); await page.waitForTimeout(200);            // throttle down, switch off
+  await axes([0, 0, 1, 0, 1, 0]); await page.waitForTimeout(200);             // switch on
+  s = await snap();
+  check('M2 radio: arm switch arms with throttle low', s.armed);
+  await axes([0, 0, -0.1, 0, 1, 0]); await page.waitForTimeout(1200);         // 55 % throttle
+  s = await snap();
+  check('M2 radio: throttle stick lifts the quad', s.pos[1] > 1 && Math.abs(s.sticks.throttle - 0.55) < 0.01, `(alt ${s.pos[1].toFixed(1)} m)`);
+  await axes([0.5, 0, -0.1, 0, 1, 0]); await page.waitForTimeout(700);
+  s = await snap();
+  check('M2 radio: roll stick right rolls right (angle mode)', s.rollDeg > 15 && s.rollDeg < 35, `(roll ${s.rollDeg.toFixed(0)} deg)`);
+  await axes([0.03, -0.03, -0.1, 0.03, 1, 0]); await page.waitForTimeout(100);
+  s = await snap();
+  check('M2 radio: deadzone swallows stick noise', s.sticks.roll === 0 && s.sticks.pitch === 0 && s.sticks.yaw === 0);
+  await button(0, true); await page.waitForTimeout(120); await button(0, false); await page.waitForTimeout(100);
+  check('M2 radio: mode button switches to acro', (await snap()).mode === 'acro');
+  await shot('12-m2-flying-with-radio');
+  await axes([0, 0, 1, 0, -1, 0]); await page.waitForTimeout(150);
+  check('M2 radio: arm switch off disarms', !(await snap()).armed);
+
+  // The mapping survives a reload.
+  await page.reload();
+  await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  await page.evaluate(() => {
+    const pad = { id: 'Test Radio (USB Joystick)', index: 0, connected: true, mapping: '', timestamp: 0, axes: [0, 1, -1, 0, -1, 0], buttons: [{ pressed: false, value: 0 }] };
+    Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [pad] });
+  });
+  await page.waitForTimeout(300);
+  s = await snap();
+  const label = await page.textContent('#controller');
+  check('M2 mapping survives a page reload', s.source === 'gamepad' && s.sticks.throttle === 1 && s.sticks.pitch === 1 && !label.includes('needs setup'), `("${label}")`);
+  await shot('13-m2-after-reload');
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+}
+
 const simErrors = await page.evaluate(() => window.__sim.errors);
 check('no page errors', problems.length === 0 && simErrors.length === 0, JSON.stringify([...problems, ...simErrors]));
 

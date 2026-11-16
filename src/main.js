@@ -4,30 +4,50 @@ import { PHYSICS_HZ, attitude } from './physics.js';
 import { MODES } from './flightcontroller.js';
 import { createSim, resetSim, simAdvance } from './sim.js';
 import { DEG } from './params.js';
+import { InputManager, KEY_HELP } from './input.js';
+import { SetupScreen } from './setup.js';
 
 const sim = createSim({ mode: MODES.ANGLE });
-// Sticks the sim flies on. M2 replaces this with gamepad/keyboard input; tests write to it via window.__sim.
+// Sticks the sim flies on: copied from the controller/keyboard each frame, unless a test script has taken over.
 const sticks = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
+const input = new InputManager(window);
+const setup = new SetupScreen(input);
+let scripted = false; // true once the flight script drives the sticks directly (window.__sim.setSticks)
+
+function resetFlight() {
+  resetSim(sim);
+  input.disarm();
+  Object.assign(sticks, { roll: 0, pitch: 0, yaw: 0, throttle: 0 });
+}
+function toggleMode() { sim.mode = sim.mode === MODES.ACRO ? MODES.ANGLE : MODES.ACRO; }
 
 // Test hook: the Playwright flight script (test/flight.mjs) drives and reads the sim through this.
 const hook = (window.__sim = {
   ready: false, frames: 0, errors: [], physicsHz: PHYSICS_HZ, physicsSteps: 0,
-  sim, sticks,
-  setSticks(s) { Object.assign(sticks, s); },
-  arm(on = true) { sim.armed = on; },
+  sim, sticks, input, setup,
+  setSticks(s) { scripted = true; Object.assign(sticks, s); },
+  arm(on = true) { scripted = true; sim.armed = on; },
   setMode(m) { sim.mode = m; },
-  reset() { resetSim(sim); Object.assign(sticks, { roll: 0, pitch: 0, yaw: 0, throttle: 0 }); },
+  reset() { resetFlight(); },
+  useInput() { scripted = false; resetFlight(); }, // hand control back to the controller/keyboard
   snapshot() {
     const s = sim.state, a = attitude(s.quat);
     return { pos: [...s.pos], vel: [...s.vel], quat: [...s.quat], omega: [...s.omega], motors: [...s.motors],
       rollDeg: a.roll / DEG, pitchDeg: a.pitch / DEG, yawDeg: a.yaw / DEG,
-      onGround: s.onGround, crashed: s.crashed, armed: sim.armed, mode: sim.mode, time: s.time };
+      onGround: s.onGround, crashed: s.crashed, armed: sim.armed, mode: sim.mode, time: s.time,
+      sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open };
   },
 });
 window.addEventListener('error', (e) => hook.errors.push(String(e.message)));
 
 const canvas = document.getElementById('view');
 const hud = document.getElementById('hud');
+const hintEl = document.getElementById('hint');
+const controllerEl = document.getElementById('controller');
+const keysEl = document.getElementById('keys');
+keysEl.innerHTML = KEY_HELP.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+document.getElementById('btn-setup').addEventListener('click', (e) => { e.currentTarget.blur(); setup.start(); });
+document.getElementById('btn-reset').addEventListener('click', (e) => { e.currentTarget.blur(); resetFlight(); });
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -79,7 +99,25 @@ let last = performance.now();
 function frame(now) {
   const dt = (now - last) / 1000;
   last = now;
+  setup.update(Math.min(dt, 0.1));
+  const inp = input.update(Math.min(dt, 0.1));
+  if (!scripted) {
+    Object.assign(sticks, inp.sticks);
+    for (const ev of inp.events) { if (ev === 'mode') toggleMode(); else if (ev === 'reset') resetFlight(); }
+    if (inp.acroSwitch !== null) sim.mode = inp.acroSwitch ? MODES.ACRO : MODES.ANGLE;
+    if (sim.state.crashed && input.armed) input.disarm();
+    sim.armed = input.armed && !sim.state.crashed;
+  }
   hook.physicsSteps += simAdvance(sim, sticks, dt);
+
+  let ctl = 'Keyboard (no controller found: plug one in and press a button)';
+  if (input.gamepadId) ctl = input.needsSetup ? `Controller needs setup: ${input.gamepadId}` : `Controller: ${input.gamepadId}`;
+  if (setup.message) ctl += ` · ${setup.message}`;
+  if (controllerEl.textContent !== ctl) controllerEl.textContent = ctl;
+  keysEl.hidden = input.source !== 'keyboard';
+  const hint = sim.state.crashed ? 'Crashed. Press R to reset' : inp.hint;
+  hintEl.hidden = !hint;
+  if (hint && hintEl.textContent !== hint) hintEl.textContent = hint;
 
   const s = sim.state;
   quadModel.position.set(s.pos[0], s.pos[1], s.pos[2]);

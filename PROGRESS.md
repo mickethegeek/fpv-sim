@@ -1,13 +1,13 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: M2
+Next: M3
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
 - [x] M0 Scaffold
 - [x] M1 Physics core
-- [ ] M2 Controller input
+- [x] M2 Controller input
 - [ ] M3 FPV view + world  ← notify Mike when done
 - [ ] M4 Gates + timer
 - [ ] M5 Learning path
@@ -26,12 +26,19 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - Angle mode max tilt is Betaflight's default 60°. M6 settings can offer a gentler value for lessons.
 - Crash = touching the ground faster than 6 m/s or more than 60° from upright. Change `crashSpeed` in `src/params.js`.
 - Until M3 the page shows a chase camera and a placeholder quad model; `window.__sim` is the test hook (set sticks, arm, mode, snapshot) and `sticks` in `src/main.js` is where M2 plugs in the controller.
+- GitHub Pages could not be switched on through the API; Mike is turning it on by hand (told to the relay at 09:55 UTC). The live link may not be up yet.
+- Arming follows Betaflight: refused while throttle is above 10 %, with an on-screen hint. On a sprung gamepad stick (rests at 50 %) the pilot pulls throttle down to arm. An arm switch that is already on at page load or after a crash must be flipped off and on. Change `ARM_THROTTLE_MAX` in `src/input.js`.
+- A "standard"-layout gamepad works without setup (Mode 2: left stick throttle/yaw, right stick pitch/roll, A arm, Y angle/acro, B reset). Anything else (USB radios) goes through the setup screen. Arm and mode can each be a push button, a held switch or a switch on an axis.
+- Keyboard: W/S move the throttle and it stays put; arrows and A/D spring back. First connected controller wins over the keyboard.
+- M2 was verified with a simulated controller (the page's `navigator.getGamepads` replaced in Chrome), not real hardware: the sandbox has no USB. Mike's real controller is the first true test.
 
 ## Notes for the next leg
 - Run: `npm test` (11 unit tests), `node test/mutations.mjs` (proof each test fails on a broken model, 13 breakages), `node test/flight.mjs Mx` (browser, screenshots to proof/Mx/; add your milestone's steps after the M1 block).
 - Stick conventions are in the header of `src/flightcontroller.js`: pitch + = stick forward = nose down; throttle 0..1.
+- Input: `src/input.js` (mapping, wizard state machine, `InputManager`), `src/setup.js` (setup screen). `main.js` copies `input.update()` into `sticks` each frame unless the flight script has taken over (`__sim.setSticks`); `__sim.useInput()` hands control back. Crash handling in `main.js` is minimal (hint + R): M3 owns crash → pause → reset.
 - Software GL in the sandbox renders about 25 fps; the sim caps catch-up at 50 ms per frame, so browser tests assert on state, not on wall-clock timing.
 
 ## Log
 - 2026-11-16 09:46 UTC · M0 done: scaffold, vendored three.js r170, `npm test` (node unit tests), `node test/flight.mjs Mx` (Chrome flight script → proof/Mx/), static server in tools/ · next: M1 physics core
 - 2026-11-16 09:55 UTC · M1 done: physics.js, flightcontroller.js (Actual rates, angle + acro, rate PID, mixer), sim.js, params.js; 11 unit tests pass and each fails on at least one deliberate breakage (test/mutations.mjs: thrust x0 fails 7 of 11); flown in Chrome (proof/M1/) · next: M2 controller input
+- 2026-11-16 10:00 UTC · M2 done: Gamepad API input, setup screen (axes, inversions, arm/mode button or switch), deadzone, Mode 2 default, localStorage in try/catch, keyboard fallback with on-screen keys, arm rules; 20 unit tests, browser proof with keyboard and a simulated USB radio (proof/M2/) · next: M3 FPV view + world
