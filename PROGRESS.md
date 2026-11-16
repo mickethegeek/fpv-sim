@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M9 Chapters with theory** (PLAN.md, Phase 2). The card texts, check questions and sources are written (`src/theory.js`, `docs/theory.md`); what is left is listed under "Notes for the next leg" (M9).
+Next: **M10 Helpers** (PLAN.md, Phase 2): force arrows as a toggle anywhere (the arrows exist, see notes), coaching after a failed Try, beginner uptilt in Learn. Then M11.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -15,7 +15,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M6b Look
 - [x] M7 Finish  ← Mike notified
 - [x] M8 Menu and freedom
-- [ ] M9 Chapters with theory
+- [x] M9 Chapters with theory
 - [ ] M10 Helpers (force arrows, coaching, beginner uptilt)
 - [ ] M11 Finish phase 2  ← notify Mike when done
 
@@ -85,6 +85,16 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - Menus work with a standard-layout controller (D-pad or left stick, ✕ / A select, ◯ / B back), keyboard (arrows, Enter, Esc) and mouse. A USB radio has no D-pad: use the mouse or keyboard for menus (its own setup may use any button, so none is taken for the menu).
 - "Skip this lesson" in the pause menu goes to the next lesson in order; after the last one, back to the start menu. M9 should make it skip the current part instead.
 
+- Chapters (M9): part order is Learn, Watch, Check, Try (the orchestrator's review, agreed by Mike, puts the questions before the practice; PLAN lists Check last). All four are optional; the chapter screen puts the pointer on the next part, never forces it.
+- Choosing a lesson in Learn opens its chapter screen, not the lesson. `?learn` in the link still goes straight to Try.
+- Watch: the test pilot flies the lesson in the view the player is in; its run is not counted. It ends when the pilot has landed, or on ✕ / Enter (Skip).
+- "Tick" on a part means the player went through it (saved in the browser); skipping leaves it unticked. Nothing depends on it.
+- Demos use a camera that stands still (36° field of view) and draw the quad at twice its size so tilt and arrows read from 10 m: look choices, UNSOURCED. Arrow scales: 0.22 m per newton, 0.25 m per m/s.
+- The Ready check chapter has no cards and no questions (it is the exam): its chapter screen offers Watch and Try only.
+- Card wording that is teaching advice, not physics, is marked UNSOURCED in `docs/theory.md` (turn the nose away when unsure, the bike comparison, "a drone that drops is safer").
+- Weak spots a human should judge (nobody has looked at the demos except through screenshots): in the nose-toward-you demos the quad is small and seen edge-on, so which way the nose points is hard to read; the per-motor arrow differences during a tilt last a few hundredths of a second and are easy to miss even in slow motion; the stop-early card says stopping takes more room at speed but the demo shows one speed only.
+- The lap timer and gate count in the HUD now show only on the gate course.
+
 ## Notes for the next leg
 - Menus: `src/menu.js` (`navUpdate` pure and unit-tested; `Menu` class: screens are `<section data-screen>` in `index.html`, buttons with `data-go="screen|back"` or `data-act="..."`, `data-first` marks where the pointer starts; anything focusable on a screen is reachable with the D-pad, sliders and selects change with left / right). `main.js`: `menu`, `start(mode, id)`, `closeMenu`, `appMode` (`learn` / `gates` / `free`); the sim, lessons, crash timer and lap timer stand still while `menu.isOpen`. Test hook: `__sim.menu.open('pause')`, `.push('settings')`, `.close()`, `__sim.start('learn', 'wind')`, `snapshot().menu` and `.app`. In `test/flight.mjs`: `menuTo(...)`, `menuClose()`, `frames(n)`; `simWait` hangs while a menu is open (the sim is paused), use `frames`. Old blocks open the page with `&gates` (was `&free`), lesson blocks with `&learn`.
 - To add a menu screen (M9 Theory page, chapter parts): add a `<section data-screen="x" data-title="...">` and a button with `data-go="x"`.
@@ -118,7 +128,9 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - Look: everything is in `src/scene.js` (`SUN_DIR`, `shadowMatrix`, `castStatic`, `buildShadow().update(pos, quat)`, `groundDetail`, sky shader). `__sim.shadowPoint(pos)`, `__sim.quality`, `__sim.fps`, `__sim.paused = true` (holds the quad still for a picture; `view()` in the M6b block of `test/flight.mjs`). Anything added to the gates group must come after the gates (tests read gate i as child i).
 - Software GL is now about 12 fps with `?fast` (was 16): the full browser run takes longer; run it in the background with output to a file.
 
-- **M9, what is left.** (1) Chapter screen: choosing a lesson in Learn opens its chapter with the parts Learn / Watch / Try / Check, each one click, each skippable (pause menu: "Skip this part"). (2) Card player: card text over the live sim plus its demo; build a small demo runner (start pose, sticks as a function of time, camera, slow motion, arrows from the real per-motor thrust in `physics.js`; share the arrows with M10). Start with a few demos done well; a card whose demo is not built yet must not ship silently: list it in PROGRESS. (3) Watch: the test pilots in `test/autopilot.mjs` (`createLessonPilot`) fly the lesson with the stick overlay on; move them to `src/` so the page can load them. (4) Try = today's lesson, unchanged. (5) Check: the questions in `src/theory.js`, optional, no gating. (6) A Theory page in the start menu listing every card. (7) Browser checks for all of it with the controller. Two legs at least.
+- Chapters (M9): `src/theory.js` (cards, questions), `src/demos.js` (one staged scene per card: start pose, sticks over time, camera, slow motion, arrows; `runDemo`), `src/arrows.js` (`forces()` pure, `buildArrows()`), `src/pilot.js` (the test pilots, moved from `test/autopilot.mjs`, which now re-exports them). `main.js`: `chapter` ({ lesson, ch, part, i }), `showChapter(id, part)`, `startPart(part, i)`, `playCard`, `placeDemo`, `cardStep(±1)`, `partDone(part, skipped)`, `demo`, `watching`, `seen` (storage `fpvsim.chapters.v1`). While `demo` or `watching` is set the sticks come from the demo / the test pilot, not the player. Test hook: `__sim.showChapter`, `.startPart`, `.cardStep`, `snapshot().chapter / .demo / .watching / .theory / .arrows / .curve / .seen`. `node test/flight.mjs x M9` runs the M9 block alone (about 3 minutes).
+- **For M10.** Force arrows: `arrows.update(state, quad, scale)` already draws thrust per motor, weight and velocity; today they only show in demos with a standing camera. M10 needs a Settings toggle (and a key) that shows them in chase and line-of-sight view during any flight (in FPV the quad is not on screen: decide and note it). Coaching: after a failed Try, one line from the flight data; `attempt` and `LS.attemptResult()` hold the reason and metrics, the recorder idea from the old `skills.js` is gone, so sample what is needed in `lessonFrame`. Beginner uptilt: 10 to 15 degrees is already sourced in `docs/theory.md` (camera row); apply it in Learn only, keep the player's setting.
+- A snapshot value is not proof that something is on screen: the rates curve was "not hidden" in the snapshot and still invisible (the `hidden` property does nothing on an SVG element). Check with `page.isVisible` and look at the screenshot.
 
 ## Real flight data: what was found (scouting, 2026-11-16 11:10 UTC, nothing downloaded yet)
 - Best match: TII "Race Against the Machine" dataset, 5-inch, 6S, about 870 g, Betaflight 4.3.1, piloted flights with RC channels (100 Hz) + gyro (500 Hz) + motor thrust in CSV; the repo also has the quad's Betaflight CLI backup (`quadrotor/BTFL_cli_backup.txt`: its real rates and PIDs). Repo https://github.com/tii-racing/drone-racing-dataset . Problem: the CSVs only come inside release zips of 12 GB (piloted), bundled with images. Too big for a leg unless a per-flight CSV link exists; look in the repo for one.
@@ -156,3 +168,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-17 00:37 Zurich · M9: choosing a lesson opens its chapter (Learn / Watch / Check / Try, each skippable); cards play beside a live demo with real force arrows (thrust per motor, weight, velocity); the test pilot flies Watch; check questions; Theory page in the start menu; tried by hand in Chrome, browser checks not written yet · next: browser checks, fix the M8 checks for the new menu, look at every demo
 - 2026-11-17 00:40 Zurich · M9: 14 browser checks written and passing on their own (chapter screen, cards with the controller / keyboard / mouse, all 23 demos in Chrome, Watch, Check, skip, Theory page); full run started · next: look at the demo screenshots, full run, README, tick M9
 - 2026-11-17 00:41 Zurich · M9: README and docs/theory.md updated (what each demo shows, measured; arrow scales marked UNSOURCED) while the full browser run goes · next: full run result, rates curve on the acro card, tick M9
+- 2026-11-17 00:58 Zurich · M9 ticked: each lesson is a chapter with Learn (23 cards in all, 2 sentences each, every one with a live demo on the real physics; thrust, weight and velocity drawn as arrows; rates curve on the acro card), Watch (test pilot flies it, sticks shown), Check (2 questions) and Try; every part skippable; Theory page lists all cards; works with controller, keyboard, mouse; 68 unit tests; full browser run 128 checks, then the rates curve was added and the M9 block rerun (15 checks pass); proof/M9/68 to 79 · next: M10 helpers (arrows toggle, coaching, beginner uptilt)

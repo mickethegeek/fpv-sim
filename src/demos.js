@@ -5,6 +5,7 @@
 //   loop    s of sim time, then the scene starts again
 //   slow    time factor (0.5 = half speed)
 //   arrows  true: draw thrust per motor, weight and velocity (the real values, src/arrows.js)
+//   curve   true: the card also draws the rates curve (rotation speed against stick), with a dot at the stick's place
 //   fly     sticks for sim time t and quad state s; { arm: false } switches the motors off
 // The numbers here (positions, stick sizes, timings) only stage the scene; what the quad then does is the sim's physics.
 import { steer } from './pilot.js';
@@ -100,7 +101,7 @@ export const DEMOS = {
     fly: (t, s, h) => level(s, h, 2.5, { roll: between(t, 1, 2.2) ? 0.5 : 0 }) },
   'acro-release': { start: [-3, 5, -9], mode: 'acro', cam: [0, 3.2, -2.5], loop: 4, slow: 0.6,
     fly: (t, s, h) => ({ roll: between(t, 1, 1.4) ? 0.2 : 0, throttle: h.hover }) },
-  'rates-curve': { start: [0, 8, -10], mode: 'acro', cam: [0, 4, -2], loop: 4, slow: 0.4,
+  'rates-curve': { curve: true, start: [0, 8, -10], mode: 'acro', cam: [0, 4, -2], loop: 4, slow: 0.4,
     fly: (t, s, h) => ({ roll: between(t, 1, 1.537) ? 1 : 0, throttle: h.hover }) },   // 360 deg at the full-stick rate
   'acro-level': { start: [-3, 5, -9], mode: 'acro', cam: [0, 3.2, -2.5], loop: 5, slow: 0.6,
     fly: (t, s, h) => ({ roll: between(t, 1, 1.4) ? 0.2 : between(t, 2.2, 2.6) ? -0.2 : 0, throttle: h.hover }) },

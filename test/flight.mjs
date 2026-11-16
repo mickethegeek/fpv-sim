@@ -956,16 +956,20 @@ if (runs('M9')) {
     'wind-lean': '76-m9-demo-lean-into-the-wind', 'rates-curve': '77-m9-demo-acro-flip', 'failsafe-drop': '78-m9-demo-lost-signal-drop' };
   const when = { 'tilt-motors': 1.9, 'nose-in': 2.4, 'tilt-sink': 2.4, 'camera-tilt': 5, 'wind-lean': 4, 'rates-curve': 1.3, 'failsafe-drop': 2.9 };
   const bad = [];
+  let curve = null;
   for (const c of cards) {
     await page.evaluate((x) => { window.__sim.showChapter(x.lesson); window.__sim.startPart('learn', x.i); }, c);
     await simTime(when[c.demo] || Math.min(3, c.loop * 0.6));
     s = await snap();
     if (shots[c.demo]) await shot(shots[c.demo]);
+    if (c.demo === 'rates-curve') curve = { ...s.curve, seen: await page.isVisible('#curve-line') }; else if (s.curve) bad.push(c.id + ' (curve shown)');
     const fpvCam = c.demo === 'camera-tilt';
     if (!(s.demo === c.demo && s.theory.text === c.text && two(c.text) && (c.demo === 'failsafe-drop' || !s.crashed) && s.pos.every(Number.isFinite)
       && (fpvCam ? Math.hypot(s.camera.pos[0] - s.pos[0], s.camera.pos[2] - s.pos[2]) < 0.2 : Math.hypot(s.camera.pos[0] - s.pos[0], s.camera.pos[2] - s.pos[2]) > 1.5))) bad.push(c.id);
   }
   check(`M9 all ${cards.length} cards play their demo in Chrome (card text on screen, quad flying, camera watching)`, cards.length >= 20 && bad.length === 0, bad.length ? `(failed: ${bad.join(', ')})` : '');
+
+  check('M9 the acro rates card draws the rates curve with the stick marked on it (full stick during the flip)', !!curve && curve.seen && curve.d > 200 && curve.dot > 190 && /670°\/s at full stick/.test(curve.label), JSON.stringify(curve));
 
   // Theory page: every card, to revise any time.
   await press('options'); await press('down', 4); await press('cross');    // Back to menu

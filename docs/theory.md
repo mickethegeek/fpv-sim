@@ -35,4 +35,4 @@ Each card names a `demo` in `src/demos.js`: a short scene the sim plays beside t
 
 The arrows (`src/arrows.js`) are the sim's own numbers each frame: thrust of each motor from `motorThrust()` in `src/physics.js` (0.22 m of arrow per newton), the weight (mass x g, same scale) and the velocity (0.25 m per m/s). The two scales, the demo camera's zoom and the quad drawn at twice its size in demos are display choices (**UNSOURCED**).
 
-Not done: the rates card shows a flip but does not draw the rates curve yet.
+The rates card also draws the rates curve: rotation speed against stick position from `actualRate()` with the quad's current rates, and a dot at the stick's position during the flip.

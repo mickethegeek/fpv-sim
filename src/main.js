@@ -2,7 +2,7 @@
 // Physics lives in sim.js / physics.js / flightcontroller.js / world.js (no DOM there).
 import * as THREE from '../vendor/three.module.min.js';
 import { PHYSICS_HZ, attitude, rotate } from './physics.js';
-import { MODES } from './flightcontroller.js';
+import { MODES, actualRate } from './flightcontroller.js';
 import { createSim, resetSim, simAdvance } from './sim.js';
 import { DEG } from './params.js';
 import { InputManager, KEY_HELP, buttonNames } from './input.js';
@@ -168,7 +168,7 @@ const hook = (window.__sim = {
       race: { next: race.next, running: race.running, lapTime: race.lapTime, lastLap: race.lastLap, best: race.best, laps: race.laps, passed: race.passed },
       chapter: chapter ? { lesson: chapter.lesson.id, part: chapter.part, i: chapter.i } : null, demo: demo ? demo.card.demo : null, watching: !!watching,
       theory: theoryEl.hidden ? null : { where: theoryWhere.textContent, title: theoryTitle.textContent, text: theoryText.textContent, next: theoryNext.textContent },
-      arrows: arrows.visible, seen: JSON.parse(JSON.stringify(seen)),
+      arrows: arrows.visible, curve: curveEl.hidden ? null : { d: (curveLine.getAttribute('d') || '').length, dot: Number(curveDot.getAttribute('cx')), label: curveMax.textContent }, seen: JSON.parse(JSON.stringify(seen)),
       app: appMode, menu: { open: menu.isOpen, screen: menu.screen, item: menu.current ? menu.current.textContent.trim() : null },
       view: view.mode, sticksShown: !sticksEl.hidden, sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open,
       camera: { fov: camera.fov, pos: camera.position.toArray(), dir: camera.getWorldDirection(new THREE.Vector3()).toArray() } };
@@ -226,6 +226,7 @@ const partsOf = (c) => ['learn', 'watch', 'check', 'try'].filter((p) => (p === '
 const chapterEl = document.querySelector('#menu [data-screen=chapter]'), partsEl = document.getElementById('chapter-parts'), checkEl = document.querySelector('#menu [data-screen=check]'),
   checkQ = document.getElementById('check-q'), checkAnswers = document.getElementById('check-answers'), checkResult = document.getElementById('check-result'), checkNext = document.getElementById('check-next'),
   theoryEl = document.getElementById('theory'), theoryWhere = document.getElementById('theory-where'), theoryTitle = document.getElementById('theory-title'), theoryText = document.getElementById('theory-text'),
+  curveEl = document.getElementById('theory-curve'), curveLine = document.getElementById('curve-line'), curveDot = document.getElementById('curve-dot'), curveMax = document.getElementById('curve-max'),
   theoryPrev = document.getElementById('theory-prev'), theoryNext = document.getElementById('theory-next'), theoryKeys = document.getElementById('theory-keys');
 function renderChapter(first) {
   const c = chapter, n = LS.LESSONS.indexOf(c.lesson) + 1, done = seen[c.lesson.id] || {}, parts = partsOf(c);
@@ -596,6 +597,15 @@ function frame(now) {
     setText(theoryTitle, demo ? demo.card.title : 'Watch the test pilot');
     setText(theoryText, demo ? demo.card.text : 'It flies the lesson. Watch what the sticks do.');
     theoryPrev.hidden = !demo;
+    // The rates curve (acro card): rotation speed against stick position from the flight controller's own rates, with a dot where the stick is.
+    curveEl.hidden = !(demo && demo.def.curve);
+    if (!curveEl.hidden) {
+      const r = sim.fcCfg.rates.roll, top = actualRate(1, r), px = (x) => 6 + 188 * x, py = (v) => 100 - 84 * (v / top);
+      curveLine.setAttribute('d', Array.from({ length: 41 }, (_, k) => `${k ? 'L' : 'M'}${px(k / 40).toFixed(1)} ${py(actualRate(k / 40, r)).toFixed(1)}`).join(' '));
+      const x = Math.min(1, Math.abs(sticks.roll));
+      curveDot.setAttribute('cx', px(x).toFixed(1)); curveDot.setAttribute('cy', py(actualRate(x, r)).toFixed(1));
+      setText(curveMax, `${Math.round(top)}°/s at full stick`);
+    }
     setText(theoryNext, watching ? 'Skip' : c.i + 1 < c.ch.cards.length ? 'Next' : 'Done');
     setText(theoryKeys, padOn ? `${pn.select} ${watching ? 'skip' : 'next'}${demo ? ` · ${pn.back} back` : ''} · ${pn.pause} menu` : `Enter ${watching ? 'skip' : 'next'}${demo ? ' · Backspace back' : ''} · Esc menu`);
   }
