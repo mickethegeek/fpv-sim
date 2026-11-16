@@ -70,6 +70,18 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 | Heading tolerance | 20° either side | **UNSOURCED** | A judgement. `HEADING_TOL`. |
 | Lesson layout | hover box 3 x 3 m, 1 to 3 m up; cones 8.6 m out; far ring 12 m out | assumption | Sized so the quad stays readable in line-of-sight view (within about 17 m of the pilot). |
 
+## Look (M6b)
+These are not flight parameters; they are listed so every number on screen has a known origin.
+
+| What | Value | Status | Where from |
+|---|---|---|---|
+| Sun's width in the sky | 0.533° | cited | 1919 seconds of arc at 1 AU (1887 to 1952 over the year) [12]. `SUN_ANGULAR_DIAMETER` in `src/scene.js`. Sets the disc in the sky. |
+| Soft edge of a shadow | grows 0.93 cm per metre between object and shadow | derived | tan(0.533°). Used for how fast the quad's shadow fades with height (`quadShadowStrength`). |
+| Shadow position and length | object slid along the sun's rays onto the flat ground | derived | geometry; length = height / tan(sun elevation). Checked in the browser (18 m tower: 17.4 m). |
+| Sun elevation and direction | 46° up, behind the pilot's left shoulder | **UNSOURCED** | A choice (mid-morning or mid-afternoon sun, not in the pilot's eyes on the pad). `SUN_DIR` in `src/scene.js`. |
+| Haze | half of the contrast gone at about 800 m | **UNSOURCED** | A choice for depth cues; a real clear day has far less haze. Fog density in `buildScene`. |
+| Quad shadow size and darkness | a 0.2 m disc, 42 % darker grass | **UNSOURCED** | The disc is the quad's outline with spinning props; the darkness is a choice. |
+
 ## Sources
 
 1. Betaflight source, `src/main/fc/controlrate_profile.c`: https://github.com/betaflight/betaflight/blob/master/src/main/fc/controlrate_profile.c
@@ -83,6 +95,7 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 9. MultiGP shop, "Standard MultiGP Gate 5'x5'": https://shop.multigp.com/?p=569
 10. MultiGP shop, "Champ Size MultiGP Start - Finish Gate 7'x6'": https://shop.multigp.com/?p=615
 11. Met Office, "Beaufort wind force scale" (force 2, Light breeze: 4-6 knots, 2-3 m/s; "for m/s multiply by 0.514"): https://weather.metoffice.gov.uk/guides/coast-and-sea/beaufort-scale
+12. NASA NSSDC, "Sun Fact Sheet" (apparent diameter from Earth: at 1 A.U. 1919, maximum 1952, minimum 1887 seconds of arc): https://nssdc.gsfc.nasa.gov/planetary/factsheet/sunfact.html
 
 ## Still to source
 See `docs/feel.md`, note 6 (UNSOURCED list) and note 7 (beginner quad specs).
