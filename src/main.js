@@ -79,8 +79,13 @@ function lessonFrame(dt) {
   const s = sim.state;
   if (attempt.state === 'done' || attempt.state === 'failed') {
     // The next run starts once the quad is disarmed (after a landing, a crash or a reset).
-    if (!sim.armed && !s.crashed) attempt = LS.createAttempt(lesson);
-    else return;
+    if (sim.armed || s.crashed) return;
+    if (card && card.passedLesson) { // lesson passed: move on to the next one (free flight after the Ready check), keep the card up a while
+      const keep = card, next = LS.nextLesson(progress);
+      setLesson(next ? next.id : null);
+      card = keep; card.passedLesson = false; card.left = 8;
+      if (!lesson) return;
+    } else attempt = LS.createAttempt(lesson);
   }
   LS.attemptUpdate(attempt, { t: s.time, pos: s.pos, vel: s.vel, quat: s.quat, armed: sim.armed, crashed: s.crashed, onGround: s.onGround, mode: sim.mode, view: view.mode });
   if (attempt.state === 'running' && card) card = null;
@@ -166,6 +171,8 @@ const controllerEl = document.getElementById('controller');
 const keysEl = document.getElementById('keys');
 keysEl.innerHTML = KEY_HELP.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
 document.getElementById('btn-setup').addEventListener('click', (e) => { e.currentTarget.blur(); setup.start(); });
+const forgetEl = document.getElementById('btn-forget');
+forgetEl.addEventListener('click', (e) => { e.currentTarget.blur(); autoSetupFor = null; input.forget(input.gamepadId); });
 document.getElementById('btn-reset').addEventListener('click', (e) => { e.currentTarget.blur(); resetFlight(); });
 
 // Lessons panel.
@@ -373,6 +380,7 @@ function frame(now) {
     lessonLine.hidden = running;
   }
   if (card) { card.left -= dt; if (card.left <= 0 && !card.passedLesson) card = null; }
+  if (card && !lesson && sim.armed) card = null;
   cardEl.hidden = !card || setup.open;
   if (card) { setText(cardTitle, card.title); setText(cardText, card.text); cardEl.dataset.good = String(card.good); }
   guideArrow.style.transform = `rotate(${Math.round(rel / DEG)}deg)`;
@@ -386,6 +394,7 @@ function frame(now) {
   if (usesDefault) ctl += ` · ${names.arm} arm · ${names.mode} angle/acro · ${names.reset} reset · ${names.view} view`;
   if (setup.message) ctl += ` · ${setup.message}`;
   setText(controllerEl, ctl);
+  forgetEl.hidden = !(input.gamepadId && input.profiles[input.gamepadId]); // only for a controller with a saved setup
   keysEl.hidden = input.source !== 'keyboard';
   document.body.classList.toggle('flying', sim.armed);
   let hint = inp.hint;

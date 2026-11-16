@@ -235,6 +235,18 @@ export class InputManager {
       return true;
     } catch { return false; }
   }
+  // Forget the saved profile of one controller: a standard-layout pad goes back to the built-in default, a radio needs setup again.
+  forget(id) {
+    if (!this.profiles[id]) return false;
+    delete this.profiles[id];
+    if (this.mapping && (this.mapping.id || '') === id) this.mapping = null;
+    try {
+      const ls = this.win.localStorage, last = Object.keys(this.profiles)[0] || '';
+      ls.removeItem(OLD_STORAGE_KEY);
+      ls.setItem(STORAGE_KEY, JSON.stringify({ version: 2, last, profiles: this.profiles }));
+    } catch { /* storage unavailable */ }
+    return true;
+  }
   clear() {
     this.mapping = null;
     this.profiles = {};

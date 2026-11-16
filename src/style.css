@@ -78,3 +78,4 @@ button.lesson:disabled { opacity: .45; cursor: default; background: rgba(255,255
 button.lesson small { font-size: 12px; color: #dfe5ee; letter-spacing: .03em; }
 button.lesson.done b::after { content: ' ✓'; color: #6fe38a; }
 #badge { margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: #1f7a3a; font-weight: 700; text-align: center; }
+#btn-forget[hidden] { display: none; }

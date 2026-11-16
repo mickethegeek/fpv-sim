@@ -268,3 +268,19 @@ test('each controller keeps its own profile; the old single-mapping format is st
   assert.equal(isPlayStation('Xbox 360 Controller (XInput STANDARD GAMEPAD)'), false);
   assert.equal(buttonNames('Xbox 360 Controller').arm, 'RB');
 });
+
+test('"reset this controller" forgets one saved profile and leaves the others', () => {
+  const win = fakeWindow();
+  let inp = new InputManager(win);
+  const ps = { ...pad([0, 0, 0, 0], B()), id: 'DualSense Wireless Controller (STANDARD GAMEPAD Vendor: 054c Product: 0ce6)' };
+  const radio = { version: 1, id: 'Radio', deadzone: 0.05, axes: { throttle: { index: 2, sign: 1 }, yaw: { index: 3, sign: 1 }, pitch: { index: 1, sign: 1 }, roll: { index: 0, sign: 1 } }, arm: null, mode: null, reset: null };
+  inp.save(radio);
+  inp.save({ ...radio, id: ps.id }); // the PlayStation pad was put through the setup screen: treated as a radio
+  assert.notEqual(inp.mappingFor(ps).springThrottle, true);
+  assert.equal(inp.forget(ps.id), true);
+  assert.equal(inp.mappingFor(ps).springThrottle, true, 'back to the built-in PlayStation default');
+  assert.equal(inp.forget(ps.id), false, 'nothing left to forget');
+  inp = new InputManager(win);
+  assert.equal(inp.mappingFor(ps).springThrottle, true, 'still forgotten after a reload');
+  assert.deepEqual(inp.mappingFor({ id: 'Radio', mapping: '', axes: [0, 0, 0, 0] }), radio, 'the radio keeps its profile');
+});

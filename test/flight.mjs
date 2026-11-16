@@ -540,9 +540,10 @@ if (runs('M6L')) {
     && JSON.parse(await page.evaluate(() => localStorage.getItem('fpvsim.lessons.v1'))).takeoff.los.passed, `("${r.card.title}" · "${r.card.text}")`);
   await shot('45-m6-lesson1-passed');
 
-  // Lesson 2 by clicking it; nose toward you in line of sight.
-  await page.evaluate(() => window.__sim.arm(false)); await simWait(100);
-  await page.click('#lesson-list button[data-id=directions]');
+  // Lesson 2 comes up by itself once the quad is disarmed; nose toward you in line of sight.
+  await page.evaluate(() => window.__sim.arm(false)); await simWait(200);
+  s = await snap();
+  check('M6 after a pass the next lesson is selected by itself', s.lesson.id === 'directions' && s.lesson.state === 'ready' && /Lesson passed/.test(s.card.title), JSON.stringify(s.lesson));
   run = flyLesson();
   await until(() => window.__sim.attempt.step === 2 && window.__sim.attempt.hold > 1.5);
   s = await snap();
@@ -593,8 +594,26 @@ if (runs('M6L')) {
   check('M6 Ready check: one good run in light wind gives the real-drone ready badge', /REAL-DRONE READY/.test(r.card.title) && await page.isVisible('#badge') && r.wind && r.wind[0] === 2.6, `("${r.card.title}" · "${r.card.text}")`);
   await page.evaluate(() => window.__sim.arm(false)); await simWait(200);
   s = await snap();
-  check('M6 after the badge the page is in free flight', s.lesson === null || s.lesson.id === 'ready', JSON.stringify(s.lesson));
+  check('M6 after the badge the page goes to free flight; the pass is saved', s.lesson === null && s.progress.ready.any.passed && /Free flight/.test(await page.$eval('#lesson-list button.on', (b) => b.textContent)), JSON.stringify(s.lesson));
   await shot('54-m6-real-drone-ready-badge');
+
+  // "Reset this controller": a PlayStation pad that was put through the setup screen (so it is treated as a radio) gets its default back.
+  await page.evaluate(() => {
+    const pad = { id: 'DualSense Wireless Controller (test)', index: 0, connected: true, mapping: 'standard', timestamp: 0,
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [pad, null, null, null] });
+    window.__sim.useInput();
+    window.__sim.input.save({ version: 1, id: pad.id, deadzone: 0.05, axes: { throttle: { index: 1, sign: -1 }, yaw: { index: 0, sign: 1 }, pitch: { index: 3, sign: -1 }, roll: { index: 2, sign: 1 } }, arm: null, mode: null, reset: null });
+  });
+  await simWait(200);
+  s = await snap();
+  const radioThr = s.sticks.throttle, shown = await page.isVisible('#btn-forget');
+  await shot('55-m6-reset-this-controller');
+  await page.click('#btn-forget');
+  await simWait(200);
+  s = await snap();
+  check('M6 "Reset this controller" shows for a saved setup and gives the pad its default back (stick centre = hover again)', shown && Math.abs(radioThr - 0.5) < 0.01 && Math.abs(s.sticks.throttle - (await page.evaluate(() => window.__sim.config.hover))) < 1e-9
+    && !(await page.isVisible('#btn-forget')) && /R1 arm/.test(await page.textContent('#controller')), `(throttle at rest ${(radioThr * 100).toFixed(0)} % -> ${(s.sticks.throttle * 100).toFixed(1)} %)`);
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
