@@ -229,7 +229,7 @@ if (runs('M3')) {
   s = await fly({ ...neutral, throttle: thr(0.3) }, 600);
   const hudText = (await page.textContent('#hud')).replace(/\s+/g, ' ');
   check('M3 HUD shows armed, mode, throttle, speed', /ARMED/.test(hudText) && /ANGLE/.test(hudText) && /1[0-9]%/.test(hudText) && /km\/h/.test(hudText), `("${hudText.trim()}")`);
-  check('M3 side panel hides while armed', await page.evaluate(() => getComputedStyle(document.getElementById('panel')).opacity === '0' || document.body.classList.contains('flying')));
+  check('M3 the menu note in the corner fades while armed', await page.evaluate(() => document.body.classList.contains('flying') && getComputedStyle(document.getElementById('corner')).transitionProperty.includes('opacity')));
   await shot('15-m3-hover-3m');
   s = await fly({ ...neutral, throttle: thr(0.42), pitch: 0.45 }, 3500);
   check('M3 cruising forward over the field', s.pos[2] < -10 && !s.crashed, `(${(Math.hypot(...s.vel) * 3.6).toFixed(0)} km/h, alt ${s.pos[1].toFixed(1)} m)`);
