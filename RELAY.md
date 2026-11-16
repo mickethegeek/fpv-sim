@@ -4,7 +4,7 @@ You are one leg of a relay building Mike's FPV simulator. A scheduled task start
 
 ## 1. Start
 1. Read `PLAN.md`, `PROGRESS.md`, `RELAY.md` in full.
-2. **Done?** If `PROGRESS.md` says `Status: DONE`: turn off this scheduled task (list_triggers, find "FPV sim relay", update_trigger enabled=false) and stop.
+2. **Done?** If `PROGRESS.md` says `Status: DONE`: turn off this scheduled task (list_triggers, find every scheduled task whose name starts with "FPV sim relay" (the main one and the backup), update_trigger enabled=false on each) and stop.
 3. **Lock.** If a file `LOCK` exists on main **and the newest commit on main is less than 25 minutes old**, another leg is working: stop without changing anything. (Working legs push at least every 15 minutes, so a lock with no commit for 25 minutes belongs to a leg that died: take it over.) Otherwise write `LOCK` with the current UTC time, commit "lock", push. If the push is rejected, someone else just took it: stop.
 
 ## 2. Work
@@ -19,7 +19,7 @@ You are one leg of a relay building Mike's FPV simulator. A scheduled task start
 1. Update `Next:` and `Status:` (`IN PROGRESS` or `DONE`) in `PROGRESS.md`.
 2. Delete `LOCK`. Commit, push.
 3. If you just ticked **M3** or **M7**: send Mike a SendUserMessage, 4 lines max: what he can do now, the live link, the single thing you most want him to try or decide. (After M7: also how to plug in his controller.)
-4. If this was M7: set `Status: DONE`, turn off the scheduled task.
+4. If this was M7: set `Status: DONE`, turn off both "FPV sim relay" scheduled tasks (main and backup).
 5. **Chain the next leg.** If `Status` is not `DONE`, start the next leg right away: list_triggers, find "FPV sim relay", then fire_trigger on it. Do this as your very last action, after the lock is deleted and pushed. If the fire fails (for example a usage limit), do nothing else: the hourly run at :45 restarts the relay.
 
 ## If tool checks fail ("auto mode classifier gave no verdict")
