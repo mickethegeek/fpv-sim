@@ -5,7 +5,7 @@ import { PHYSICS_HZ, attitude, rotate } from './physics.js';
 import { MODES } from './flightcontroller.js';
 import { createSim, resetSim, simAdvance } from './sim.js';
 import { DEG } from './params.js';
-import { InputManager, KEY_HELP } from './input.js';
+import { InputManager, KEY_HELP, buttonNames } from './input.js';
 import { SetupScreen } from './setup.js';
 import { createWorld } from './world.js';
 import { buildScene, buildGates, buildQuadModel, verticalFov } from './scene.js';
@@ -44,6 +44,7 @@ function applyTuning(next, save = true) {
 }
 let scripted = false; // true once the flight script drives the sticks directly (window.__sim.setSticks)
 let crashTimer = 0;
+let autoSetupFor = null; // id of the controller the setup screen was opened for automatically (once per controller)
 let crashes = 0;
 
 // Gate course and lap timer. The best lap is kept in the browser (localStorage), per course.
@@ -155,6 +156,8 @@ function frame(now) {
 
   setup.update(dt);
   const inp = input.update(dt);
+  // A controller with no standard layout and no saved profile (a USB radio): open the setup screen by itself, once.
+  if (input.needsSetup && !setup.open && autoSetupFor !== input.gamepadId) { autoSetupFor = input.gamepadId; setup.start(); }
   if (!scripted) {
     Object.assign(sticks, inp.sticks);
     for (const ev of inp.events) { if (ev === 'mode') toggleMode(); else if (ev === 'reset') resetFlight(); }
@@ -233,7 +236,9 @@ function frame(now) {
   toastEl.hidden = !toast;
   if (toast) { setText(toastEl, toast.text); toastEl.dataset.best = String(toast.best); }
   let ctl = 'Keyboard (no controller found: plug one in and press a button)';
+  const names = buttonNames(input.gamepadId), usesDefault = input.gamepadId && !input.needsSetup && !input.profiles[input.gamepadId];
   if (input.gamepadId) ctl = input.needsSetup ? `Controller needs setup: ${input.gamepadId}` : `Controller: ${input.gamepadId}`;
+  if (usesDefault) ctl += ` · ${names.arm} arm · ${names.mode} angle/acro · ${names.reset} reset`;
   if (setup.message) ctl += ` · ${setup.message}`;
   setText(controllerEl, ctl);
   keysEl.hidden = input.source !== 'keyboard';
@@ -241,7 +246,7 @@ function frame(now) {
   let hint = inp.hint;
   if (s.crashed) hint = `Crashed${s.crashedInto && s.crashedInto !== 'ground' ? ' into a ' + s.crashedInto : ''}. Resetting…`;
   else if (!sim.armed && !hint && !setup.open && !scripted) {
-    hint = input.source === 'gamepad' ? 'Throttle down, then arm to fly' : 'Press Space to arm, then hold W to take off';
+    hint = input.source === 'gamepad' ? (usesDefault ? `Pull the left stick down and press ${names.arm} to arm` : 'Throttle down, then arm to fly') : 'Press Space to arm, then hold W to take off';
   }
   hintEl.hidden = !hint;
   if (hint) setText(hintEl, hint);

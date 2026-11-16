@@ -139,7 +139,7 @@ if (runs('M2')) {
   const button = (i, on) => page.evaluate(([j, v]) => { window.__pad.buttons[j] = { pressed: v, value: v ? 1 : 0 }; }, [i, on]);
   await simWait(200);
   check('M2 unknown controller is detected and asks for setup', (await page.textContent('#controller')).includes('needs setup'), `("${await page.textContent('#controller')}")`);
-  await page.click('#btn-setup');
+  check('M6 setup screen opens by itself for a controller with no standard layout', (await snap()).setupOpen);
   await simWait(900);
   check('M2 setup screen asks for throttle first', (await page.textContent('#setup .prompt')).includes('THROTTLE'));
   await shot('09-m2-setup-throttle');
@@ -160,7 +160,7 @@ if (runs('M2')) {
   await shot('11-m2-setup-mode');
   await button(0, true); await simWait(150); await button(0, false);          // mode = push button
   await page.waitForFunction(() => !window.__sim.setup.open, null, { timeout: 15000 });
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fpvsim.controller.v1')));
+  const saved = await page.evaluate(() => (JSON.parse(localStorage.getItem('fpvsim.controllers.v2')) || { profiles: {} }).profiles['Test Radio (USB Joystick)'] || null);
   const want = { throttle: { index: 2, sign: -1 }, yaw: { index: 3, sign: -1 }, pitch: { index: 1, sign: 1 }, roll: { index: 0, sign: 1 } };
   check('M2 setup saved the right axes and inversions', JSON.stringify(saved && saved.axes) === JSON.stringify(want), JSON.stringify(saved && saved.axes));
   check('M2 setup saved arm switch and mode button', saved && saved.arm.type === 'axis' && saved.arm.index === 4 && saved.mode.type === 'button' && saved.mode.kind === 'toggle', JSON.stringify(saved && [saved.arm, saved.mode]));
@@ -417,9 +417,9 @@ if (runs('M5')) {
   let s = await snap();
   check('M5 PlayStation pad at rest gives hover throttle, no setup needed', s.source === 'gamepad' && Math.abs(s.sticks.throttle - t.hover) < 1e-9 && !s.setupOpen, `(throttle ${(s.sticks.throttle * 100).toFixed(1)} %)`);
   await page.evaluate(() => { window.__pad.axes = [0, 1, 0, 0]; }); await simWait(100);          // throttle stick down
-  await page.evaluate(() => { window.__pad.buttons[0] = { pressed: true, value: 1 }; }); await simWait(100);
-  await page.evaluate(() => { window.__pad.buttons[0] = { pressed: false, value: 0 }; }); await simWait(100);
-  check('M5 pad: stick down then the arm button arms', (await snap()).armed);
+  await page.evaluate(() => { window.__pad.buttons[5] = { pressed: true, value: 1 }; }); await simWait(100);
+  await page.evaluate(() => { window.__pad.buttons[5] = { pressed: false, value: 0 }; }); await simWait(100);
+  check('M5 pad: stick down then R1 arms', (await snap()).armed);
   await page.evaluate(() => { window.__pad.axes = [0, -0.5, 0, 0]; }); await simWait(1500);      // push up: climb
   await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0]; }); await simWait(2500);         // let go: should settle near hover
   s = await snap();
@@ -428,8 +428,12 @@ if (runs('M5')) {
   s = await snap();
   check('M5 pad: let go of the stick and the quad hovers (angle mode)', s.armed && !s.crashed && y0 > 1 && Math.abs(s.pos[1] - y0) < 1.5 && Math.abs(s.vel[1]) < 0.6, `(alt ${y0.toFixed(1)} -> ${s.pos[1].toFixed(1)} m, vertical ${s.vel[1].toFixed(2)} m/s)`);
   await shot('34-m5-pad-hands-off-hover');
-  await page.evaluate(() => { window.__pad.buttons[1] = { pressed: true, value: 1 }; }); await simWait(100);
-  await page.evaluate(() => { window.__pad.buttons[1] = { pressed: false, value: 0 }; }); await simWait(200);
+  await page.evaluate(() => { window.__pad.buttons[9] = { pressed: true, value: 1 }; }); await simWait(100);
+  await page.evaluate(() => { window.__pad.buttons[9] = { pressed: false, value: 0 }; }); await simWait(200);
+  s = await snap();
+  const padLabel = await page.textContent('#controller'), padHint = await page.textContent('#hint');
+  check('M6 pad: Options resets; PlayStation button names on screen', !s.armed && s.onGround && /R1 arm · L1 angle\/acro · Options reset/.test(padLabel) && /press R1 to arm/.test(padHint), `("${padHint}")`);
+  await shot('37-m6-playstation-names');
 
   // Sliders change the sim, survive a reload, and Reset to default undoes them.
   await page.selectOption('#tune-preset', 'freestyle');

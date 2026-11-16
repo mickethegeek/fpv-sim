@@ -35,7 +35,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - Until M3 the page shows a chase camera and a placeholder quad model; `window.__sim` is the test hook (set sticks, arm, mode, snapshot) and `sticks` in `src/main.js` is where M2 plugs in the controller.
 - GitHub Pages could not be switched on through the API; Mike is turning it on by hand (told to the relay at 09:55 UTC). The live link may not be up yet.
 - Arming follows Betaflight: refused while throttle is above 10 %, with an on-screen hint. On a sprung gamepad stick (rests at 50 %) the pilot pulls throttle down to arm. An arm switch that is already on at page load or after a crash must be flipped off and on. Change `ARM_THROTTLE_MAX` in `src/input.js`.
-- A "standard"-layout gamepad works without setup (Mode 2: left stick throttle/yaw, right stick pitch/roll, A arm, Y angle/acro, B reset). Anything else (USB radios) goes through the setup screen. Arm and mode can each be a push button, a held switch or a switch on an axis.
+- A "standard"-layout gamepad works without setup (Mode 2: left stick throttle/yaw, right stick pitch/roll, R1 arm, L1 angle/acro, Options reset; changed from A / Y / B at 11:25 to follow PLAN). Anything else (USB radios) goes through the setup screen. Arm and mode can each be a push button, a held switch or a switch on an axis.
 - Keyboard: W/S move the throttle and it stays put; arrows and A/D spring back. First connected controller wins over the keyboard.
 - M2 was verified with a simulated controller (the page's `navigator.getGamepads` replaced in Chrome), not real hardware: the sandbox has no USB. Mike's real controller is the first true test.
 - FOV setting is the horizontal field of view, 115° (82.9° vertical at 16:9). Uptilt 25°. Both are PLAN.md values, not sourced; in `view` in `src/main.js` until M6 adds settings.
@@ -56,7 +56,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - **Trainer is the preset on a first visit** ("beginners start there"); the choice is saved in the browser. `?preset=freestyle` in the link forces the other one. Change `DEFAULT_PRESET` in `src/params.js`.
 - PlayStation throttle: stick centre = the preset's hover throttle, bottom = 0, top = full, expo 0 (Betaflight default). Because the resting stick is above the 10 % arming limit, the pilot pulls the stick down to arm (hint on screen).
 - Motor idle 5.5 % (Betaflight default). Gamepad deadzone stays 5 %: UNSOURCED, slider in the panel.
-- A controller mapped through the setup screen is treated as a radio (linear throttle). A PlayStation pad that Mike runs through setup would lose the hover-centre throttle until M6 adds per-controller profiles.
+- A controller mapped through the setup screen is treated as a radio (linear throttle), also when it is a PlayStation pad: the setup screen does not ask whether the throttle stick springs back. To get the default back, clear the site data. A "reset this controller" button is still to do.
 
 ## Notes for the next leg
 - After any physics or controller change: `node test/feel.mjs` and update the tables in `docs/feel.md`.
@@ -97,3 +97,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-16 11:02 UTC · M5: thrust = command^1.25 fitted to a 2207 6S bench table (hover 30 → 13 %), throttle limit + Trainer / Freestyle presets, Feel tuning panel (8 sliders, Reset to default, saved), PlayStation stick centre = hover; 42 unit tests · next: docs, full browser run
 - 2026-11-16 11:12 UTC · M5 ticked: docs/feel.md and docs/physics.md updated with the new sources and UNSOURCED marks, idle set to Betaflight's 5.5 % (hover 12.6 %), full browser run 72 checks, proof/M5/33 to 36; real flight-log sources scouted · next: real-data pass (log replay, Trainer on a real quad), then M6
 - 2026-11-16 11:17 UTC · real-data pass: second 2207 6S thrust table read directly (exponent 1.45 against 1.24), middle 1.35 used, hover now 15.2 % (Trainer 21.7 %); real race-quad Betaflight settings found; flight-log replay tried and not possible from the sandbox (web tool keeps no binary files), written up in docs/feel.md note 6 · next: M6
+- 2026-11-16 11:25 UTC · M6 PlayStation checklist: arm on R1, angle/acro on L1, reset on Options, names shown on screen, one saved profile per controller (old saved mapping still read), setup opens by itself for a non-standard controller; 43 unit tests, 74 browser checks · next: M6 stick overlay, line-of-sight view, lessons

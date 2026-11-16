@@ -2,18 +2,22 @@
 // The mapping logic and the setup wizard state machine are pure (unit-tested in node);
 // only InputManager touches navigator/window/localStorage.
 //
-// Mapping format (saved in localStorage under STORAGE_KEY):
+// Each controller keeps its own profile, keyed by its id (a PlayStation pad and a USB radio do not share settings).
+// Saved in localStorage under STORAGE_KEY as { version: 2, last: <id>, profiles: { <id>: mapping } }.
+// Mapping format:
 //   { version: 1, id: <gamepad id>, deadzone: 0.05,
 //     axes: { throttle: {index, sign}, yaw: {...}, pitch: {...}, roll: {...} },   // sign: +1 or -1
 //     arm:  null | {type:'button', index, kind:'toggle'|'switch'} | {type:'axis', index, sign},
 //     mode: same shape as arm (on = acro), reset: same shape or null }
 // Stick conventions out: see flightcontroller.js (pitch + = forward, throttle 0..1).
 
-export const STORAGE_KEY = 'fpvsim.controller.v1';
+export const STORAGE_KEY = 'fpvsim.controllers.v2';
+const OLD_STORAGE_KEY = 'fpvsim.controller.v1'; // one mapping for every controller (read once, then replaced)
 export const DEFAULT_DEADZONE = 0.05;
 
 // Mode 2 on a "standard" layout gamepad: left stick = throttle/yaw, right stick = pitch/roll.
-// Stick up reads -1 on gamepads, hence the -1 signs. A = arm, Y = angle/acro, B = reset.
+// Stick up reads -1 on gamepads, hence the -1 signs. Buttons (standard layout indices): R1 (5) = arm,
+// L1 (4) = angle/acro, Options (9) = reset. Shoulder buttons, so both thumbs stay on the sticks.
 export function defaultMapping(id = '') {
   return {
     version: 1, id, deadzone: DEFAULT_DEADZONE,
@@ -21,11 +25,18 @@ export function defaultMapping(id = '') {
       throttle: { index: 1, sign: -1 }, yaw: { index: 0, sign: 1 },
       pitch: { index: 3, sign: -1 }, roll: { index: 2, sign: 1 },
     },
-    arm: { type: 'button', index: 0, kind: 'toggle' },
-    mode: { type: 'button', index: 3, kind: 'toggle' },
-    reset: { type: 'button', index: 1, kind: 'toggle' },
+    arm: { type: 'button', index: 5, kind: 'toggle' },
+    mode: { type: 'button', index: 4, kind: 'toggle' },
+    reset: { type: 'button', index: 9, kind: 'toggle' },
     springThrottle: true, // gamepad sticks snap back to the middle: stick centre gives "throttle mid" (about hover)
   };
+}
+
+// Is this a PlayStation controller (DualShock 4 / DualSense)? Sony's USB vendor id is 054c.
+export function isPlayStation(id = '') { return /054c|dualsense|dualshock|playstation|ps[345] controller|wireless controller/i.test(id); }
+// What to call the default buttons on screen.
+export function buttonNames(id = '') {
+  return isPlayStation(id) ? { arm: 'R1', mode: 'L1', reset: 'Options' } : { arm: 'RB', mode: 'LB', reset: 'Start' };
 }
 
 export function applyDeadzone(v, dz) {
@@ -199,19 +210,33 @@ export class InputManager {
     win.addEventListener('blur', () => this.keys.clear());
   }
 
+  // Reads every saved profile into this.profiles; returns the one used last (or null).
   load() {
+    this.profiles = {};
     try {
-      const m = JSON.parse(this.win.localStorage.getItem(STORAGE_KEY));
-      return mappingValid(m) ? m : null;
-    } catch { return null; }
+      const ls = this.win.localStorage;
+      const saved = JSON.parse(ls.getItem(STORAGE_KEY));
+      if (saved && saved.version === 2 && saved.profiles) {
+        for (const [id, m] of Object.entries(saved.profiles)) if (mappingValid(m)) this.profiles[id] = m;
+        return this.profiles[saved.last] || null;
+      }
+      const old = JSON.parse(ls.getItem(OLD_STORAGE_KEY));
+      if (mappingValid(old)) { this.profiles[old.id || ''] = old; return old; }
+    } catch { /* storage unavailable or damaged */ }
+    return null;
   }
   save(mapping) {
     this.mapping = mapping;
-    try { this.win.localStorage.setItem(STORAGE_KEY, JSON.stringify(mapping)); return true; } catch { return false; }
+    this.profiles[mapping.id || ''] = mapping;
+    try {
+      this.win.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, last: mapping.id || '', profiles: this.profiles }));
+      return true;
+    } catch { return false; }
   }
   clear() {
     this.mapping = null;
-    try { this.win.localStorage.removeItem(STORAGE_KEY); } catch { /* storage unavailable */ }
+    this.profiles = {};
+    try { this.win.localStorage.removeItem(STORAGE_KEY); this.win.localStorage.removeItem(OLD_STORAGE_KEY); } catch { /* storage unavailable */ }
   }
 
   onKey(e, down) {
@@ -234,9 +259,9 @@ export class InputManager {
     return pads.find((p) => p && p.connected !== false && p.axes && p.axes.length >= 2) || null;
   }
 
-  // Mapping in use for this pad: saved one, else the Mode 2 default for standard-layout pads.
+  // Mapping in use for this pad: its own saved profile, else the Mode 2 default for standard-layout pads.
   mappingFor(pad) {
-    if (this.mapping) return this.mapping;
+    if (this.profiles[pad.id]) return this.profiles[pad.id];
     if (pad.mapping === 'standard' && pad.axes.length >= 4) return defaultMapping(pad.id);
     return null;
   }

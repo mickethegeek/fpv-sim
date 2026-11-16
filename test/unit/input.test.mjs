@@ -108,6 +108,7 @@ function fakeWindow({ storageThrows = false } = {}) {
   };
   return win;
 }
+const B = (...on) => Array.from({ length: 17 }, (_, i) => on.includes(i)); // standard pad buttons, the listed ones pressed
 const pad = (axes, buttons = [], mapping = 'standard') => ({ id: 'Fake Pad', connected: true, mapping, axes, buttons: buttons.map((p) => ({ pressed: p, value: p ? 1 : 0 })) });
 
 test('keyboard arming: Space toggles; refused while throttle is up', () => {
@@ -130,21 +131,21 @@ test('keyboard arming: Space toggles; refused while throttle is up', () => {
 test('gamepad: standard pad works without setup; A arms only with throttle low; Y toggles mode; B resets', () => {
   const win = fakeWindow();
   const inp = new InputManager(win);
-  win.pads = [pad([0, 0, 0, 0], [false, false, false, false])];
+  win.pads = [pad([0, 0, 0, 0], B())];
   inp.update(0.016);
   assert.equal(inp.source, 'gamepad');
-  win.pads = [pad([0, 0, 0, 0], [true, false, false, false])];   // throttle at 50 %: refuse
+  win.pads = [pad([0, 0, 0, 0], B(5))];   // throttle at 50 %: refuse
   let r = inp.update(0.016);
   assert.equal(r.armed, false); assert.equal(r.hint, ARM_HINT);
-  win.pads = [pad([0, 1, 0, 0], [false, false, false, false])];
+  win.pads = [pad([0, 1, 0, 0], B())];
   inp.update(0.016);
-  win.pads = [pad([0, 1, 0, 0], [true, false, false, true])];    // throttle low: arm; Y: mode
+  win.pads = [pad([0, 1, 0, 0], B(5, 4))];    // throttle low: R1 arms; L1: mode
   r = inp.update(0.016);
   assert.equal(r.armed, true);
   assert.deepEqual(r.events, ['mode']);
   r = inp.update(0.016);                                         // held: no repeat
   assert.equal(r.armed, true); assert.deepEqual(r.events, []);
-  win.pads = [pad([0, -1, 0, 0], [false, true, false, false])];  // B: reset; throttle up while armed is fine
+  win.pads = [pad([0, -1, 0, 0], B(9))];  // Options: reset; throttle up while armed is fine
   r = inp.update(0.016);
   assert.equal(r.armed, true); assert.deepEqual(r.events, ['reset']); near(r.sticks.throttle, 1);
 });
@@ -187,7 +188,7 @@ test('localStorage that throws does not break input', () => {
 });
 
 // --- M5: spring-centred throttle and feel tuning ---
-import { throttleCurve } from '../../src/input.js';
+import { throttleCurve, buttonNames, isPlayStation } from '../../src/input.js';
 import { defaultTuning, sanitizeTuning, buildConfig, loadTuning, saveTuning, TUNING_KEY } from '../../src/tuning.js';
 import { hoverStick, defaultQuad as dq, defaultFc as dfc, PRESETS } from '../../src/params.js';
 import { createSim as mkSim, simSteps as steps } from '../../src/sim.js';
@@ -241,4 +242,29 @@ test('tuning: sliders change the sim numbers, bad stored values are cleaned, sav
   assert.deepEqual(loadTuning(st), c.tuning);
   assert.equal(loadTuning({ getItem() { throw new Error('blocked'); } }), null);
   assert.ok(store.has(TUNING_KEY));
+});
+
+test('each controller keeps its own profile; the old single-mapping format is still read; PlayStation names', () => {
+  const win = fakeWindow();
+  let inp = new InputManager(win);
+  const radio = { version: 1, id: 'Radio', deadzone: 0.05, axes: { throttle: { index: 2, sign: 1 }, yaw: { index: 3, sign: 1 }, pitch: { index: 1, sign: 1 }, roll: { index: 0, sign: 1 } }, arm: null, mode: null, reset: null };
+  inp.save(radio);
+  inp = new InputManager(win);
+  const ps = { ...pad([0, 0, 0, 0], B()), id: 'DualSense Wireless Controller (STANDARD GAMEPAD Vendor: 054c Product: 0ce6)' };
+  assert.equal(inp.mappingFor(ps).springThrottle, true, 'the radio profile must not be used for the PlayStation pad');
+  assert.equal(inp.mappingFor(ps).arm.index, 5);
+  assert.deepEqual(inp.mappingFor({ id: 'Radio', mapping: '', axes: [0, 0, 0, 0] }), radio);
+  assert.equal(inp.mappingFor({ id: 'Other radio', mapping: '', axes: [0, 0, 0, 0] }), null);
+  const custom = { ...defaultMapping(ps.id), deadzone: 0.1 };
+  inp.save(custom);
+  inp = new InputManager(win);
+  assert.equal(inp.mappingFor(ps).deadzone, 0.1);
+  assert.deepEqual(inp.mappingFor({ id: 'Radio', mapping: '', axes: [0, 0, 0, 0] }), radio);
+  // Old format.
+  const win2 = fakeWindow();
+  win2.localStorage.setItem('fpvsim.controller.v1', JSON.stringify(radio));
+  assert.deepEqual(new InputManager(win2).mappingFor({ id: 'Radio', mapping: '', axes: [0, 0, 0, 0] }), radio);
+  assert.deepEqual(buttonNames(ps.id), { arm: 'R1', mode: 'L1', reset: 'Options' });
+  assert.equal(isPlayStation('Xbox 360 Controller (XInput STANDARD GAMEPAD)'), false);
+  assert.equal(buttonNames('Xbox 360 Controller').arm, 'RB');
 });
