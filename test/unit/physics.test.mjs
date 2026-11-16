@@ -38,9 +38,9 @@ test('free fall accelerates at g', () => {
   assert.equal(s.vel[0], 0); assert.equal(s.vel[2], 0);
 });
 
-test('hover throttle is 20 to 35 % and actually hovers', () => {
+test('hover throttle is 12 to 22 % and actually hovers', () => {
   const t = hoverThrottle();
-  assert.ok(t > 0.20 && t < 0.35, `hover throttle ${t}`);
+  assert.ok(t > 0.12 && t < 0.22, `hover throttle ${t}`);
   const sim = airborne(MODES.ANGLE);
   simSteps(sim, sticks({ throttle: t }), 3000);
   assert.ok(Math.abs(sim.state.pos[1] - 200) < 0.5, `drifted to ${sim.state.pos[1]}`);

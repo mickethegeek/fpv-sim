@@ -4,6 +4,7 @@
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { serve } from '../tools/serve.mjs';
+import { stickForThrust } from '../src/params.js';
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -51,6 +52,9 @@ const simWait = async (ms) => {
 };
 const fly = async (sticks, ms) => { await page.evaluate((s) => window.__sim.setSticks(s), sticks); await simWait(ms); return snap(); };
 const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
+// The open-loop throttles below were written when thrust went with command squared (hover at 30 % stick).
+// thr(old) gives the stick with the same thrust on today's curve, so the flights stay the same.
+const thr = (old) => stickForThrust(9 * (0.05 + 0.95 * old) ** 2);
 
 // --- M1: the physics core runs in the browser (same modules as the unit tests) ---
 if (runs('M1')) {
@@ -58,24 +62,24 @@ if (runs('M1')) {
   let s = await fly(neutral, 300);
   check('M1 sits on the ground disarmed', s.onGround && !s.armed && Math.abs(s.pos[1] - 0.05) < 1e-6, `(alt ${s.pos[1].toFixed(3)} m)`);
   await page.evaluate(() => window.__sim.arm(true));
-  s = await fly({ ...neutral, throttle: 0.5 }, 1200);
+  s = await fly({ ...neutral, throttle: thr(0.5) }, 1200);
   check('M1 takes off at 50 % throttle', s.pos[1] > 1 && !s.crashed, `(alt ${s.pos[1].toFixed(2)} m, climb ${s.vel[1].toFixed(2)} m/s)`);
   await shot('02-m1-takeoff');
-  s = await fly({ ...neutral, throttle: 0.3 }, 1500);
-  check('M1 near hover at 30 % throttle', Math.abs(s.vel[1]) < 3 && Math.abs(s.rollDeg) < 3 && Math.abs(s.pitchDeg) < 3, `(vertical ${s.vel[1].toFixed(2)} m/s, roll ${s.rollDeg.toFixed(1)}, pitch ${s.pitchDeg.toFixed(1)})`);
+  s = await fly({ ...neutral, throttle: thr(0.3) }, 1500);
+  check('M1 near hover at hover throttle', Math.abs(s.vel[1]) < 3 && Math.abs(s.rollDeg) < 3 && Math.abs(s.pitchDeg) < 3, `(vertical ${s.vel[1].toFixed(2)} m/s, roll ${s.rollDeg.toFixed(1)}, pitch ${s.pitchDeg.toFixed(1)})`);
   const z0 = s.pos[2];
-  s = await fly({ ...neutral, throttle: 0.4, pitch: 0.4 }, 1500);
+  s = await fly({ ...neutral, throttle: thr(0.4), pitch: 0.4 }, 1500);
   check('M1 angle mode: stick forward tilts nose down and flies forward', s.pitchDeg < -15 && s.pitchDeg > -30 && s.pos[2] < z0 - 2, `(pitch ${s.pitchDeg.toFixed(1)} deg, moved ${(z0 - s.pos[2]).toFixed(1)} m, ${(Math.hypot(...s.vel) * 3.6).toFixed(0)} km/h)`);
   await shot('03-m1-forward-angle');
-  s = await fly({ ...neutral, throttle: 0.6 }, 1500);
+  s = await fly({ ...neutral, throttle: thr(0.6) }, 1500);
   check('M1 angle mode: self-levels on release', Math.abs(s.pitchDeg) < 3 && Math.abs(s.rollDeg) < 3, `(pitch ${s.pitchDeg.toFixed(1)}, roll ${s.rollDeg.toFixed(1)})`);
   await page.evaluate(() => window.__sim.setMode('acro'));
   const r0 = await snap();
-  s = await fly({ ...neutral, throttle: 0.6, roll: 1 }, 400);
+  s = await fly({ ...neutral, throttle: thr(0.6), roll: 1 }, 400);
   const rollRate = -s.omega[2] * 180 / Math.PI;
   check('M1 acro: full roll stick spins at about 670 deg/s', Math.abs(rollRate - 670) < 40, `(${rollRate.toFixed(0)} deg/s)`);
   await shot('04-m1-acro-roll');
-  s = await fly({ ...neutral, throttle: 0.6 }, 600);
+  s = await fly({ ...neutral, throttle: thr(0.6) }, 600);
   check('M1 acro: holds attitude with sticks centred (no self-level)', Math.abs(s.omega[2]) < 0.2, `(roll ${s.rollDeg.toFixed(0)} deg, rate ${(s.omega[2] * 57.3).toFixed(1)} deg/s)`);
   await shot('05-m1-acro-hold');
   await page.evaluate(() => window.__sim.arm(false));
@@ -216,32 +220,32 @@ if (runs('M3')) {
 
   // Fly it from the script: hover, cruise, look around.
   await page.evaluate(() => { window.__sim.place(0, 3, 6, 0); window.__sim.arm(true); });
-  s = await fly({ ...neutral, throttle: 0.3 }, 600);
+  s = await fly({ ...neutral, throttle: thr(0.3) }, 600);
   const hudText = (await page.textContent('#hud')).replace(/\s+/g, ' ');
-  check('M3 HUD shows armed, mode, throttle, speed', /ARMED/.test(hudText) && /ANGLE/.test(hudText) && /30%/.test(hudText) && /km\/h/.test(hudText), `("${hudText.trim()}")`);
+  check('M3 HUD shows armed, mode, throttle, speed', /ARMED/.test(hudText) && /ANGLE/.test(hudText) && /1[5-9]%/.test(hudText) && /km\/h/.test(hudText), `("${hudText.trim()}")`);
   check('M3 side panel hides while armed', await page.evaluate(() => getComputedStyle(document.getElementById('panel')).opacity === '0' || document.body.classList.contains('flying')));
   await shot('15-m3-hover-3m');
-  s = await fly({ ...neutral, throttle: 0.42, pitch: 0.45 }, 3500);
+  s = await fly({ ...neutral, throttle: thr(0.42), pitch: 0.45 }, 3500);
   check('M3 cruising forward over the field', s.pos[2] < -10 && !s.crashed, `(${(Math.hypot(...s.vel) * 3.6).toFixed(0)} km/h, alt ${s.pos[1].toFixed(1)} m)`);
   await shot('16-m3-cruise');
   await page.evaluate(() => { window.__sim.place(40, 6, -30, 90); window.__sim.arm(true); });   // facing the barn
-  await fly({ ...neutral, throttle: 0.3 }, 500);
+  await fly({ ...neutral, throttle: thr(0.3) }, 500);
   await shot('17-m3-barn-and-poles');
   await page.evaluate(() => { window.__sim.place(0, 25, 40, 0); window.__sim.setMode('acro'); window.__sim.arm(true); });
-  await fly({ ...neutral, throttle: 0.3 }, 300);
-  s = await fly({ ...neutral, throttle: 0.3, roll: 0.25 }, 250);
-  s = await fly({ ...neutral, throttle: 0.3 }, 100);
+  await fly({ ...neutral, throttle: thr(0.3) }, 300);
+  s = await fly({ ...neutral, throttle: thr(0.3), roll: 0.25 }, 250);
+  s = await fly({ ...neutral, throttle: thr(0.3) }, 100);
   check('M3 acro: banked view stays banked', Math.abs(s.rollDeg) > 12, `(roll ${s.rollDeg.toFixed(0)} deg)`);
   await shot('18-m3-acro-banked-25m');
   await page.evaluate(() => { window.__sim.view.chase = true; });
-  await fly({ ...neutral, throttle: 0.3 }, 300);
+  await fly({ ...neutral, throttle: thr(0.3) }, 300);
   await shot('19-m3-outside-view');
   await page.evaluate(() => { window.__sim.view.chase = false; window.__sim.setMode('angle'); });
 
   // Crash into a pole: crash shown, short pause, automatic reset to the pad, disarmed.
   const before = (await snap()).crashes;
   await page.evaluate(() => { window.__sim.place(-10, 2.5, -4, 0); window.__sim.arm(true); });   // pole at (-10, -12) dead ahead
-  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: 0.33, pitch: 0.3 });
+  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: thr(0.33), pitch: 0.3 });
   await page.waitForFunction(() => window.__sim.snapshot().crashed, null, { timeout: 60000, polling: 20 });
   s = await snap();
   check('M3 hitting a pole is a crash', s.crashed && s.crashedInto === 'pole' && Math.abs(s.pos[2] + 12) < 0.6, `(into ${s.crashedInto} at z ${s.pos[2].toFixed(1)})`);
@@ -292,10 +296,10 @@ if (runs('M4')) {
 
   // Through gate 1: the clock starts and the highlight moves to gate 2.
   await page.evaluate(() => { window.__sim.place(0, 1.2, -14, 0); window.__sim.arm(true); });
-  await fly({ ...neutral, throttle: 0.3 }, 300);
+  await fly({ ...neutral, throttle: thr(0.3) }, 300);
   check('M4 guide to the next gate shows while armed', await page.isVisible('#guide') && /gate 1 · \d+ m/i.test(await page.textContent('#guide')), `("${await page.textContent('#guide')}")`);
   await shot('23-m4-approaching-gate-1');
-  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: 0.31, pitch: 0.3 });
+  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: thr(0.31), pitch: 0.3 });
   await page.waitForFunction(() => window.__sim.snapshot().race.running || window.__sim.snapshot().crashed || window.__sim.snapshot().pos[2] < -40, null, { timeout: 60000, polling: 20 });
   s = await snap();
   check('M4 flying through gate 1 starts the lap clock', s.race.running && s.race.next === 1 && !s.crashed && s.pos[2] < -22, `(z ${s.pos[2].toFixed(1)}, alt ${s.pos[1].toFixed(1)} m)`);
@@ -308,14 +312,14 @@ if (runs('M4')) {
 
   // Flying past the side of gate 2 does not count.
   await page.evaluate(() => { const r = window.__sim.race; window.__sim.place(4, 1.2, -52, 0); r.next = 1; r.running = true; window.__sim.arm(true); });
-  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: 0.31, pitch: 0.3 });
+  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: thr(0.31), pitch: 0.3 });
   await page.waitForFunction(() => window.__sim.snapshot().pos[2] < -62, null, { timeout: 60000, polling: 20 });
   s = await snap();
   check('M4 passing beside a gate does not count', s.race.next === 1 && !s.crashed && Math.abs(s.pos[0] - 4) < 1, `(x ${s.pos[0].toFixed(1)}, next gate ${s.race.next + 1})`);
 
   // Hitting a gate post is a crash and throws the lap away.
   await page.evaluate(() => { const r = window.__sim.race; window.__sim.place(1.58, 1.2, -50, 0); r.next = 1; r.running = true; window.__sim.arm(true); });
-  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: 0.31, pitch: 0.3 });
+  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: thr(0.31), pitch: 0.3 });
   await page.waitForFunction(() => window.__sim.snapshot().crashed || window.__sim.snapshot().pos[2] < -70, null, { timeout: 60000, polling: 20 });
   s = await snap();
   check('M4 hitting a gate post is a crash', s.crashedInto === 'gate' && Math.abs(s.pos[2] + 58) < 0.6, `(into ${s.crashedInto} at z ${s.pos[2].toFixed(1)})`);
@@ -375,7 +379,7 @@ if (runs('M5')) {
   }, url);
   for (const [k, v] of feel.rows) console.log(`     ${k}: ${v}`);
   const m = feel.m;
-  check('M5 feel measured in Chrome: hover throttle 20 to 35 %', m.hoverThrottle > 0.2 && m.hoverThrottle < 0.35, `(${(m.hoverThrottle * 100).toFixed(1)} %)`);
+  check('M5 feel measured in Chrome: hover throttle 12 to 22 %', m.hoverThrottle > 0.12 && m.hoverThrottle < 0.22, `(${(m.hoverThrottle * 100).toFixed(1)} %)`);
   check('M5 acro full-stick roll reaches the configured rate without big overshoot', Math.abs(m.acro.roll.heldRate - m.acro.roll.target) < 15 && m.acro.roll.overshootPct < 10, `(held ${m.acro.roll.heldRate.toFixed(0)} deg/s, overshoot ${m.acro.roll.overshootPct.toFixed(1)} %)`);
   check('M5 angle mode holds its tilt and levels without swinging past', Math.abs(m.angle.held - m.angle.target) < 2 && m.angle.undershootDeg < 1 && m.angle.overshootPct < 5, `(held ${m.angle.held.toFixed(1)} of ${m.angle.target} deg, swing-back ${m.angle.undershootDeg.toFixed(2)} deg)`);
   // Plots: one page with every step response, rendered by Chrome and saved as proof.

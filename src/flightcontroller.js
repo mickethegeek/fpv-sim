@@ -64,11 +64,13 @@ export function fcUpdate(fc, sticks, mode, armed, state, dt, cfg, quad) {
     const alpha = cfg.kp * err + cfg.ki * fc.integ[i] - cfg.kd * dOmega;
     torque[i] = quad.inertia[i] * alpha;
   }
-  // Mixer: per-motor thrust (N), then to motor speed with thrust ~ speed^2.
+  // Mixer: per-motor thrust (N), then to motor command with thrust ~ command^e.
   const tMax = quad.maxThrustPerMotor;
   const d = quad.armLength * Math.SQRT1_2;
-  const thr = cfg.idle + (1 - cfg.idle) * clamp(sticks.throttle, 0, 1); // linear in motor speed
-  const base = tMax * thr * thr;
+  const e = quad.thrustExponent;
+  // Like Betaflight, the stick goes linearly to the motor command (scaled by the throttle limit); thrust follows command^e.
+  const thr = cfg.idle + (1 - cfg.idle) * clamp(sticks.throttle, 0, 1) * (cfg.throttleLimit ?? 1);
+  const base = tMax * thr ** e;
   let lo = Infinity, hi = -Infinity;
   for (let i = 0; i < 4; i++) {
     const m = MOTORS[i];
@@ -79,7 +81,7 @@ export function fcUpdate(fc, sticks, mode, armed, state, dt, cfg, quad) {
     if (f > hi) hi = f;
   }
   // Airmode-style: keep the torque, shift the collective when a motor would saturate; scale if the spread is too big.
-  const fMin = tMax * cfg.idle * cfg.idle;
+  const fMin = tMax * cfg.idle ** e;
   const range = tMax - fMin;
   let scale = 1, shift = 0;
   if (hi - lo > range) scale = range / (hi - lo);
@@ -88,7 +90,7 @@ export function fcUpdate(fc, sticks, mode, armed, state, dt, cfg, quad) {
   if (sLo < fMin) shift = fMin - sLo; else if (sHi > tMax) shift = tMax - sHi;
   for (let i = 0; i < 4; i++) {
     const f = mid + (out[i] - mid) * scale + shift;
-    out[i] = Math.sqrt(clamp(f, 0, tMax) / tMax);
+    out[i] = (clamp(f, 0, tMax) / tMax) ** (1 / e);
   }
   return out;
 }

@@ -41,10 +41,12 @@ export function rotate(q, v, out = [0, 0, 0]) {
 
 export function bodyUp(q, out) { return rotate(q, [0, 1, 0], out); }
 
-// Static-plus-inflow thrust of one motor (N). u = motor speed 0..1, vAxial = airspeed along thrust axis.
+// Static-plus-inflow thrust of one motor (N). u = motor command 0..1 (after lag), vAxial = airspeed along thrust axis.
 export function motorThrust(u, vAxial, p) {
-  const t = p.maxThrustPerMotor * u * (u - vAxial / p.pitchSpeed);
-  const cap = 1.25 * p.maxThrustPerMotor * u * u; // descending into own wash: limited gain
+  // u is the ESC command. Prop speed n = u^(e/2), so static thrust (~ n^2) = max * u^e (e from bench tables, docs/feel.md).
+  const n = u ** (p.thrustExponent / 2);
+  const t = p.maxThrustPerMotor * n * (n - vAxial / p.pitchSpeed);
+  const cap = 1.25 * p.maxThrustPerMotor * n * n; // descending into own wash: limited gain
   return t < 0 ? 0 : (t > cap ? cap : t);
 }
 

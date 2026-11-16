@@ -4,7 +4,7 @@
 import { rotate, GRAVITY } from '../src/physics.js';
 import { gateLocal } from '../src/course.js';
 
-const HOVER = 0.2982; // throttle stick that hovers this quad (measured in the sim)
+import { stickForThrust } from '../src/params.js';
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 
 const _f = [0, 0, 0], _up = [0, 0, 0];
@@ -30,7 +30,7 @@ export function steer(s, tx, tz, speed, alt, maxTilt = Math.PI / 3, faceMove = t
   // Hold height.
   rotate(s.quat, [0, 1, 0], _up);
   const climb = clamp(2.5 * (alt - s.pos[1]) - 2.5 * s.vel[1], -4, 6);
-  const throttle = clamp(HOVER * Math.sqrt(Math.max(0, (1 + climb / GRAVITY) / Math.max(0.5, _up[1]))), 0.05, 0.9);
+  const throttle = clamp(stickForThrust((1 + climb / GRAVITY) / Math.max(0.5, _up[1])), 0.03, 0.9);
   return { roll, pitch, yaw, throttle };
 }
 

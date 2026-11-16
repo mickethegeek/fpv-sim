@@ -1,5 +1,6 @@
 // M3 unit tests: the field layout and obstacle collisions.
 import test from 'node:test';
+import { stickForThrust } from '../../src/params.js';
 import assert from 'node:assert/strict';
 import { createWorld, hit } from '../../src/world.js';
 import { createSim, simSteps } from '../../src/sim.js';
@@ -40,7 +41,7 @@ test('flying into a pole crashes the quad; the same flight without the world doe
     sim.armed = true;
     sim.state.pos = [0.02, 3, 0];
     // Pole at (0, 25) is behind the start: pull back (pitch < 0) to fly toward +Z.
-    for (let i = 0; i < 8 && !sim.state.crashed; i++) simSteps(sim, { roll: 0, pitch: -0.3, yaw: 0, throttle: 0.315 }, 1000);
+    for (let i = 0; i < 8 && !sim.state.crashed; i++) simSteps(sim, { roll: 0, pitch: -0.3, yaw: 0, throttle: stickForThrust(1.1) }, 1000);
     return sim.state;
   };
   const s = fly(createWorld());

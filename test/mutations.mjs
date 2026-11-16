@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const MUTATIONS = [
-  ['thrust x0', 'src/physics.js', 'const t = p.maxThrustPerMotor * u', 'const t = 0 * p.maxThrustPerMotor * u'],
+  ['thrust x0', 'src/physics.js', 'const t = p.maxThrustPerMotor * n', 'const t = 0 * p.maxThrustPerMotor * n'],
   ['gravity x0', 'src/physics.js', 'export const GRAVITY = 9.80665;', 'export const GRAVITY = 9.80665; const G0 = 0;', ['/ p.mass - GRAVITY;', '/ p.mass - G0;']],
   ['gravity x2', 'src/physics.js', '/ p.mass - GRAVITY;', '/ p.mass - 2 * GRAVITY;'],
   ['motor lag x20', 'src/params.js', 'motorTau: 0.033', 'motorTau: 0.6'],
