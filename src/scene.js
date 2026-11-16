@@ -117,8 +117,8 @@ export function buildScene(world, renderer, opts = {}) {
 }
 
 // Gates: a frame (two posts + top bar) and a number board on top. Returns { group, highlight(nextIndex) }.
-// The next gate is bright orange with a glowing board; the others are a quiet blue-grey.
-const GATE_NEXT = 0xff7a1a, GATE_IDLE = 0x7d8fa8;
+// The next gate is bright orange with a glowing board; the others are blue.
+const GATE_NEXT = 0xff7a1a, GATE_IDLE = 0x2f5fb0;
 export function buildGates(course) {
   const group = new THREE.Group();
   group.name = 'gates';

@@ -48,6 +48,14 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 - **Motors**: first-order lag on motor speed.
 - **Integration**: 1 kHz fixed step, semi-implicit Euler, quaternion renormalised each step.
 
+## Gate course (M4)
+
+| What | Value | Status | Source |
+|---|---|---|---|
+| Standard race gate opening | 5 ft x 5 ft (1.52 m x 1.52 m) | cited | MultiGP "Standard MultiGP Gate 5'x5'" [9] |
+| Large start/finish gate | 7 ft x 6 ft (2.13 m x 1.83 m) | cited | MultiGP "Champ Size Start-Finish Gate 7'x6'" [10] |
+| Gates in the sim | 3.0 m wide x 2.4 m tall opening | assumption | About twice the standard width so a beginner gets through. `GATE_W`, `GATE_H` in `src/course.js`. |
+
 ## Sources
 
 1. Betaflight source, `src/main/fc/controlrate_profile.c`: https://github.com/betaflight/betaflight/blob/master/src/main/fc/controlrate_profile.c
@@ -58,6 +66,8 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 6. Betaflight source, `src/main/flight/pid.h`: https://github.com/betaflight/betaflight/blob/master/src/main/flight/pid.h
 7. Kaufmann, Bauersfeld, Scaramuzza, "A Benchmark Comparison of Learned Control Policies for Agile Quadrotor Flight", 2022, Table II: https://arxiv.org/pdf/2202.10796
 8. Unmanned Tech, "FPV drone top speed: how fast, real world, by build class" (June 2026): https://www.unmannedtechshop.co.uk/blogs/knowledge-base/fpv-drone-top-speed-how-fast-real-world-by-build-class
+9. MultiGP shop, "Standard MultiGP Gate 5'x5'": https://shop.multigp.com/?p=569
+10. MultiGP shop, "Champ Size MultiGP Start - Finish Gate 7'x6'": https://shop.multigp.com/?p=615
 
 ## Still to source (M6)
 Thrust per motor for a 2207-class motor on 6S with a 5-inch prop, all-up weight, motor time constant, arm length, camera uptilt and FOV. Two pages tried on 2026-11-16 had no usable figures (Unmanned Tech thrust-to-weight article; arXiv 2312.09981 covers 9 to 10 inch props only).

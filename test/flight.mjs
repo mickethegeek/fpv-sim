@@ -1,4 +1,4 @@
-// Browser flight script: node test/flight.mjs <Mx>
+// Browser flight script: node test/flight.mjs <Mx> [only]   (only = M1..M4 runs just that block, for quick reruns)
 // Opens the sim in real Chrome (software GL), checks it runs, saves screenshots to proof/<Mx>/.
 // Later milestones add steps to STEPS below (drive the sim through window.__sim).
 import { createRequire } from 'node:module';
@@ -11,6 +11,8 @@ try { ({ chromium } = require('playwright')); }
 catch { ({ chromium } = require('/opt/npm-tools/node_modules/playwright')); }
 
 const milestone = process.argv[2] || 'M0';
+const only = process.argv[3] || '';
+const runs = (m) => !only || only === m;
 const outDir = new URL(`../proof/${milestone}/`, import.meta.url).pathname;
 mkdirSync(outDir, { recursive: true });
 
@@ -51,7 +53,7 @@ const fly = async (sticks, ms) => { await page.evaluate((s) => window.__sim.setS
 const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
 
 // --- M1: the physics core runs in the browser (same modules as the unit tests) ---
-{
+if (runs('M1')) {
   await page.evaluate(() => { window.__sim.reset(); window.__sim.setMode('angle'); });
   let s = await fly(neutral, 300);
   check('M1 sits on the ground disarmed', s.onGround && !s.armed && Math.abs(s.pos[1] - 0.05) < 1e-6, `(alt ${s.pos[1].toFixed(3)} m)`);
@@ -87,7 +89,7 @@ const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
 }
 
 // --- M2: controller input (keyboard, then a simulated USB radio through the real Gamepad API path) ---
-{
+if (runs('M2')) {
   const hold = async (code, ms) => { await page.keyboard.down(code); await simWait(ms); await page.keyboard.up(code); };
   await page.evaluate(() => { try { localStorage.clear(); } catch {} window.__sim.input.clear(); window.__sim.setMode('angle'); window.__sim.useInput(); });
   let s = await snap();
@@ -198,7 +200,7 @@ const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
 }
 
 // --- M3: FPV view, world, crash and reset, HUD ---
-{
+if (runs('M3')) {
   await page.evaluate(() => {
     Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [] });
     window.__sim.view.chase = false; window.__sim.setMode('angle'); window.__sim.useInput();
@@ -268,6 +270,99 @@ const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
   await shot('21-m3-keyboard-flight');
   await page.keyboard.press('Space');
   await page.evaluate(() => window.__sim.reset());
+}
+
+// --- M4: gates, next-gate highlight, lap timer, best lap ---
+if (runs('M4')) {
+  const gateColor = (i) => page.evaluate((k) => window.__sim.scene.getObjectByName('gates').children[k].children[0].material.color.getHex(), i);
+  const ORANGE = 0xff7a1a;
+  await page.evaluate(() => {
+    try { localStorage.clear(); } catch {}
+    Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [] });
+    window.__sim.race.best = null; window.__sim.view.chase = false; window.__sim.setMode('angle'); window.__sim.useInput();
+  });
+  await simWait(200);
+  let s = await snap();
+  const nGates = await page.evaluate(() => window.__sim.world.course.gates.length);
+  let hudText = (await page.textContent('#hud')).replace(/\s+/g, ' ');
+  check('M4 course has 6 to 8 gates', nGates >= 6 && nGates <= 8, `(${nGates})`);
+  check('M4 on the pad: HUD shows gate 1, no lap running, no best yet', hudText.includes(`GATE 1/${nGates}`) && /LAP –/.test(hudText) && /BEST –/.test(hudText) && !s.race.running, `("${hudText.trim()}")`);
+  check('M4 gate 1 is highlighted, the others are not', await gateColor(0) === ORANGE && await gateColor(1) !== ORANGE && await gateColor(nGates - 1) !== ORANGE);
+  await shot('22-m4-pad-gate-1-ahead');
+
+  // Through gate 1: the clock starts and the highlight moves to gate 2.
+  await page.evaluate(() => { window.__sim.place(0, 1.2, -14, 0); window.__sim.arm(true); });
+  await fly({ ...neutral, throttle: 0.3 }, 300);
+  check('M4 guide to the next gate shows while armed', await page.isVisible('#guide') && /gate 1 · \d+ m/i.test(await page.textContent('#guide')), `("${await page.textContent('#guide')}")`);
+  await shot('23-m4-approaching-gate-1');
+  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: 0.31, pitch: 0.3 });
+  await page.waitForFunction(() => window.__sim.snapshot().race.running || window.__sim.snapshot().crashed || window.__sim.snapshot().pos[2] < -40, null, { timeout: 60000, polling: 20 });
+  s = await snap();
+  check('M4 flying through gate 1 starts the lap clock', s.race.running && s.race.next === 1 && !s.crashed && s.pos[2] < -22, `(z ${s.pos[2].toFixed(1)}, alt ${s.pos[1].toFixed(1)} m)`);
+  check('M4 "Lap started" is shown and gate 2 is now highlighted', /Lap started/.test(await page.textContent('#toast')) && await gateColor(1) === ORANGE && await gateColor(0) !== ORANGE);
+  await shot('24-m4-lap-started');
+  await simWait(1500);
+  s = await snap();
+  hudText = (await page.textContent('#hud')).replace(/\s+/g, ' ');
+  check('M4 lap clock runs on the HUD', s.race.lapTime > 1 && /LAP 0:0\d\.\d\d/.test(hudText) && hudText.includes(`GATE 2/${nGates}`), `("${hudText.trim()}")`);
+
+  // Flying past the side of gate 2 does not count.
+  await page.evaluate(() => { const r = window.__sim.race; window.__sim.place(4, 1.2, -52, 0); r.next = 1; r.running = true; window.__sim.arm(true); });
+  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: 0.31, pitch: 0.3 });
+  await page.waitForFunction(() => window.__sim.snapshot().pos[2] < -62, null, { timeout: 60000, polling: 20 });
+  s = await snap();
+  check('M4 passing beside a gate does not count', s.race.next === 1 && !s.crashed && Math.abs(s.pos[0] - 4) < 1, `(x ${s.pos[0].toFixed(1)}, next gate ${s.race.next + 1})`);
+
+  // Hitting a gate post is a crash and throws the lap away.
+  await page.evaluate(() => { const r = window.__sim.race; window.__sim.place(1.58, 1.2, -50, 0); r.next = 1; r.running = true; window.__sim.arm(true); });
+  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: 0.31, pitch: 0.3 });
+  await page.waitForFunction(() => window.__sim.snapshot().crashed || window.__sim.snapshot().pos[2] < -70, null, { timeout: 60000, polling: 20 });
+  s = await snap();
+  check('M4 hitting a gate post is a crash', s.crashedInto === 'gate' && Math.abs(s.pos[2] + 58) < 0.6, `(into ${s.crashedInto} at z ${s.pos[2].toFixed(1)})`);
+  check('M4 crash is announced as a gate', /Crashed into a gate/.test(await page.textContent('#hint')));
+  await shot('25-m4-crashed-into-gate');
+  await page.evaluate((st) => window.__sim.setSticks(st), neutral);
+  await page.waitForFunction(() => !window.__sim.snapshot().crashed, null, { timeout: 30000, polling: 20 });
+  s = await snap();
+  check('M4 after the crash the lap is reset to gate 1', !s.race.running && s.race.next === 0 && await gateColor(0) === ORANGE);
+
+  // A whole lap, flown in the browser by the test autopilot (angle mode, same sticks a pilot has), from the pad.
+  await page.evaluate(async (base) => {
+    const { createAutopilot } = await import(base + 'test/autopilot.mjs');
+    const sim = window.__sim, ap = createAutopilot(sim.world.course);
+    sim.reset(); sim.arm(true);
+    window.__ap = { on: true, shots: {} };
+    const tick = () => { if (!window.__ap.on) return; if (!sim.sim.state.crashed) sim.setSticks(ap.update(sim.sim.state)); requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  }, url);
+  const waitRace = (fn, arg) => page.waitForFunction(fn, arg, { timeout: 400000, polling: 30 });
+  for (const [gate, name] of [[2, '26-m4-lap-toward-gate-3'], [3, '27-m4-lap-toward-gate-4'], [5, '28-m4-lap-toward-gate-6'], [0, '29-m4-lap-last-turn-to-gate-1']]) {
+    await waitRace((g) => { const x = window.__sim.snapshot(); return x.crashed || x.race.laps > 0 || (x.race.running && x.race.next === g); }, gate);
+    await simWait(gate === 0 ? 1500 : 700);
+    await shot(name);
+  }
+  await waitRace(() => { const x = window.__sim.snapshot(); return x.crashed || x.race.laps >= 1; });
+  s = await snap();
+  const toastText = await page.textContent('#toast');
+  check('M4 autopilot flew a full lap through all gates without crashing', s.race.laps === 1 && s.crashes !== undefined && !s.crashed, `(lap ${s.race.lastLap && s.race.lastLap.toFixed(2)} s)`);
+  check('M4 lap time is shown with "new best"', /Lap 0:\d\d\.\d\d · new best!/.test(toastText), `("${toastText}")`);
+  await shot('30-m4-lap-done-new-best');
+  const stored = await page.evaluate(() => { const k = Object.keys(localStorage).find((x) => x.startsWith('fpvsim.bestlap')); return k ? JSON.parse(localStorage.getItem(k)) : null; });
+  check('M4 best lap saved in the browser', stored !== null && Math.abs(stored - s.race.best) < 1e-9 && Math.abs(stored - s.race.lastLap) < 1e-9, `(${stored && stored.toFixed(2)} s)`);
+  check('M4 a new lap starts straight away', s.race.running && s.race.next === 1);
+  await page.evaluate(() => { window.__ap.on = false; window.__sim.reset(); });
+  const best = s.race.best;
+
+  // The best lap survives a reload.
+  await page.reload();
+  await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  await simWait(100);
+  s = await snap();
+  hudText = (await page.textContent('#hud')).replace(/\s+/g, ' ');
+  const m = Math.floor(best / 60), shown = `${m}:${(Math.round(best * 100) / 100 - m * 60).toFixed(2).padStart(5, '0')}`;
+  check('M4 best lap survives a page reload', Math.abs(s.race.best - best) < 1e-9 && hudText.includes(`BEST ${shown}`), `("${hudText.trim()}")`);
+  await shot('31-m4-best-after-reload');
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
 const simErrors = await page.evaluate(() => window.__sim.errors);
