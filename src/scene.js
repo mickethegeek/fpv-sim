@@ -242,8 +242,7 @@ export function buildGates(course) {
   const group = new THREE.Group();
   group.name = 'gates';
   const shadows = new THREE.Group();
-  shadows.name = 'gate-shadows';
-  group.add(shadows);
+  shadows.name = 'gate-shadows'; // added to the group after the gates, so gate i stays child i
   const frames = [];
   for (const g of course.gates) {
     const mat = new THREE.MeshBasicMaterial({ color: GATE_IDLE });
@@ -280,6 +279,7 @@ export function buildGates(course) {
     }
     frames.push(mat);
   }
+  group.add(shadows);
   let shown = -2;
   return {
     group,
