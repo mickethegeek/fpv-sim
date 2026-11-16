@@ -445,7 +445,9 @@ if (runs('M5')) {
   await shot('37-m6-playstation-names');
 
   // Sliders change the sim, survive a reload, and Reset to default undoes them.
+  await menuTo('pause', 'settings');
   await page.selectOption('#tune-preset', 'freestyle');
+  await menuClose();
   await slide('rateMax', 900); await slide('responsiveness', 0.5); await slide('floatiness', 2); await slide('throttleMid', 0.3);
   const d = await tune();
   check('M5 preset and sliders change the sim', d.t.preset === 'freestyle' && d.limit === 1 && d.max === 900 && Math.abs(d.kp - 60) < 1e-9 && Math.abs(d.drag - 0.15) < 1e-9 && d.inp.throttleMid === 0.3 && d.hover < t.hover, JSON.stringify(d.t));
