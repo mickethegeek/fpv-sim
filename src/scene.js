@@ -18,7 +18,7 @@ export function shadowMatrix(target = new THREE.Matrix4()) {
 }
 // Where the shadow of a point lands on the ground: [x, z].
 export function shadowPoint(pos) {
-  const k = Math.max(0, pos[1]) / SUN_DIR[1];
+  const k = Math.max(0, pos[1] - SHADOW_Y) / SUN_DIR[1];
   return [pos[0] - SUN_DIR[0] * k, pos[2] - SUN_DIR[2] * k];
 }
 // Shadow material. Front faces only: of a solid shape slid flat, exactly the sunlit half faces up, so each shape darkens the grass once.
@@ -82,10 +82,10 @@ function detailTexture() {
     const fx = x * cells / n, fy = y * cells / n, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
     const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty), at = (i, j) => v[((j + cells) % cells) * cells + ((i + cells) % cells)];
     return (at(x0, y0) * (1 - sx) + at(x0 + 1, y0) * sx) * (1 - sy) + (at(x0, y0 + 1) * (1 - sx) + at(x0 + 1, y0 + 1) * sx) * sy; }; };
-  const a = lattice(6), b = lattice(17), fine = lattice(64);
+  const a = lattice(6), b = lattice(17), fine = lattice(24);
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
     const i = (y * n + x) * 4;
-    img.data[i] = 255 * Math.min(1, Math.max(0, 0.5 + (r() - 0.5) * 0.7 + (fine(x, y) - 0.5) * 0.6));
+    img.data[i] = 255 * Math.min(1, Math.max(0, 0.5 + (r() - 0.5) * 0.9 + (fine(x, y) - 0.5) * 0.9));
     img.data[i + 1] = 255 * Math.min(1, Math.max(0, 0.5 + (a(x, y) - 0.5) * 1.1 + (b(x, y) - 0.5) * 0.5));
     img.data[i + 2] = 128; img.data[i + 3] = 255;
   }

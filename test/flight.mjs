@@ -617,6 +617,92 @@ if (runs('M6L')) {
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
+// --- M6b: the look (sun and its shadows, sky, haze, ground detail, Graphics setting) ---
+if (runs('M6b')) {
+  await page.goto(url + '?fast&free&preset=freestyle');
+  await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  const look = await page.evaluate(async (base) => {
+    const S = await import(base + 'src/scene.js'), sim = window.__sim, sc = sim.scene;
+    const sun = sc.children.find((c) => c.isDirectionalLight), sky = sc.getObjectByName('sky');
+    const dir = sun.position.clone().normalize().toArray();
+    return { quality: sim.quality, tone: sim.renderer.toneMapping, fog: !!sc.fog.isFogExp2, sunDir: S.SUN_DIR, lightDir: dir, skySun: sky.material.uniforms.sunDir.value.toArray(),
+      elevationDeg: Math.asin(S.SUN_DIR[1]) * 180 / Math.PI, discDeg: Math.acos(sky.material.uniforms.cosSun.value) * 2 * 180 / Math.PI,
+      shadows: sc.children.filter((c) => c.name === 'shadow').length + sc.getObjectByName('gate-shadows').children.length,
+      casters: 2 + sim.world.poles.length + 2 * sim.world.buildings.length + 3 * sim.world.gates.length };
+  }, url);
+  const same = (a, b) => a.every((v, i) => Math.abs(v - b[i]) < 1e-6);
+  check('M6b one sun: the light, the sun in the sky and the shadows use the same direction; disc 0.53° wide; haze and tone mapping on', same(look.sunDir, look.lightDir) && same(look.sunDir, look.skySun)
+    && Math.abs(look.discDeg - 0.533) < 0.01 && look.fog && look.tone !== 0 && look.elevationDeg > 30 && look.elevationDeg < 60, `(sun ${look.elevationDeg.toFixed(1)}° up, disc ${look.discDeg.toFixed(3)}°)`);
+  check('M6b every tree, pole, building and gate casts a shadow', look.shadows === look.casters, `(${look.shadows} shadow shapes for ${look.casters} casters)`);
+
+  // Brightness of the ground at a world point, with and without shadows, seen from straight above. Rendered and read in one go.
+  // quadAt: first put the quad at that height above (0, -6) and look at the middle of its shadow instead (all in one go, so it has no time to fall).
+  const darkening = (point, camHeight, quadAt = null) => page.evaluate(([pt, h, quadAt]) => {
+    const sim = window.__sim, r = sim.renderer, gl = r.getContext(), cam = sim.camera.clone(), info = {};
+    if (quadAt !== null) {
+      sim.place(0, quadAt, -6, 0);
+      const m = sim.scene.getObjectByName('quad-shadow');
+      m.update(sim.sim.state.pos, sim.sim.state.quat);
+      pt = [m.matrix.elements[12], m.matrix.elements[14]];
+      Object.assign(info, { pos: [...sim.sim.state.pos], centre: pt, expect: sim.shadowPoint(sim.sim.state.pos), opacity: m.material.opacity });
+    }
+    cam.fov = 40; cam.position.set(pt[0], h, pt[1] + 0.001); cam.up.set(0, 0, -1); cam.lookAt(pt[0], 0, pt[1]); cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+    const sh = []; sim.scene.traverse((o) => { if (o.name === 'shadow' || o.name === 'quad-shadow' || (o.parent && o.parent.name === 'gate-shadows')) sh.push(o); });
+    const lum = () => { r.render(sim.scene, cam); const px = new Uint8Array(4 * 9 * 9); gl.readPixels(gl.drawingBufferWidth / 2 - 4, gl.drawingBufferHeight / 2 - 4, 9, 9, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      let t = 0; for (let i = 0; i < px.length; i += 4) t += px[i] + px[i + 1] + px[i + 2]; return t / (3 * 81); };
+    const withShadow = lum(); sh.forEach((o) => { o.visible = false; });
+    const without = lum(); sh.forEach((o) => { o.visible = true; });
+    return { ...info, withShadow, without, ratio: withShadow / without };
+  }, [point, camHeight, quadAt]);
+  // The tower is 18 m tall: the shadow of the middle of its roof lands 18 m / tan(elevation) away, opposite the sun.
+  const tower = await page.evaluate(() => { const b = window.__sim.world.buildings.find((x) => x.h === 18); return { mid: window.__sim.shadowPoint([b.x, b.h * 0.6, b.z]), top: window.__sim.shadowPoint([b.x, b.h, b.z]), b }; });
+  const reach = Math.hypot(tower.top[0] - tower.b.x, tower.top[1] - tower.b.z), expectReach = 18 / Math.tan(look.elevationDeg * Math.PI / 180);
+  const dTower = await darkening(tower.mid, 30);
+  check('M6b the tower shadow is as long as the sun height says and darkens the grass inside it', Math.abs(reach - expectReach) < 0.05 && dTower.ratio < 0.8, `(roof shadow ${reach.toFixed(1)} m away, expected ${expectReach.toFixed(1)} m; grass ${Math.round((1 - dTower.ratio) * 100)} % darker)`);
+  const dOpen = await darkening([0, -6], 30);
+  check('M6b open grass is not darkened', Math.abs(dOpen.ratio - 1) < 0.01, `(ratio ${dOpen.ratio.toFixed(3)})`);
+
+  // The quad's own shadow: where the sun puts it, and softer the higher the quad is.
+  const lowQ = await darkening(null, 6, 1.5), highQ = await darkening(null, 6, 20);
+  const off = Math.hypot(lowQ.centre[0] - lowQ.pos[0], lowQ.centre[1] - lowQ.pos[2]);
+  check('M6b the quad shadow lies where the sun puts it (not straight below) and darkens the grass', same(lowQ.centre, lowQ.expect) && Math.abs(off - lowQ.pos[1] / Math.tan(look.elevationDeg * Math.PI / 180)) < 0.05 && lowQ.ratio < 0.8,
+    `(quad at ${lowQ.pos[1].toFixed(2)} m, shadow ${off.toFixed(2)} m to the side, grass ${Math.round((1 - lowQ.ratio) * 100)} % darker)`);
+  check('M6b the quad shadow is fainter from 20 m up than from 1.5 m', highQ.opacity < lowQ.opacity * 0.8 && highQ.ratio > lowQ.ratio && highQ.ratio < 0.98, `(opacity ${lowQ.opacity.toFixed(2)} -> ${highQ.opacity.toFixed(2)})`);
+
+  // Hold the quad still at a place and attitude (noseDown in degrees) and take a picture.
+  const view = async (x, y, z, yaw, noseDown, name, mode = 'fpv') => {
+    await page.evaluate(([x, y, z, yaw, noseDown, mode]) => {
+      const s = window.__sim, h = -yaw * Math.PI / 360, p = -noseDown * Math.PI / 360;
+      s.place(x, y, z, yaw); s.paused = true; s.view.mode = mode; s.sim.state.onGround = false;
+      s.sim.state.quat = [Math.cos(h) * Math.sin(p), Math.sin(h) * Math.cos(p), -Math.sin(h) * Math.sin(p), Math.cos(h) * Math.cos(p)];
+    }, [x, y, z, yaw, noseDown, mode]);
+    const f = await page.evaluate(() => window.__sim.frames);
+    await page.waitForFunction((f) => window.__sim.frames >= f + 2, f);
+    await shot(name);
+  };
+  const release = () => page.evaluate(() => { window.__sim.paused = false; window.__sim.view.mode = 'fpv'; window.__sim.reset(); });
+  await view(-80, 36, -50, 0, 55, '56-m6b-tower-shadow-from-above');
+  await view(3, 2.5, -7, 90, 0, '57-m6b-line-of-sight-quad-and-its-shadow', 'los');
+  await release();
+
+  // Graphics setting: High on a first visit, Low is saved and survives a reload, the panel shows the frame rate.
+  await page.goto(url + '?free&preset=freestyle');
+  await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  const hi = await page.evaluate(() => ({ q: window.__sim.quality, aa: window.__sim.renderer.getContext().getContextAttributes().antialias, sel: document.getElementById('quality').value }));
+  await view(0, 9, -60, 180, 0, '58-m6b-high-quality-sun-and-sky');
+  await view(-20, 14, 8, 20, 35, '59-m6b-high-quality-field-and-shadows');
+  await view(-14, 0.8, -4, -35, 20, '60-m6b-high-quality-low-over-the-grass');
+  await page.waitForFunction(() => window.__sim.fps > 0, null, { timeout: 30000 });
+  const fpsText = await page.textContent('#fps');
+  await release();
+  await Promise.all([page.waitForNavigation(), page.selectOption('#quality', 'low')]);
+  await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  const lo = await page.evaluate(() => ({ q: window.__sim.quality, aa: window.__sim.renderer.getContext().getContextAttributes().antialias, sel: document.getElementById('quality').value, saved: localStorage.getItem('fpvsim.quality.v1') }));
+  check('M6b Graphics: High by default (smooth edges), Low is saved and applied after the reload; frame rate shown', hi.q === 'high' && hi.aa && hi.sel === 'high' && lo.q === 'low' && !lo.aa && lo.sel === 'low' && lo.saved === 'low' && /^\d+ fps$/.test(fpsText), `(${fpsText} in software GL on high)`);
+  await shot('61-m6b-graphics-low');
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+}
+
 const simErrors = await page.evaluate(() => window.__sim.errors);
 check('no page errors', problems.length === 0 && simErrors.length === 0, JSON.stringify([...problems, ...simErrors]));
 

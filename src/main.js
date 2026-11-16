@@ -130,7 +130,7 @@ function toggleMode() { sim.mode = sim.mode === MODES.ACRO ? MODES.ANGLE : MODES
 
 // Test hook: the Playwright flight script (test/flight.mjs) drives and reads the sim through this.
 const hook = (window.__sim = {
-  ready: false, frames: 0, fps: 0, errors: [], shadowPoint, get quality() { return quality; }, get renderer() { return renderer; }, physicsHz: PHYSICS_HZ, physicsSteps: 0,
+  ready: false, frames: 0, fps: 0, paused: false, errors: [], shadowPoint, get quality() { return quality; }, get renderer() { return renderer; }, physicsHz: PHYSICS_HZ, physicsSteps: 0,
   sim, sticks, input, setup, view, world, race, get tuning() { return tuning; }, get config() { return config; },
   setTuning(t) { applyTuning({ ...tuning, ...t }); }, get scene() { return scene; }, get camera() { return camera; },
   setLesson, LS, get attempt() { return attempt; },
@@ -303,7 +303,7 @@ function frame(now) {
     if (inp.acroSwitch !== null) sim.mode = inp.acroSwitch ? MODES.ACRO : MODES.ANGLE;
     sim.armed = input.armed && !sim.state.crashed;
   }
-  hook.physicsSteps += simAdvance(sim, sticks, dt);
+  if (!hook.paused) hook.physicsSteps += simAdvance(sim, sticks, dt); // paused: only the test script, to hold the quad still for a picture
   lessonFrame(dt);
 
   // Crash: freeze, show it for a moment, then put the quad back on the pad, disarmed.
