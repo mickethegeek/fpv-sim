@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: M5 Feel, in progress. Done: measurement harness, `docs/feel.md` scoreboard, rate loop + angle mode + motor lag tuned. Left, in this order: (1) hover throttle decision and PlayStation throttle mid (notes 2 in `docs/feel.md`), (2) Feel tuning panel with sliders and Reset to default, (3) input path review (deadzone for PS sticks), (4) update `docs/physics.md` statuses from the new sources in `docs/feel.md`, then tick M5.
+Next: **Real-data pass first (PLAN, Fixed decisions: "Everything comes from real-life data"), one leg at most, then M6 Beginner path.** In order: (1) try to replay a real flight log through the sim: sources and decoders are listed under "Real flight data: what was found" below; put overlay plots in `proof/validation/`; if nothing usable in 20 minutes, write that down and move on. (2) Check the F5 thrust rows by eye if any tool can show the page tail, and add one more 6S 2207 part-throttle table (candidates in the same section). (3) Trainer preset: PLAN wants it modelled on a real beginner-class quad; specs found so far are in `docs/feel.md` note 7 (no thrust or rates yet). Then M6, which starts with the PlayStation checklist (still open there: PlayStation button symbols and arm/mode on shoulder buttons, Options = reset, per-controller profiles, auto-open setup for non-standard controllers).
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -10,7 +10,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M2 Controller input
 - [x] M3 FPV view + world  ← Mike notified
 - [x] M4 Gates + timer
-- [ ] M5 Feel (top priority)
+- [x] M5 Feel (top priority)  ← every PLAN bullet done and checked in Chrome; the real-data validation added to PLAN at 10:53 is the next step, see Next
 - [ ] M6 Beginner path + line-of-sight view
 - [ ] M6b Look (if time)
 - [ ] M7 Finish  ← notify Mike when done
@@ -51,7 +51,12 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 
 - Feel tuning (M5): rate PID `kp` 120, `kd` 1.5 and angle gain 10, chosen by scanning against the targets in `docs/feel.md` (45 ms to 90 % rate, 200 ms lean, no wobble). The 200 ms lean target is a judgement, not sourced. Change in `defaultFc()`.
 - Motor lag 33 ms, mass, arm, thrust-to-weight, angle limit, linear drag and top speed now all have sources (listed in `docs/feel.md`).
-- Hover throttle is 30 % against a cited 15 to 20 % for a powerful 5-inch: left as is until the thrust-versus-command curve is sourced.
+- Hover throttle is now 12.6 % (freestyle): thrust = max x command^1.25, fitted to a 2207 6S bench table (the exact kind of quad, so PLAN's rule picks it over the 1.47 of a 2306 table). The direction note expected 20 to 25 %; the data gave less. The table rows came through a page summary and still need checking by eye. Change `thrustExponent` in `src/params.js`.
+- Trainer preset = the same 5-inch with Betaflight's throttle limit at 70 % (a sourced beginner setting): thrust-to-weight 5.8, hover 18 %. Rates and tilt limit are left at Betaflight defaults because no sourced beginner values were found; the direction note's "hover about 40 %" would need a throttle limit near 35 %, which no source recommends. PLAN (10:53) now asks for a real beginner-class quad instead: open.
+- **Trainer is the preset on a first visit** ("beginners start there"); the choice is saved in the browser. `?preset=freestyle` in the link forces the other one. Change `DEFAULT_PRESET` in `src/params.js`.
+- PlayStation throttle: stick centre = the preset's hover throttle, bottom = 0, top = full, expo 0 (Betaflight default). Because the resting stick is above the 10 % arming limit, the pilot pulls the stick down to arm (hint on screen).
+- Motor idle 5.5 % (Betaflight default). Gamepad deadzone stays 5 %: UNSOURCED, slider in the panel.
+- A controller mapped through the setup screen is treated as a radio (linear throttle). A PlayStation pad that Mike runs through setup would lose the hover-centre throttle until M6 adds per-controller profiles.
 
 ## Notes for the next leg
 - After any physics or controller change: `node test/feel.mjs` and update the tables in `docs/feel.md`.
@@ -69,6 +74,17 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 
 - For M6 lessons: `src/skills.js` already has the "3 good runs in a row" gating (`recordResult`, `isUnlocked`, storage), an attempt recorder at 50 Hz, tasks for hover-in-a-box, orbit a pole, figure 8 and a gate lap, and scoring from drift, height wobble, line and stick jerk (`scoreAttempt`). It is unit-tested (`test/unit/skills.test.mjs`) but **not wired into the page yet** and its skill list follows the old plan: M6 must reshape the list to the 8 lessons in PLAN.md. `test/autopilot.mjs` has test pilots (`createHoverPilot`, `createCirclePilot`, `createAutopilot`, `steer`) to fly lessons in tests.
 
+- Feel tuning: `src/tuning.js` (pure: `defaultTuning`, `buildConfig` → quad, fc, input settings; storage key `fpvsim.tuning.v1`), panel markup in `index.html`, wiring in `main.js` (`applyTuning`, `__sim.tuning`, `__sim.config`, `__sim.setTuning`). Presets in `src/params.js` (`PRESETS`). `hoverStick()` and `stickForThrust()` in `params.js` give throttle sticks from thrust; use them instead of hard-coded throttles.
+- The flight script opens `?fast&preset=freestyle` so old checks keep flying the full-power quad; its old open-loop throttles go through `thr(old)`. The second M5 block opens the page with no preset (Trainer) and a fake standard-layout pad.
+
+## Real flight data: what was found (scouting, 2026-11-16 11:10 UTC, nothing downloaded yet)
+- Best match: TII "Race Against the Machine" dataset, 5-inch, 6S, about 870 g, Betaflight 4.3.1, piloted flights with RC channels (100 Hz) + gyro (500 Hz) + motor thrust in CSV; the repo also has the quad's Betaflight CLI backup (`quadrotor/BTFL_cli_backup.txt`: its real rates and PIDs). Repo https://github.com/tii-racing/drone-racing-dataset . Problem: the CSVs only come inside release zips of 12 GB (piloted), bundled with images. Too big for a leg unless a per-flight CSV link exists; look in the repo for one.
+- Raw blackbox logs, airframe not stated (read the log header first): https://raw.githubusercontent.com/Plasmatree/PID-Analyzer/master/good_tune.BBL (4.8 MB), `.../stock_tune.BFL` (13 MB); https://raw.githubusercontent.com/pichim/bf_controller_tuning/main/logs/example_logs/Gyro_Angle.TXT (27 MB, chirp test, 2026 firmware).
+- Decoders without compiling: Python `orangebox` (pip, standard library only); npm `blackbox-log` (WASM).
+- NeuroBEM processed data has motor speeds but no sticks (good for motor-to-body dynamics only): https://rpg.ifi.uzh.ch/neuro_bem/Readme.html
+- More 6S 2207 thrust tables to try (Idle/25/50/75/100 %): https://www.miniquadtestbench.com/dys-storm-2207-1750kv.html , https://www.miniquadtestbench.com/quadstandardlabs-cinematic-2207-1750kv.html
+- PIDtoolbox wiki gives no rise-time number for a 5-inch. The sandbox may not be allowed to download these files at all: if the first download is refused, record it and list the links for Mike in the M7 report.
+
 ## Log
 - 2026-11-16 09:46 UTC · M0 done: scaffold, vendored three.js r170, `npm test` (node unit tests), `node test/flight.mjs Mx` (Chrome flight script → proof/Mx/), static server in tools/ · next: M1 physics core
 - 2026-11-16 09:55 UTC · M1 done: physics.js, flightcontroller.js (Actual rates, angle + acro, rate PID, mixer), sim.js, params.js; 11 unit tests pass and each fails on at least one deliberate breakage (test/mutations.mjs: thrust x0 fails 7 of 11); flown in Chrome (proof/M1/) · next: M2 controller input
@@ -78,3 +94,5 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-16 10:44 UTC · built for the old M5 plan (skill meters), logic only: `src/skills.js` (8 skills, attempts recorded at 50 Hz, scored from drift, height wobble, line, lap time, stick jerk; next skill unlocks after 3 good attempts in a row), test pilots for hover, circles and laps, 38 unit tests · the plan then changed (M5 is now Feel); this logic is kept for the M6 lessons · next: M5 Feel
 - 2026-11-16 10:48 UTC · M5 started: `test/feel-measure.mjs` + `node test/feel.mjs` (step responses on the real sim), same measurement in Chrome with plots (proof/M5/32), `docs/feel.md` with sourced targets against measured values. Findings: rate loop too slow (93 ms to 90 %), hover throttle high (30 % against 15 to 20 %), angle mode soft (411 ms) · next: tune the rate loop
 - 2026-11-16 10:52 UTC · M5 tuning: rate loop 93 → 45 ms to 90 % (5 % overshoot), angle mode lean 411 → 202 ms with no overshoot, motor lag set to the cited 33 ms; 38 unit tests, 68 browser checks, plots in proof/M5/ · next: hover throttle + PS throttle mid, then the Feel tuning panel
+- 2026-11-16 11:02 UTC · M5: thrust = command^1.25 fitted to a 2207 6S bench table (hover 30 → 13 %), throttle limit + Trainer / Freestyle presets, Feel tuning panel (8 sliders, Reset to default, saved), PlayStation stick centre = hover; 42 unit tests · next: docs, full browser run
+- 2026-11-16 11:12 UTC · M5 ticked: docs/feel.md and docs/physics.md updated with the new sources and UNSOURCED marks, idle set to Betaflight's 5.5 % (hover 12.6 %), full browser run 72 checks, proof/M5/33 to 36; real flight-log sources scouted · next: real-data pass (log replay, Trainer on a real quad), then M6

@@ -39,14 +39,14 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 | Motor arm length | 0.11 m | cited | 107.5 to 112.5 mm (`docs/feel.md` F4, F9) |
 | Motor time constant | 33 ms | cited | NeuroBEM paper (`docs/feel.md` F8) |
 | Thrust against command | max x command^1.25 | cited (fit) | 2207 6S bench table (`docs/feel.md` F5, note 2); rows to be checked by eye |
-| Idle command | 5 % | **UNSOURCED** | assumption |
+| Idle command | 5.5 % | cited | Betaflight default `motorIdle = 550` (`docs/feel.md` F25) |
 | Quadratic body drag | 0.006 N per (m/s)² | **UNSOURCED** | placeholder, equal to a drag area of about 0.01 m² |
 | Prop pitch speed at full throttle | tuned | tuned | Chosen so level top speed lands on the cited 150 km/h. See below. |
 
 ## Model choices
 
 - **Thrust falls with airspeed.** A fixed-pitch prop makes less thrust as air flows faster through it. Model: `T = Tmax * n * (n - v_axial / v_pitch)`, clamped at 0, where `n` is prop speed 0..1 and `v_axial` is airspeed along the thrust axis. At rest this is `Tmax * n²`. This, not body drag, is what limits top speed, so the quad still coasts when you cut throttle. `v_pitch` is the one tuned number.
-- **Throttle stick is linear in the ESC command** (as in Betaflight). Static thrust = `Tmax * command^1.25`, fitted to a bench table, so prop speed `n = command^0.625` and hover sits at 13 % stick (was 30 % with thrust = command²).
+- **Throttle stick is linear in the ESC command** (as in Betaflight). Static thrust = `Tmax * command^1.25`, fitted to a bench table, so prop speed `n = command^0.625` and hover sits at 12.6 % stick (was 30 % with thrust = command²).
 - **Motors**: first-order lag (33 ms) on the command.
 - **Integration**: 1 kHz fixed step, semi-implicit Euler, quaternion renormalised each step.
 
