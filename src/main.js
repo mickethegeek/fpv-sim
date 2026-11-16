@@ -557,7 +557,7 @@ function frame(now) {
   setText(hud.state, state);
   hud.state.dataset.state = state;
   setText(hud.mode, sim.mode === MODES.ACRO ? 'ACRO' : 'ANGLE');
-  setText(hud.view, VIEW_NAMES[view.mode]);
+  setText(hud.view, demo ? 'DEMO' : VIEW_NAMES[view.mode]);
   // Stick overlay: where the sticks are right now (left: throttle + yaw, right: pitch + roll; Mode 2).
   sticksEl.hidden = !(view.sticks || demo || watching) || setup.open;
   if (!sticksEl.hidden) {

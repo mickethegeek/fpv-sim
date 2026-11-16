@@ -748,14 +748,14 @@ if (runs('M8')) {
   let s = await snap();
   const mainItems = await page.$$eval('#menu [data-screen=main] button b', (bs) => bs.map((b) => b.textContent));
   const st0 = await steps(); await page.waitForTimeout(400);
-  check('M8 the page opens on the start menu: Learn, Gates, Free fly, Settings; the sim stands still behind it', s.menu.open && s.menu.screen === 'main' && mainItems.join() === 'Learn,Gates,Free fly,Settings'
+  check('M8 the page opens on the start menu: Learn, Gates, Free fly, Theory, Settings; the sim stands still behind it', s.menu.open && s.menu.screen === 'main' && mainItems.join() === 'Learn,Gates,Free fly,Theory,Settings'
     && /^Learn/.test(s.menu.item) && await steps() === st0 && !(await visible('#hud')), `(${mainItems.join(', ')})`);
   const help = await page.textContent('#menu-help');
   check('M8 the menu says which controller buttons to use, as PlayStation symbols', /D-pad: move · ✕ select · ◯ back/.test(help), `("${help}")`);
   await shot('62-m8-start-menu');
 
   // Controller: D-pad down to Settings, cross to open, circle back.
-  await press('down', 3);
+  await press('down', 4);
   s = await snap();
   const onSettings = /^Settings/.test(s.menu.item);
   await press('cross');
@@ -780,12 +780,13 @@ if (runs('M8')) {
   check('M8 circle goes back to the start menu, pointer still on Settings', s.menu.screen === 'main' && /^Settings/.test(s.menu.item), `("${s.menu.item}")`);
 
   // Learn: every lesson can be opened; open lesson 4 without having passed 1 to 3.
-  await press('up', 3); await press('cross');
+  await press('up', 4); await press('cross');
   s = await snap();
   const lessons = await page.$$eval('#lesson-list button', (bs) => bs.map((b) => [b.dataset.id, b.disabled]));
   await shot('64-m8-learn-nothing-locked');
   check('M8 Learn lists the 8 lessons, none locked; the pointer starts on the next one', s.menu.screen === 'learn' && lessons.length === 8 && lessons.every((l) => !l[1]) && /^1\. /.test(s.menu.item), `("${s.menu.item}")`);
-  await press('down', 3); await press('cross');
+  await press('down', 3); await press('cross');   // lesson 4: its chapter screen (M9)
+  await press('down', 3); await press('cross');   // Learn, Watch, Check, Try: straight to Try
   s = await snap();
   check('M8 lesson 4 opens although lessons 1 to 3 are not passed', !s.menu.open && s.app === 'learn' && s.lesson && s.lesson.id === 'outback' && await page.isVisible('#lesson'), JSON.stringify(s.lesson));
 
@@ -794,10 +795,13 @@ if (runs('M8')) {
   s = await snap();
   const pauseItems = await page.$$eval('#menu [data-screen=pause] button', (bs) => bs.filter((b) => b.offsetParent).map((b) => b.textContent));
   await shot('65-m8-pause-menu-in-a-lesson');
-  check('M8 Options opens the pause menu: Resume, Restart, Skip, Settings, Back to menu', s.menu.screen === 'pause' && pauseItems.join() === 'Resume,Restart,Skip this lesson,Settings,Back to menu' && s.menu.item === 'Resume', `(${pauseItems.join(', ')})`);
+  check('M8 Options opens the pause menu: Resume, Restart, Skip, Settings, Back to menu', s.menu.screen === 'pause' && pauseItems.join() === 'Resume,Restart,Skip this part,Settings,Back to menu' && s.menu.item === 'Resume', `(${pauseItems.join(', ')})`);
   await press('down', 2); await press('cross');
   s = await snap();
-  check('M8 Skip moves on to lesson 5 without flying lesson 4', !s.menu.open && s.lesson && s.lesson.id === 'wind' && !s.progress.outback.fpv.passed, JSON.stringify(s.lesson));
+  const skipped = s.menu.screen === 'chapter' && s.chapter.lesson === 'wind';   // Try was the last part: on to chapter 5
+  await press('down', 3); await press('cross');
+  s = await snap();
+  check('M8 Skip moves on to chapter 5 without flying lesson 4', skipped && !s.menu.open && s.lesson && s.lesson.id === 'wind' && !s.progress.outback.fpv.passed, JSON.stringify(s.lesson));
 
   // Pause in the air: everything stops, Resume carries on where it was, still armed.
   await press('options'); await press('down', 4); await press('cross');   // Back to menu
@@ -846,6 +850,137 @@ if (runs('M8')) {
   await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
   s = await snap();
   check('M8 Esc opens the pause menu and Esc again closes it; Skip is not offered outside a lesson', !s.menu.open && !(await page.$eval('#btn-skip', (b) => !b.hidden)));
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+}
+
+// --- M9: chapters with theory: Learn cards with live demos, Watch, Check, Try, the Theory page ---
+if (runs('M9')) {
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+  await page.goto(url + '?fast');
+  await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  await page.evaluate(() => {
+    const pad = { id: 'DualSense Wireless Controller (test)', index: 0, connected: true, mapping: 'standard', timestamp: 0,
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    window.__pad = pad;
+    Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [pad, null, null, null] });
+  });
+  const BTN = { cross: 0, circle: 1, options: 9, up: 12, down: 13 };
+  const press = async (name, times = 1) => {
+    for (let i = 0; i < times; i++) {
+      await page.evaluate((b) => { window.__pad.buttons[b] = { pressed: true, value: 1 }; }, BTN[name]); await frames(2);
+      await page.evaluate((b) => { window.__pad.buttons[b] = { pressed: false, value: 0 }; }, BTN[name]); await frames(2);
+    }
+  };
+  const simTime = (t) => page.waitForFunction((x) => window.__sim.sim.state.time >= x, t, { timeout: 120000, polling: 20 });
+  const two = (text) => text.split(/[.?!](?:\s|$)/).filter((x) => x.trim()).length <= 2;
+  await frames(3);
+
+  // Learn -> lesson 1 -> its chapter screen.
+  await press('cross'); await press('cross');
+  let s = await snap();
+  const parts = await page.$$eval('#chapter-parts button b', (bs) => bs.map((b) => b.textContent));
+  await shot('68-m9-chapter-screen');
+  check('M9 choosing a lesson opens its chapter: Learn, Watch, Check, Try', s.menu.screen === 'chapter' && parts.join() === 'Learn,Watch,Check,Try' && /^Learn/.test(s.menu.item) && s.chapter.lesson === 'takeoff', `(${parts.join(', ')})`);
+
+  // Learn: a card with its demo flying by itself, force arrows on.
+  await press('cross');
+  await simTime(4);
+  s = await snap();
+  await shot('69-m9-card-with-live-demo-and-arrows');
+  check('M9 Learn: card 1 of 4, at most 2 sentences, with a live demo and force arrows; the sticks move by themselves', !s.menu.open && s.demo === 'hover-arrows' && /Learn 1 of 4/.test(s.theory.where) && two(s.theory.text) && s.arrows && s.armed && s.pos[1] > 2 && s.sticksShown
+    && /✕ next · ◯ back · Options menu/.test(await page.textContent('#theory-keys')), `("${s.theory.title}: ${s.theory.text}", alt ${s.pos[1].toFixed(1)} m)`);
+  await simTime(6.5);                                       // level again after the climb
+  const f = await page.evaluate(async (u) => { const { forces } = await import(u + 'src/arrows.js'); const sim = window.__sim, r = forces(sim.sim.state, sim.sim.quad); return { thrust: r.thrust, weight: r.weight }; }, url);
+  const total = f.thrust.reduce((x, y) => x + y, 0);
+  check('M9 the arrows are the real forces: in the hover the four thrust arrows add up to the weight arrow', Math.abs(total / f.weight - 1) < 0.1 && f.thrust.every((t) => t > 0.2 * f.weight),
+    `(thrust ${f.thrust.map((t) => t.toFixed(2)).join(' + ')} = ${total.toFixed(2)} N, weight ${f.weight.toFixed(2)} N)`);
+  await press('cross');
+  s = await snap();
+  const second = s.demo === 'tilt-motors' && /Learn 2 of 4/.test(s.theory.where);
+  await press('circle');
+  s = await snap();
+  check('M9 cross goes to the next card, circle back to the one before', second && s.demo === 'hover-arrows' && /Learn 1 of 4/.test(s.theory.where));
+  await page.keyboard.press('Enter');                      // keyboard: next
+  const kb = (await snap()).chapter.i === 1;
+  await page.click('#theory-next');                        // mouse: next
+  const mouse = (await snap()).chapter.i === 2;
+  await page.keyboard.press('Backspace');
+  const kbBack = (await snap()).chapter.i === 1;
+  check('M9 cards also step with Enter / Backspace and with the mouse', kb && mouse && kbBack);
+  await press('cross', 3);                                  // cards 3, 4, then done
+  s = await snap();
+  check('M9 after the last card: back on the chapter screen, pointer on Watch, Learn ticked', s.menu.screen === 'chapter' && /^Watch/.test(s.menu.item) && s.seen.takeoff.learn === true
+    && await page.$eval('#chapter-parts [data-part=learn] b', (b) => b.classList.contains('done')), `("${s.menu.item}")`);
+
+  // Watch: the test pilot flies the lesson; nothing is recorded for the player.
+  await press('cross');
+  await page.waitForFunction(() => window.__sim.snapshot().pos[1] > 1.2, null, { timeout: 120000, polling: 50 });
+  s = await snap();
+  await shot('70-m9-watch-the-test-pilot');
+  const watchOn = s.watching && s.lesson && s.lesson.id === 'takeoff' && s.armed && s.sticksShown && /Watch/.test(s.theory.where) && s.theory.next === 'Skip';
+  await page.waitForFunction(() => window.__sim.snapshot().menu.open, null, { timeout: 300000, polling: 100 });
+  s = await snap();
+  check('M9 Watch: the test pilot flies lesson 1 with the stick overlay on, then hands back; no run is counted for the player', watchOn && s.menu.screen === 'chapter' && /^Check/.test(s.menu.item) && !s.watching
+    && s.progress.takeoff.fpv.streak === 0 && !s.progress.takeoff.fpv.passed && s.seen.takeoff.watch === true, `("${s.menu.item}", streak ${s.progress.takeoff.fpv.streak})`);
+
+  // Check: quick questions, a wrong answer is corrected, nothing is gated.
+  await press('cross');
+  const q1 = await page.textContent('#check-q');
+  await press('down'); await press('cross');               // a wrong answer
+  const wrong = await page.textContent('#check-result');
+  s = await snap();
+  await shot('71-m9-check-question');
+  const onNext = /Next question/.test(s.menu.item);
+  await press('cross');
+  const q2 = await page.textContent('#check-q');
+  await press('down'); await press('cross');               // the right one
+  const right = await page.textContent('#check-result');
+  await press('cross');                                     // Done
+  s = await snap();
+  check('M9 Check: 2 questions; a wrong answer shows the right one, then on to Try', q1 !== q2 && /Not quite\. It is: Tips its nose down/.test(wrong) && onNext && right === 'Right.' && s.menu.screen === 'chapter' && /^Try/.test(s.menu.item) && s.seen.takeoff.check === true,
+    `("${q1}" -> "${wrong}"; "${q2}" -> "${right}")`);
+  await press('cross');
+  s = await snap();
+  const tryOn = !s.menu.open && s.lesson && s.lesson.id === 'takeoff' && s.lesson.state === 'ready' && !s.watching && s.chapter.part === 'try';
+  await press('options'); await press('down', 2); await press('cross');    // Skip this part
+  s = await snap();
+  check('M9 Try is the lesson itself; Skip this part from the pause menu goes on to chapter 2', tryOn && s.menu.screen === 'chapter' && s.chapter.lesson === 'directions', `(${JSON.stringify(s.chapter)})`);
+  await press('cross'); await simTime(1);
+  await press('options'); await press('down', 2); await press('cross');    // skip Learn of chapter 2
+  s = await snap();
+  check('M9 any part can be skipped: skipping Learn puts the pointer on Watch and leaves Learn unticked', s.menu.screen === 'chapter' && /^Watch/.test(s.menu.item) && !(s.seen.directions && s.seen.directions.learn), `("${s.menu.item}")`);
+
+  // Every card of every chapter: its demo runs in Chrome.
+  const cards = await page.evaluate(() => window.__sim.TH.CHAPTERS.flatMap((c) => c.cards.map((card, i) => ({ lesson: c.lesson, i, id: card.id, demo: card.demo, text: card.text, loop: window.__sim.DEMOS[card.demo].loop }))));
+  const shots = { 'tilt-motors': '72-m9-demo-tilting', 'nose-in': '73-m9-demo-nose-toward-you', 'tilt-sink': '74-m9-demo-tilting-costs-height', 'camera-tilt': '75-m9-demo-camera-tilt-fpv',
+    'wind-lean': '76-m9-demo-lean-into-the-wind', 'rates-curve': '77-m9-demo-acro-flip', 'failsafe-drop': '78-m9-demo-lost-signal-drop' };
+  const when = { 'tilt-motors': 1.9, 'nose-in': 2.4, 'tilt-sink': 2.4, 'camera-tilt': 5, 'wind-lean': 4, 'rates-curve': 1.3, 'failsafe-drop': 2.9 };
+  const bad = [];
+  for (const c of cards) {
+    await page.evaluate((x) => { window.__sim.showChapter(x.lesson); window.__sim.startPart('learn', x.i); }, c);
+    await simTime(when[c.demo] || Math.min(3, c.loop * 0.6));
+    s = await snap();
+    if (shots[c.demo]) await shot(shots[c.demo]);
+    const fpvCam = c.demo === 'camera-tilt';
+    if (!(s.demo === c.demo && s.theory.text === c.text && two(c.text) && (c.demo === 'failsafe-drop' || !s.crashed) && s.pos.every(Number.isFinite)
+      && (fpvCam ? Math.hypot(s.camera.pos[0] - s.pos[0], s.camera.pos[2] - s.pos[2]) < 0.2 : Math.hypot(s.camera.pos[0] - s.pos[0], s.camera.pos[2] - s.pos[2]) > 1.5))) bad.push(c.id);
+  }
+  check(`M9 all ${cards.length} cards play their demo in Chrome (card text on screen, quad flying, camera watching)`, cards.length >= 20 && bad.length === 0, bad.length ? `(failed: ${bad.join(', ')})` : '');
+
+  // Theory page: every card, to revise any time.
+  await press('options'); await press('down', 4); await press('cross');    // Back to menu
+  await press('down', 3); await press('cross');                             // Theory
+  s = await snap();
+  const listed = await page.$$eval('#theory-list button', (bs) => bs.length);
+  await shot('79-m9-theory-page');
+  const onTheory = s.menu.screen === 'theory' && listed === cards.length;
+  await press('down', 4); await press('cross');                             // the fifth card: chapter 2, card 1
+  await simTime(1);
+  s = await snap();
+  const playing = s.demo === 'yaw-pairs' && !s.menu.open;
+  await press('circle');
+  s = await snap();
+  check(`M9 the Theory page lists all ${cards.length} cards; one plays in the sim and circle comes back to the list`, onTheory && playing && s.menu.screen === 'theory', `(${listed} cards listed)`);
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
