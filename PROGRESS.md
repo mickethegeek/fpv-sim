@@ -10,8 +10,9 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M2 Controller input
 - [x] M3 FPV view + world  ← Mike notified
 - [x] M4 Gates + timer
-- [ ] M5 Learning path
-- [ ] M6 Settings + feel
+- [ ] M5 Feel (top priority)
+- [ ] M6 Beginner path + line-of-sight view
+- [ ] M6b Look (if time)
 - [ ] M7 Finish  ← notify Mike when done
 
 ## Assumptions made without asking Mike

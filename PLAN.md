@@ -29,18 +29,27 @@ Look up typical values with sources; the numbers below are starting points, not 
 - **M3 FPV view + world:** camera fixed to the quad with uptilt (default 25°), FOV ~110–120°. Open field: textured ground with scale cues (grass grid, trees, poles, a few buildings), sky. Crash → short pause → reset. Reset button. Minimal HUD (armed, mode, throttle, speed).
   → **FIRST FLYABLE: notify Mike** (see RELAY.md).
 - **M4 Gates + timer:** a 6–8 gate course, gate highlight for next gate, lap timer, best lap saved.
-- **M5 Real-life mechanics, gamified** (Mike, 2026-11-16: the goal is to learn to fly a *real* one, so gamify real mechanics, not just tutorials). Build in this order; if time runs out, cut from the bottom and say so in M7.
-  1. **Skill meters with consistency gating.** Skills in the order real pilots learn them: hover, orbit around a pole, figure-8, gates at speed. Score each one from measured data: altitude and position variance, stick smoothness (jerk), line accuracy. A skill unlocks after **3 good attempts in a row**, not one lucky pass, because consistency is what transfers. Angle mode first, acro after.
-  2. **Battery.** One pack lasts about 3–5 minutes (cite it). Voltage sags under punch-outs, thrust drops as the pack empties, and landing below a safe voltage scores as a damaged pack. A session is **4 packs**, like a real day at the field.
-  3. **Crash wallet.** Crashes cost real-world part prices (props, arms, motors, camera), depending on impact speed and what was hit (cite the prices). Show money spent per session. This teaches real risk management, not just "reset".
-  4. **Stick overlay + replay.** Live overlay of both sticks, as real pilots use with stick cams. After each attempt, a replay with an optional ghost of your best run.
-  5. **Video like real FPV.** Fisheye distortion, slight noise, and breakup that grows with distance and when obstacles block the line of sight. Signal lost → failsafe → the drone drops. A video-latency setting (analog-like low vs digital-like higher).
-  6. **Wind.** Steady wind plus gusts, settable. Optional "today's wind" setting: the browser fetches the live wind for Zurich from open-meteo.com at runtime (data, not a library, so it's allowed). Shows "would today be flyable?".
-  7. **Real rules.** Swiss/EASA open category: soft ceiling at 120 m with a warning and score penalty, and a pre-flight checklist screen that includes the FPV observer rule (cite the EASA source).
-  8. **Bring your real settings.** Paste a Betaflight `rateprofile` / CLI dump, and the sim uses those exact rates. Later the same rates go on the real drone.
-- **M5b Lessons:** the 4 lessons from before become the first tier of the skill meters (hover box → 3 gates in angle → acro hover → acro lap).
-- **M6 Settings + feel + look:** settings panel: rates, uptilt, FOV, mode, controller remap, wind, latency. One "5-inch freestyle" preset. Tune feel against the cited numbers. **Look**, in order of impact: sun with real shadows, sky lighting (hemisphere/environment light), ACES tone mapping, distance fog/haze, ground with detail at every scale (procedural textures, since asset sites aren't reachable from the sandbox), grass/clutter near the ground for speed and depth cues. Keep it at 60 fps on a MacBook Air: quality setting low/high.
+- **M5 Feel (top priority).** Mike: "the feel needs to be perfect." Feel beats every other feature, so spend the time here.
+  - Measure it, don't guess. Write `docs/feel.md` with each target, its source, and the sim's measured value: stick-to-rotation response time, hover throttle, how fast it stops a roll, momentum and drift after letting go, top speed, how it falls with zero throttle, motor lag. Use Betaflight defaults and published 5-inch data; cite everything.
+  - Input path: read the gamepad every frame, no smoothing beyond Betaflight-style rates and expo, deadzone small. Physics stays at 1 kHz, and no frame drop changes the physics.
+  - Angle mode must feel like a real beginner quad: self-levels, holds its tilt limit, no wobble.
+  - One "Feel tuning" panel with a few named sliders (rates, expo, responsiveness, floatiness) and **Reset to default**.
+  - Prove it with the browser script: step inputs, plotted responses saved to `proof/M5/`.
+- **M6 Beginner path: "if someone hands you a real drone, you can fly it with confidence."** Beginner-first, not racer-first. Keep explanations to one line each; no battery or throttle-detail lessons (Mike, 2026-11-16).
+  - Live **stick overlay** on screen, always available.
+  - Lessons, each passed only after **3 good runs in a row** (measured, not one lucky pass):
+    1. Take off, hover in a box, land gently.
+    2. Hover facing 4 directions, including **nose toward you**, where the controls feel reversed. That's the classic beginner failure with a real drone.
+    3. Slow turns, an orbit around a pole, a figure 8.
+    4. Fly out, turn around, come back and land on the pad.
+    5. The same with light wind.
+    6. Emergencies: disarm instantly, and recover when you lose orientation.
+    7. Acro intro (only after 1–6).
+    8. **"Ready" check:** one run combining lessons 1–6 → a "real-drone ready" badge.
+  - **Two views:** FPV (default), and **line-of-sight**: you stand on the ground and watch the drone, which is how most people fly a real drone handed to them. Lessons 1–4 are done in both views.
+  - Gates and free flight stay unlocked.
+- **M6b Look** (only if M5 and M6 are done): sun with real shadows, sky lighting, tone mapping, haze, ground detail at every scale for speed and height cues, procedural textures. Quality setting low/high; keep 60 fps on a MacBook Air.
 - **M7 Finish:** 60 fps check, README (how to play, controls, how to connect a controller), final screenshot set in `proof/`, final report to Mike.
 
 ## Definition of done
-Mike opens the live link, plugs in a controller, maps it in under a minute, and can do lesson 1 to 4 and free laps. Every milestone has screenshots in `proof/Mx/` from the automated flight script.
+Mike opens the live link, plugs in a controller, maps it in under a minute, and the flying feels right. A beginner can go from zero to the "real-drone ready" badge, and free laps. Every milestone has screenshots in `proof/Mx/` from the automated flight script.
