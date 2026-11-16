@@ -14,7 +14,7 @@ export function defaultQuad() {
     yawTorquePerThrust: 0.0122, // m, derived from [7]
     dragLinear: 0.3,            // N per m/s, cited [7]
     dragQuadratic: 0.006,       // N per (m/s)^2, uncited
-    thrustExponent: 1.25,       // static thrust = max * command^1.25, fitted to a 2207 6S bench thrust table (docs/feel.md, note 2)
+    thrustExponent: 1.35,       // static thrust = max * command^1.35: middle of two 2207 6S bench tables, 1.24 and 1.45 (docs/feel.md, note 2)
     pitchSpeed: 65,             // m/s at full throttle, tuned for ~150 km/h level top speed [8]
     crashSpeed: 6,              // m/s impact speed that counts as a crash (assumption)
     groundHeight: 0.05,         // m, height of the centre of mass when sitting on the ground

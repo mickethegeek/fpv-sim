@@ -221,7 +221,7 @@ test('a PlayStation-style pad at rest gives the hover throttle and the quad hold
 
 test('presets: trainer limits full-stick thrust and hovers at a higher stick than freestyle', () => {
   const fr = buildConfig(defaultTuning('freestyle')), tr = buildConfig(defaultTuning('trainer'));
-  assert.ok(tr.hover > fr.hover && fr.hover > 0.10 && fr.hover < 0.20 && tr.hover < 0.30, `${fr.hover} ${tr.hover}`);
+  assert.ok(tr.hover > fr.hover && fr.hover > 0.12 && fr.hover < 0.20 && tr.hover < 0.30, `${fr.hover} ${tr.hover}`);
   assert.ok(Math.abs(fr.hover - hoverStick(dq(), dfc())) < 1e-12);
   const climb = (cfg) => { const sim = mkSim({ quad: cfg.quad, fcCfg: cfg.fc }); sim.state.pos[1] = 100; sim.armed = true; steps(sim, { roll: 0, pitch: 0, yaw: 0, throttle: 1 }, 300); return sim.state.vel[1]; };
   assert.ok(climb(tr) > 3 && climb(tr) < 0.75 * climb(fr), `${climb(tr)} ${climb(fr)}`);
