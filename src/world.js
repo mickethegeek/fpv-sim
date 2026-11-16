@@ -11,8 +11,8 @@ function rng(seed) {
 export const FIELD_SIZE = 600;        // m, side of the mown field; beyond it is rough grass
 export const QUAD_RADIUS = 0.18;      // m, collision sphere around the quad
 
-// Keep-clear zones (x, z, radius): the start pad, the gate course, and its last turn back past the pad.
-const CLEAR = [[0, 0, 14], [0, -70, 62], [20, -2, 30]];
+// Keep-clear zones (x, z, radius): the start pad, the gate course, its last turn back past the pad, and the orbit / figure-8 poles.
+const CLEAR = [[0, 0, 14], [0, -70, 62], [20, -2, 30], [0, -12, 26]];
 
 export function createWorld(seed = 7) {
   const r = rng(seed);
