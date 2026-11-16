@@ -16,9 +16,9 @@
   <span><small>THR</small> <b id="hud-thr"></b></span>
   <span><small>SPEED</small> <b id="hud-speed"></b></span>
   <span><small>ALT</small> <b id="hud-alt"></b></span>
-  <span><small>GATE</small> <b id="hud-gate"></b></span>
-  <span><small>LAP</small> <b id="hud-lap"></b></span>
-  <span><small>BEST</small> <b id="hud-best"></b></span>
+  <span class="race"><small>GATE</small> <b id="hud-gate"></b></span>
+  <span class="race"><small>LAP</small> <b id="hud-lap"></b></span>
+  <span class="race"><small>BEST</small> <b id="hud-best"></b></span>
 </div>
 <div id="sticks" hidden aria-hidden="true">
   <div class="stick"><i id="stick-l"></i></div>
@@ -29,27 +29,52 @@
 <div id="card" hidden><b id="card-title"></b><span id="card-text"></span></div>
 <div id="toast" hidden></div>
 <div id="hint" hidden></div>
-<div id="panel">
-  <div id="controller"></div>
-  <div class="row">
-    <button type="button" id="btn-setup">Set up controller</button>
-    <button type="button" id="btn-reset">Reset (R)</button>
-    <button type="button" id="btn-forget" hidden>Reset this controller</button>
+<div id="corner" hidden></div>
+<div id="menu" hidden>
+  <div class="menu-card">
+    <h1 class="menu-title"></h1>
+    <section data-screen="main" data-title="FPV sim">
+      <button type="button" class="big" data-go="learn" data-first><b>Learn</b><small id="main-learn">Eight lessons, from first take-off to real-drone ready</small></button>
+      <button type="button" class="big" data-act="gates"><b>Gates</b><small id="main-gates">Seven gates against the clock</small></button>
+      <button type="button" class="big" data-act="free"><b>Free fly</b><small>The open field, nothing on screen you did not ask for</small></button>
+      <button type="button" class="big" data-go="settings"><b>Settings</b><small>Controller, graphics, feel</small></button>
+    </section>
+    <section data-screen="learn" data-title="Learn" hidden>
+      <p class="menu-note">Start anywhere. Nothing is locked.</p>
+      <div id="badge" hidden>★ Real-drone ready</div>
+      <div id="lesson-list"></div>
+      <button type="button" data-go="back">Back</button>
+    </section>
+    <section data-screen="pause" data-title="Paused" hidden>
+      <button type="button" data-act="resume" data-first>Resume</button>
+      <button type="button" data-act="restart" id="btn-reset">Restart</button>
+      <button type="button" data-act="skip" id="btn-skip">Skip this lesson</button>
+      <button type="button" data-go="settings">Settings</button>
+      <button type="button" data-act="quit">Back to menu</button>
+    </section>
+    <section data-screen="settings" data-title="Settings" hidden>
+      <div id="controller"></div>
+      <div class="row">
+        <button type="button" id="btn-setup" data-first>Set up controller</button>
+        <button type="button" id="btn-forget" hidden>Reset this controller</button>
+      </div>
+      <label class="tune-row">Graphics <select id="quality"><option value="high">High</option><option value="low">Low (slow computer)</option></select> <span id="fps"></span></label>
+      <div class="row">
+        <button type="button" data-act="sticks" id="btn-sticks"></button>
+        <button type="button" data-act="view" id="btn-view"></button>
+      </div>
+      <details id="tuning">
+        <summary>Feel tuning</summary>
+        <label class="tune-row">Quad <select id="tune-preset"></select></label>
+        <div id="tune-info"></div>
+        <div id="tune-sliders"></div>
+        <button type="button" id="tune-reset">Reset to default</button>
+      </details>
+      <table id="keys"></table>
+      <button type="button" data-go="back">Back</button>
+    </section>
+    <div id="menu-help"></div>
   </div>
-  <table id="keys"></table>
-  <details id="lessons" open>
-    <summary>Lessons</summary>
-    <div id="badge" hidden>★ Real-drone ready</div>
-    <div id="lesson-list"></div>
-  </details>
-  <label class="tune-row">Graphics <select id="quality"><option value="high">High</option><option value="low">Low (slow computer)</option></select> <span id="fps"></span></label>
-  <details id="tuning">
-    <summary>Feel tuning</summary>
-    <label class="tune-row">Quad <select id="tune-preset"></select></label>
-    <div id="tune-info"></div>
-    <div id="tune-sliders"></div>
-    <button type="button" id="tune-reset">Reset to default</button>
-  </details>
 </div>
 <div id="setup" hidden></div>
 <script type="module" src="src/main.js"></script>

@@ -13,6 +13,7 @@ import { PRESETS } from './params.js';
 import { SLIDERS, defaultTuning, sanitizeTuning, buildConfig, loadTuning, saveTuning } from './tuning.js';
 import { createRace, resetRace, raceUpdate, formatLap, loadBest, saveBest } from './course.js';
 import * as LS from './lessons.js';
+import { Menu, navNames } from './menu.js';
 
 // View settings (M6 puts these in the settings panel).
 const view = {
@@ -61,12 +62,15 @@ const race = createRace(world.course, storage ? loadBest(world.course, storage) 
 let racePrev = null;      // quad position and sim time at the previous frame
 let toast = null;         // { text, best, left } message in the middle of the screen (lap done)
 
-// Beginner path (src/lessons.js). lesson = null is free flight. ?free starts in free flight, ?unlock opens every lesson.
+// Beginner path (src/lessons.js). Nothing is locked: any lesson can be opened from the Learn menu.
+// appMode: 'learn' (a lesson is up), 'gates' (lap timer and gate guide) or 'free' (the open field, nothing extra on screen).
+// Links: ?learn (next lesson) or ?learn=<id>, ?gates, ?free start there directly; with none of them the start menu opens.
 const progress = storage ? LS.loadProgress(storage) : LS.createProgress();
-const unlockAll = params.has('unlock');
+let appMode = 'free';
 let lesson = null, attempt = null, card = null; // card: { title, text, good, left } result of the last run
 function setLesson(id) {
   lesson = id ? LS.lessonById(id) : null;
+  appMode = lesson ? 'learn' : appMode === 'learn' ? 'free' : appMode;
   attempt = lesson ? LS.createAttempt(lesson) : null;
   card = null;
   sim.quad.wind = lesson && lesson.wind ? LS.WIND : null;
@@ -133,7 +137,7 @@ const hook = (window.__sim = {
   ready: false, frames: 0, fps: 0, paused: false, errors: [], shadowPoint, get quality() { return quality; }, get renderer() { return renderer; }, physicsHz: PHYSICS_HZ, physicsSteps: 0,
   sim, sticks, input, setup, view, world, race, get tuning() { return tuning; }, get config() { return config; },
   setTuning(t) { applyTuning({ ...tuning, ...t }); }, get scene() { return scene; }, get camera() { return camera; },
-  setLesson, LS, get attempt() { return attempt; },
+  setLesson, LS, get attempt() { return attempt; }, get menu() { return menu; }, get app() { return appMode; }, start(mode, id) { start(mode, id); },
   setSticks(s) { scripted = true; Object.assign(sticks, s); },
   arm(on = true) { scripted = true; sim.armed = on; },
   setMode(m) { sim.mode = m; },
@@ -155,6 +159,7 @@ const hook = (window.__sim = {
       lesson: lesson ? { id: lesson.id, state: attempt.state, step: attempt.step, status: attempt.status, key: attempt.key, prompt: attempt.prompt } : null,
       card: card ? { title: card.title, text: card.text, good: card.good } : null, progress: JSON.parse(JSON.stringify(progress)), wind: sim.quad.wind || null,
       race: { next: race.next, running: race.running, lapTime: race.lapTime, lastLap: race.lastLap, best: race.best, laps: race.laps, passed: race.passed },
+      app: appMode, menu: { open: menu.isOpen, screen: menu.screen, item: menu.current ? menu.current.textContent.trim() : null },
       view: view.mode, sticksShown: !sticksEl.hidden, sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open,
       camera: { fov: camera.fov, pos: camera.position.toArray(), dir: camera.getWorldDirection(new THREE.Vector3()).toArray() } };
   },
@@ -172,8 +177,9 @@ const keysEl = document.getElementById('keys');
 keysEl.innerHTML = KEY_HELP.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
 document.getElementById('btn-setup').addEventListener('click', (e) => { e.currentTarget.blur(); setup.start(); });
 const forgetEl = document.getElementById('btn-forget');
+const cornerEl = document.getElementById('corner'), menuHelp = document.getElementById('menu-help'), sticksBtn = document.getElementById('btn-sticks'),
+  viewBtn = document.getElementById('btn-view'), skipBtn = document.getElementById('btn-skip');
 forgetEl.addEventListener('click', (e) => { e.currentTarget.blur(); autoSetupFor = null; input.forget(input.gamepadId); });
-document.getElementById('btn-reset').addEventListener('click', (e) => { e.currentTarget.blur(); resetFlight(); });
 
 // Lessons panel.
 const lessonListEl = document.getElementById('lesson-list'), lessonEl = document.getElementById('lesson'), lessonTitle = document.getElementById('lesson-title'),
@@ -181,18 +187,56 @@ const lessonListEl = document.getElementById('lesson-list'), lessonEl = document
   cardTitle = document.getElementById('card-title'), cardText = document.getElementById('card-text'), badgeEl = document.getElementById('badge');
 function renderLessons() {
   const dots = (l, k) => { const p = progress[l.id][k], n = LS.streakNeeded(l); return p.passed ? '✓' : '●'.repeat(p.streak) + '○'.repeat(n - p.streak); };
+  const next = LS.nextLesson(progress), passed = LS.LESSONS.filter((l) => LS.lessonPassed(progress, l)).length;
+  // Progress is shown, never required: every lesson can be opened. "Next" marks the first one not passed yet.
   lessonListEl.innerHTML = LS.LESSONS.map((l, i) => {
-    const open = unlockAll || LS.isUnlocked(progress, l.id), done = LS.lessonPassed(progress, l);
+    const done = LS.lessonPassed(progress, l);
     const marks = LS.viewKeys(l).map((k) => `<span>${k === 'any' ? '' : k === 'los' ? 'LOS ' : 'FPV '}${dots(l, k)}</span>`).join(' ');
-    return `<button type="button" class="lesson${lesson === l ? ' on' : ''}${done ? ' done' : ''}" data-id="${l.id}" ${open ? '' : 'disabled'}><b>${i + 1}. ${l.title}</b><small>${open ? marks : 'Locked: pass the lesson before'}</small></button>`;
-  }).join('') + `<button type="button" class="lesson${lesson ? '' : ' on'}" data-id=""><b>Free flight and gates</b><small>Always open</small></button>`;
+    return `<button type="button" class="lesson${lesson === l ? ' on' : ''}${done ? ' done' : ''}" data-id="${l.id}"${l === (lesson || next) ? ' data-first' : ''}><b>${i + 1}. ${l.title}</b><small>${marks}${l === next ? ' <span class="next">Next</span>' : ''}</small></button>`;
+  }).join('');
   badgeEl.hidden = !LS.isReady(progress);
+  document.getElementById('main-learn').textContent = LS.isReady(progress) ? 'All eight lessons passed: real-drone ready' : `${passed} of ${LS.LESSONS.length} lessons passed · next: ${next.title}`;
+  document.getElementById('main-gates').textContent = `Seven gates against the clock${race.best ? ' · best ' + formatLap(race.best) : ''}`;
+  if (menu.isOpen) menu.refresh();
 }
 lessonListEl.addEventListener('click', (e) => {
   const b = e.target.closest('button');
-  if (!b || b.disabled) return;
-  resetFlight(); setLesson(b.dataset.id || null);
+  if (b) start('learn', b.dataset.id);
 });
+
+// Menus (src/menu.js): start menu, Learn, Settings, pause. The sim stands still while a menu is open.
+let resumeArmed = null; // arm state when the pause menu opened, given back on Resume
+const menu = new Menu({
+  root: document.getElementById('menu'), blocked: () => setup.open,
+  onAction(act) {
+    if (act === 'pause') { if (!menu.isOpen) { resumeArmed = { armed: input.armed, blocked: input.switchBlocked }; input.keys.clear(); renderLessons(); menu.open('pause'); } }
+    else if (act === 'resume') closeMenu(true);
+    else if (act === 'restart') { resetFlight(); if (lesson) setLesson(lesson.id); closeMenu(false); }
+    else if (act === 'skip') { // on to the next lesson; after the last one, back to the menu
+      const n = lesson && LS.LESSONS[LS.LESSONS.indexOf(lesson) + 1];
+      if (n) start('learn', n.id); else { resetFlight(); setLesson(null); renderLessons(); menu.open('main'); }
+    } else if (act === 'quit') { resetFlight(); setLesson(null); renderLessons(); menu.open('main'); }
+    else if (act === 'gates' || act === 'free') start(act);
+    else if (act === 'sticks') view.sticks = !view.sticks;
+    else if (act === 'view') nextView();
+  },
+  onBack(root) { if (root === 'pause') closeMenu(true); },
+});
+function closeMenu(resume) {
+  menu.close();
+  input.events = []; input.toggleArm = false;
+  input.prev = { arm: true, mode: true, reset: true, view: true }; // a button still held from the menu does nothing
+  if (resume && resumeArmed) { input.paused = false; input.armed = resumeArmed.armed; input.switchBlocked = resumeArmed.blocked; }
+  resumeArmed = null;
+}
+// Start flying: a lesson (id, or the next one not passed), the gate course or free flight.
+function start(mode, id) {
+  resetFlight();
+  const l = mode === 'learn' ? LS.lessonById(id) || LS.nextLesson(progress) : null;
+  appMode = mode === 'gates' ? 'gates' : 'free';
+  setLesson(l ? l.id : null);
+  closeMenu(false);
+}
 // Markers for the lessons: hover boxes, two cones with their circles, the far ring.
 const lessonMarks = (() => {
   const g = {}, mk = (name) => { g[name] = new THREE.Group(); g[name].visible = false; return g[name]; };
@@ -260,7 +304,9 @@ qualityEl.addEventListener('change', () => {
   const u = new URL(location.href);
   u.searchParams.delete('fast'); u.searchParams.delete('quality');
   if (!storage) u.searchParams.set('quality', qualityEl.value);
-  location.replace(u); // antialiasing can only be chosen when the page starts, so the page reloads
+  u.hash = 'settings';
+  // Antialiasing can only be chosen when the page starts, so the page reloads (and comes back to Settings).
+  if (u.search === location.search) { location.hash = 'settings'; location.reload(); } else location.replace(u);
 });
 const scene = buildScene(world, renderer, { fast });
 const quadModel = buildQuadModel();
@@ -272,7 +318,13 @@ scene.add(gates.group);
 const camera = new THREE.PerspectiveCamera(80, 1, 0.03, 2500);
 const sky = scene.getObjectByName('sky');
 for (const m of Object.values(lessonMarks)) scene.add(m);
-if (!params.has('free')) { const n = LS.nextLesson(progress); setLesson(n ? n.id : null); } else renderLessons();
+const direct = ['learn', 'gates', 'free'].find((k) => params.has(k));
+if (direct) start(direct, params.get('learn')); else { renderLessons(); menu.open('main'); }
+if (location.hash === '#settings') { // back from a Graphics change (the page reloads for it)
+  if (!menu.isOpen) menu.open('pause');
+  menu.push('settings');
+  history.replaceState(null, '', location.pathname + location.search);
+}
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -294,20 +346,25 @@ function frame(now) {
   last = now;
 
   setup.update(dt);
+  // Menus read the controller first. While one is open the sim stands still and the flying controls are off.
+  const pad = input.gamepad(), prof = pad && input.profiles[pad.id];
+  const optionsTaken = !!prof && [prof.arm, prof.mode].some((b) => b && b.type === 'button' && b.index === 9); // this controller's own setup uses that button
+  const menuOpen = menu.update(pad, dt, !optionsTaken);
+  input.paused = menuOpen || setup.open;
   const inp = input.update(dt);
   // A controller with no standard layout and no saved profile (a USB radio): open the setup screen by itself, once.
   if (input.needsSetup && !setup.open && autoSetupFor !== input.gamepadId) { autoSetupFor = input.gamepadId; setup.start(); }
-  if (!scripted) {
+  if (!scripted && !menuOpen) {
     Object.assign(sticks, inp.sticks);
     for (const ev of inp.events) { if (ev === 'mode') toggleMode(); else if (ev === 'reset') resetFlight(); else if (ev === 'view') nextView(); }
     if (inp.acroSwitch !== null) sim.mode = inp.acroSwitch ? MODES.ACRO : MODES.ANGLE;
     sim.armed = input.armed && !sim.state.crashed;
   }
-  if (!hook.paused) hook.physicsSteps += simAdvance(sim, sticks, dt); // paused: only the test script, to hold the quad still for a picture
-  lessonFrame(dt);
+  if (!hook.paused && !menuOpen) hook.physicsSteps += simAdvance(sim, sticks, dt); // hook.paused: only the test script, to hold the quad still for a picture
+  if (!menuOpen) lessonFrame(dt);
 
   // Crash: freeze, show it for a moment, then put the quad back on the pad, disarmed.
-  if (sim.state.crashed) {
+  if (sim.state.crashed && !menuOpen) {
     if (crashTimer === 0) { crashes++; input.disarm(); sim.armed = false; }
     crashTimer += dt;
     if (crashTimer >= CRASH_PAUSE) resetFlight();
@@ -315,12 +372,13 @@ function frame(now) {
 
   // Gates and lap timer (sim time, so a slow computer does not change lap times).
   const s = sim.state;
-  if (racePrev && !s.crashed) {
+  if (racePrev && !s.crashed && appMode === 'gates') {
     for (const ev of raceUpdate(race, racePrev.pos, s.pos, racePrev.time, s.time)) {
       if (ev.type === 'start') toast = { text: 'Lap started', best: false, left: 1.2 };
       if (ev.type === 'lap') {
         toast = { text: `Lap ${formatLap(ev.lapTime)}${ev.best ? ' · new best!' : ''}`, best: ev.best, left: 3.5 };
         if (ev.best && storage) saveBest(world.course, storage, race.best);
+        if (ev.best) renderLessons();
       }
     }
   }
@@ -384,10 +442,10 @@ function frame(now) {
   rotate(s.quat, [0, 0, -1], fwd);
   const gx = g.x - s.pos[0], gz = g.z - s.pos[2];
   const rel = Math.atan2(gx * -fwd[2] + gz * fwd[0], gx * fwd[0] + gz * fwd[2]);
-  guideEl.hidden = !sim.armed || setup.open || !!lesson;
+  guideEl.hidden = !sim.armed || setup.open || menuOpen || appMode !== 'gates';
   // Lesson banner, result card and markers.
   for (const [k, m] of Object.entries(lessonMarks)) m.visible = !!lesson && lesson.markers.includes(k);
-  lessonEl.hidden = !lesson || setup.open;
+  lessonEl.hidden = !lesson || setup.open || menuOpen;
   if (lesson) {
     setText(lessonTitle, `Lesson ${LS.LESSONS.indexOf(lesson) + 1}: ${lesson.title}`);
     setText(lessonLine, lesson.line);
@@ -398,7 +456,7 @@ function frame(now) {
   }
   if (card) { card.left -= dt; if (card.left <= 0 && !card.passedLesson) card = null; }
   if (card && !lesson && sim.armed) card = null;
-  cardEl.hidden = !card || setup.open;
+  cardEl.hidden = !card || setup.open || menuOpen;
   if (card) { setText(cardTitle, card.title); setText(cardText, card.text); cardEl.dataset.good = String(card.good); }
   guideArrow.style.transform = `rotate(${Math.round(rel / DEG)}deg)`;
   setText(guideText, `${race.running || race.next > 0 ? 'Gate' : 'Start: gate'} ${race.next + 1} · ${Math.round(Math.hypot(gx, gz))} m`);
@@ -408,18 +466,29 @@ function frame(now) {
   let ctl = 'Keyboard (no controller found: plug one in and press a button)';
   const names = buttonNames(input.gamepadId), usesDefault = input.gamepadId && !input.needsSetup && !input.profiles[input.gamepadId];
   if (input.gamepadId) ctl = input.needsSetup ? `Controller needs setup: ${input.gamepadId}` : `Controller: ${input.gamepadId}`;
-  if (usesDefault) ctl += ` · ${names.arm} arm · ${names.mode} angle/acro · ${names.reset} reset · ${names.view} view`;
+  const nav = navNames(input.gamepadId), std = !!pad && pad.mapping === 'standard';
+  if (usesDefault) ctl += ` · ${names.arm} arm · ${names.mode} angle/acro · ${names.reset} reset · ${names.view} view · ${nav.pause} menu`;
   if (setup.message) ctl += ` · ${setup.message}`;
   setText(controllerEl, ctl);
   forgetEl.hidden = !(input.gamepadId && input.profiles[input.gamepadId]); // only for a controller with a saved setup
   keysEl.hidden = input.source !== 'keyboard';
   document.body.classList.toggle('flying', sim.armed);
+  document.body.classList.toggle('menu-open', menuOpen);
+  document.body.classList.toggle('mode-free', appMode === 'free');
+  cornerEl.hidden = menuOpen || setup.open;
+  setText(cornerEl, std && !optionsTaken ? `${nav.pause}: menu` : 'Esc: menu');
+  if (menuOpen) {
+    setText(menuHelp, std ? `D-pad: move · ${nav.select} select · ${nav.back} back` : 'Arrows: move · Enter: select · Esc: back');
+    setText(sticksBtn, `Stick overlay: ${view.sticks ? 'on' : 'off'}`);
+    setText(viewBtn, `View: ${view.mode === 'los' ? 'line of sight' : view.mode === 'chase' ? 'chase' : 'FPV'}`);
+    skipBtn.hidden = !lesson;
+  }
   let hint = inp.hint;
   if (s.crashed) hint = `Crashed${s.crashedInto && s.crashedInto !== 'ground' ? ' into a ' + s.crashedInto : ''}. Resetting…`;
   else if (!sim.armed && !hint && !setup.open && !scripted) {
     hint = input.source === 'gamepad' ? (usesDefault ? `Pull the left stick down and press ${names.arm} to arm` : 'Throttle down, then arm to fly') : 'Press Space to arm, then hold W to take off';
   }
-  hintEl.hidden = !hint;
+  hintEl.hidden = !hint || menuOpen;
   if (hint) setText(hintEl, hint);
 
   renderer.render(scene, camera);

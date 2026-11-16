@@ -34,7 +34,7 @@ let failed = false;
 const check = (name, ok, detail = '') => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${name} ${detail}`); if (!ok) failed = true; };
 const shot = (name) => page.screenshot({ path: `${outDir}${name}.png` });
 
-await page.goto(url + '?fast&free&preset=freestyle'); // ?fast: no antialiasing or anisotropic filtering, 3x quicker in software GL; same sim and UI
+await page.goto(url + '?fast&gates&preset=freestyle'); // ?fast: no antialiasing or anisotropic filtering, 3x quicker in software GL; same sim and UI
 await page.waitForFunction(() => window.__sim && window.__sim.ready, null, { timeout: 20000 });
 const f0 = await page.evaluate(() => window.__sim.frames);
 await page.waitForTimeout(1000);
@@ -393,7 +393,7 @@ if (runs('M5')) {
 // --- M5b: Feel tuning panel, presets, and the PlayStation spring-stick throttle (page opened the way Mike opens it) ---
 if (runs('M5')) {
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
-  await page.goto(url + '?fast&free');
+  await page.goto(url + '?fast&gates');
   await page.waitForFunction(() => window.__sim && window.__sim.ready);
   await simWait(100);
   const tune = () => page.evaluate(() => ({ t: window.__sim.tuning, hover: window.__sim.config.hover, limit: window.__sim.sim.fcCfg.throttleLimit,
@@ -455,7 +455,7 @@ if (runs('M5')) {
 
 // --- M6: stick overlay and line-of-sight view ---
 if (runs('M6')) {
-  await page.goto(url + '?fast&free&preset=freestyle');
+  await page.goto(url + '?fast&gates&preset=freestyle');
   await page.waitForFunction(() => window.__sim && window.__sim.ready);
   await page.evaluate(() => { window.__sim.reset(); window.__sim.setMode('angle'); window.__sim.arm(true); });
   let s = await fly({ ...neutral, throttle: stickForThrust(1.25), roll: 0.5, yaw: -0.5 }, 700);
@@ -619,7 +619,7 @@ if (runs('M6L')) {
 
 // --- M6b: the look (sun and its shadows, sky, haze, ground detail, Graphics setting) ---
 if (runs('M6b')) {
-  await page.goto(url + '?fast&free&preset=freestyle');
+  await page.goto(url + '?fast&gates&preset=freestyle');
   await page.waitForFunction(() => window.__sim && window.__sim.ready);
   const look = await page.evaluate(async (base) => {
     const S = await import(base + 'src/scene.js'), sim = window.__sim, sc = sim.scene;
@@ -686,7 +686,7 @@ if (runs('M6b')) {
   await release();
 
   // Graphics setting: High on a first visit, Low is saved and survives a reload, the panel shows the frame rate.
-  await page.goto(url + '?free&preset=freestyle');
+  await page.goto(url + '?gates&preset=freestyle');
   await page.waitForFunction(() => window.__sim && window.__sim.ready);
   const hi = await page.evaluate(() => ({ q: window.__sim.quality, aa: window.__sim.renderer.getContext().getContextAttributes().antialias, sel: document.getElementById('quality').value }));
   await view(0, 9, -60, 180, 0, '58-m6b-high-quality-sun-and-sky');

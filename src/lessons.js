@@ -87,10 +87,6 @@ export function createProgress(saved) {
   return p;
 }
 export const lessonPassed = (progress, lesson) => viewKeys(lesson).every((k) => progress[lesson.id][k].passed);
-export function isUnlocked(progress, id) {
-  const i = LESSONS.findIndex((l) => l.id === id);
-  return i === 0 || (i > 0 && LESSONS.slice(0, i).every((l) => lessonPassed(progress, l)));
-}
 export const nextLesson = (progress) => LESSONS.find((l) => !lessonPassed(progress, l)) || null;
 export const isReady = (progress) => LESSONS.every((l) => lessonPassed(progress, l));
 

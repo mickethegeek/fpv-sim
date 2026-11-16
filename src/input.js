@@ -17,7 +17,8 @@ export const DEFAULT_DEADZONE = 0.05;
 
 // Mode 2 on a "standard" layout gamepad: left stick = throttle/yaw, right stick = pitch/roll.
 // Stick up reads -1 on gamepads, hence the -1 signs. Buttons (standard layout indices): R1 (5) = arm,
-// L1 (4) = angle/acro, Options (9) = reset, triangle (3) = view. Shoulder buttons, so both thumbs stay on the sticks.
+// L1 (4) = angle/acro, Share / Create (8) = reset, triangle (3) = view. Shoulder buttons, so both thumbs stay on the sticks.
+// Options (9) opens the pause menu (src/menu.js), which has Restart.
 export function defaultMapping(id = '') {
   return {
     version: 1, id, deadzone: DEFAULT_DEADZONE,
@@ -27,7 +28,7 @@ export function defaultMapping(id = '') {
     },
     arm: { type: 'button', index: 5, kind: 'toggle' },
     mode: { type: 'button', index: 4, kind: 'toggle' },
-    reset: { type: 'button', index: 9, kind: 'toggle' },
+    reset: { type: 'button', index: 8, kind: 'toggle' },
     view: { type: 'button', index: 3, kind: 'toggle' }, // triangle / Y: FPV <-> line of sight
     springThrottle: true, // gamepad sticks snap back to the middle: stick centre gives "throttle mid" (about hover)
   };
@@ -37,7 +38,7 @@ export function defaultMapping(id = '') {
 export function isPlayStation(id = '') { return /054c|dualsense|dualshock|playstation|ps[345] controller|wireless controller/i.test(id); }
 // What to call the default buttons on screen.
 export function buttonNames(id = '') {
-  return isPlayStation(id) ? { arm: 'R1', mode: 'L1', reset: 'Options', view: '△' } : { arm: 'RB', mode: 'LB', reset: 'Start', view: 'Y' };
+  return isPlayStation(id) ? { arm: 'R1', mode: 'L1', reset: 'Share', view: '△' } : { arm: 'RB', mode: 'LB', reset: 'View', view: 'Y' };
 }
 
 export function applyDeadzone(v, dz) {
@@ -173,7 +174,7 @@ export const KEY_HELP = [
   ['W / S', 'throttle up / down'], ['A / D', 'yaw left / right'],
   ['↑ / ↓', 'pitch forward / back'], ['← / →', 'roll left / right'],
   ['Space', 'arm / disarm'], ['M', 'angle / acro'], ['R', 'reset'],
-  ['V', 'FPV / line of sight'], ['C', 'chase view on / off'], ['O', 'stick overlay on / off'],
+  ['Esc', 'menu / pause'], ['V', 'FPV / line of sight'], ['C', 'chase view on / off'], ['O', 'stick overlay on / off'],
 ];
 const KEY_RAMP = 5;       // 1/s: how fast a held key moves a virtual stick to full deflection
 const KEY_THROTTLE = 0.7; // 1/s: throttle change while W or S is held

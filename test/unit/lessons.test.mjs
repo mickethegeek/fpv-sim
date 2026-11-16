@@ -1,7 +1,7 @@
 // M6 unit tests: the 8 lessons, flown by a test pilot on the real physics; 3-in-a-row gating; per-view progress.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LESSONS, WIND, GENTLE_LANDING, lessonById, createProgress, isUnlocked, lessonPassed, recordResult, loadProgress, saveProgress, nextLesson, isReady,
+import { LESSONS, WIND, GENTLE_LANDING, lessonById, createProgress, lessonPassed, recordResult, loadProgress, saveProgress, nextLesson, isReady,
   createAttempt, attemptUpdate, attemptResult, viewKeyFor, headingDeg } from '../../src/lessons.js';
 import { createWorld } from '../../src/world.js';
 import { createSim, simSteps } from '../../src/sim.js';
@@ -109,17 +109,17 @@ test('light wind pushes a hands-off hover downwind; none without wind', () => {
 
 test('a lesson is passed only after 3 good runs in a row, in every view it asks for', () => {
   const p = createProgress(), L = lessonById('takeoff'), good = { good: true }, bad = { good: false };
-  assert.ok(isUnlocked(p, 'takeoff') && !isUnlocked(p, 'directions'));
+  assert.equal(nextLesson(p).id, 'takeoff');
   recordResult(p, L, 'fpv', good); recordResult(p, L, 'fpv', good);
   recordResult(p, L, 'fpv', bad);
   assert.equal(p.takeoff.fpv.streak, 0, 'a bad run resets the streak');
   for (let i = 0; i < 2; i++) recordResult(p, L, 'fpv', good);
   assert.ok(!p.takeoff.fpv.passed);
   let r = recordResult(p, L, 'fpv', good);
-  assert.ok(r.passedView && !r.passedLesson && !isUnlocked(p, 'directions'), 'FPV alone is not enough');
+  assert.ok(r.passedView && !r.passedLesson && nextLesson(p).id === 'takeoff', 'FPV alone is not enough');
   for (let i = 0; i < 2; i++) recordResult(p, L, 'los', good);
   r = recordResult(p, L, 'los', good);
-  assert.ok(r.passedLesson && lessonPassed(p, L) && isUnlocked(p, 'directions') && !isUnlocked(p, 'turns'));
+  assert.ok(r.passedLesson && lessonPassed(p, L));
   assert.equal(nextLesson(p).id, 'directions');
   recordResult(p, L, 'los', bad);
   assert.ok(lessonPassed(p, L), 'a later bad run does not un-pass a lesson');
@@ -129,7 +129,7 @@ test('a lesson is passed only after 3 good runs in a row, in every view it asks 
 test('the Ready check needs one good run and gives the badge only when everything is passed', () => {
   const p = createProgress();
   for (const l of LESSONS.slice(0, 7)) for (const k of Object.keys(p[l.id])) p[l.id][k].passed = true;
-  assert.ok(isUnlocked(p, 'ready') && !isReady(p));
+  assert.ok(nextLesson(p).id === 'ready' && !isReady(p));
   const r = recordResult(p, lessonById('ready'), 'any', { good: true });
   assert.ok(r.passedLesson && isReady(p) && nextLesson(p) === null);
 });

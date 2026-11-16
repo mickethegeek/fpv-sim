@@ -145,7 +145,7 @@ test('gamepad: standard pad works without setup; A arms only with throttle low; 
   assert.deepEqual(r.events, ['mode']);
   r = inp.update(0.016);                                         // held: no repeat
   assert.equal(r.armed, true); assert.deepEqual(r.events, []);
-  win.pads = [pad([0, -1, 0, 0], B(9))];  // Options: reset; throttle up while armed is fine
+  win.pads = [pad([0, -1, 0, 0], B(8))];  // Share: reset (Options is the pause menu); throttle up while armed is fine
   r = inp.update(0.016);
   assert.equal(r.armed, true); assert.deepEqual(r.events, ['reset']); near(r.sticks.throttle, 1);
 });
@@ -264,7 +264,7 @@ test('each controller keeps its own profile; the old single-mapping format is st
   const win2 = fakeWindow();
   win2.localStorage.setItem('fpvsim.controller.v1', JSON.stringify(radio));
   assert.deepEqual(new InputManager(win2).mappingFor({ id: 'Radio', mapping: '', axes: [0, 0, 0, 0] }), radio);
-  assert.deepEqual(buttonNames(ps.id), { arm: 'R1', mode: 'L1', reset: 'Options', view: '△' });
+  assert.deepEqual(buttonNames(ps.id), { arm: 'R1', mode: 'L1', reset: 'Share', view: '△' });
   assert.equal(isPlayStation('Xbox 360 Controller (XInput STANDARD GAMEPAD)'), false);
   assert.equal(buttonNames('Xbox 360 Controller').arm, 'RB');
 });
