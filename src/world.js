@@ -1,6 +1,8 @@
 // The flying field as plain data + collision test. No DOM, no three.js (scene.js draws it).
 // World frame: Y up, the quad starts at the origin facing -Z ("north"). Units: metres.
 
+import { createCourse, gateHit } from './course.js';
+
 function rng(seed) {
   let s = seed >>> 0;
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32);
@@ -9,8 +11,8 @@ function rng(seed) {
 export const FIELD_SIZE = 600;        // m, side of the mown field; beyond it is rough grass
 export const QUAD_RADIUS = 0.18;      // m, collision sphere around the quad
 
-// Keep-clear zones (x, z, radius): the start pad and the area M4 will put the gate course in.
-const CLEAR = [[0, 0, 14], [0, -70, 62]];
+// Keep-clear zones (x, z, radius): the start pad, the gate course, and its last turn back past the pad.
+const CLEAR = [[0, 0, 14], [0, -70, 62], [20, -2, 30]];
 
 export function createWorld(seed = 7) {
   const r = rng(seed);
@@ -39,14 +41,18 @@ export function createWorld(seed = 7) {
     { x: -70, z: 40, w: 20, h: 4, d: 10, color: 0xd9c9a0, roof: 0x8a4b3a },   // clubhouse
   ];
 
-  const world = { trees, poles, buildings, start: { x: 0, z: 0 } };
+  const course = createCourse();
+  const world = { trees, poles, buildings, course, gates: course.gates, start: { x: 0, z: 0 } };
   world.hit = (pos, radius = QUAD_RADIUS) => hit(world, pos, radius);
   return world;
 }
 
-// Does a sphere at pos touch any obstacle? Returns 'tree' | 'pole' | 'building' | null.
+// Does a sphere at pos touch any obstacle? Returns 'gate' | 'tree' | 'pole' | 'building' | null.
 export function hit(world, pos, radius = QUAD_RADIUS) {
   const [x, y, z] = pos;
+  for (const g of world.gates) {
+    if (Math.abs(x - g.x) + Math.abs(z - g.z) < g.w + 2 && gateHit(g, pos, radius)) return 'gate';
+  }
   for (const b of world.buildings) {
     if (y - radius < b.h && Math.abs(x - b.x) < b.w / 2 + radius && Math.abs(z - b.z) < b.d / 2 + radius) return 'building';
   }

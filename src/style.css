@@ -21,7 +21,14 @@ button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 #keys td { padding: 2px 0; }
 #keys td:first-child { font-weight: 600; white-space: nowrap; padding-right: 10px; }
 #setup { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.6); }
-#setup[hidden], #hint[hidden], #keys[hidden] { display: none; }
+#setup[hidden], #hint[hidden], #keys[hidden], #guide[hidden], #toast[hidden] { display: none; }
+#guide { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; white-space: nowrap;
+  padding: 6px 14px; background: rgba(0,0,0,.5); border-radius: 8px; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+#guide-arrow { display: inline-block; color: #ff9a4a; font-size: 20px; line-height: 1; }
+#toast { position: fixed; left: 50%; top: 34%; transform: translateX(-50%); padding: 10px 20px; background: rgba(0,0,0,.7); border-radius: 8px;
+  font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#toast[data-best=true] { color: #6fe38a; }
+#hud-lap, #hud-best { min-width: 4.4em; }
 #setup .card { width: min(520px, calc(100vw - 32px)); box-sizing: border-box; padding: 20px 24px; background: #1c2330; border-radius: 12px; }
 #setup h2 { margin: 0 0 6px; font-size: 20px; }
 #setup .progress { margin: 0; color: #a9b4c4; overflow-wrap: anywhere; }

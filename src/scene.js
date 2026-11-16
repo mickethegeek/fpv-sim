@@ -116,6 +116,53 @@ export function buildScene(world, renderer, opts = {}) {
   return scene;
 }
 
+// Gates: a frame (two posts + top bar) and a number board on top. Returns { group, highlight(nextIndex) }.
+// The next gate is bright orange with a glowing board; the others are a quiet blue-grey.
+const GATE_NEXT = 0xff7a1a, GATE_IDLE = 0x7d8fa8;
+export function buildGates(course) {
+  const group = new THREE.Group();
+  group.name = 'gates';
+  const frames = [];
+  for (const g of course.gates) {
+    const mat = new THREE.MeshBasicMaterial({ color: GATE_IDLE });
+    const gate = new THREE.Group();
+    const post = new THREE.BoxGeometry(g.bar, g.h + g.bar, g.bar);
+    for (const side of [-1, 1]) {
+      const m = new THREE.Mesh(post, mat);
+      m.position.set(side * (g.w / 2 + g.bar / 2), (g.h + g.bar) / 2, 0);
+      gate.add(m);
+    }
+    const top = new THREE.Mesh(new THREE.BoxGeometry(g.w + 2 * g.bar, g.bar, g.bar), mat);
+    top.position.set(0, g.h + g.bar / 2, 0);
+    gate.add(top);
+    // Number board, readable from the side you fly in from (and mirrored-safe: drawn on both faces).
+    const tex = canvasTexture(128, (c, n) => {
+      c.fillStyle = '#10151d'; c.fillRect(0, 0, n, n);
+      c.fillStyle = '#ffffff'; c.font = 'bold 96px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(String(g.index + 1), n / 2, n / 2 + 6);
+    });
+    for (const face of [1, -1]) {
+      const board = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.8), new THREE.MeshBasicMaterial({ map: tex }));
+      board.position.set(0, g.h + g.bar + 0.45, face * 0.01);
+      if (face < 0) board.rotation.y = Math.PI;
+      gate.add(board);
+    }
+    gate.position.set(g.x, 0, g.z);
+    gate.rotation.y = -g.headingDeg * Math.PI / 180;
+    group.add(gate);
+    frames.push(mat);
+  }
+  let shown = -2;
+  return {
+    group,
+    highlight(next) {
+      if (next === shown) return;
+      shown = next;
+      frames.forEach((m, i) => m.color.setHex(i === next ? GATE_NEXT : GATE_IDLE));
+    },
+  };
+}
+
 // Small quad model for the chase view. Body axes: -Z is the nose (orange).
 export function buildQuadModel() {
   const quad = new THREE.Group();

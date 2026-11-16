@@ -1,14 +1,15 @@
 // Entry point. Wires input, sim, FPV camera, HUD and the render loop.
 // Physics lives in sim.js / physics.js / flightcontroller.js / world.js (no DOM there).
 import * as THREE from '../vendor/three.module.min.js';
-import { PHYSICS_HZ, attitude } from './physics.js';
+import { PHYSICS_HZ, attitude, rotate } from './physics.js';
 import { MODES } from './flightcontroller.js';
 import { createSim, resetSim, simAdvance } from './sim.js';
 import { DEG } from './params.js';
 import { InputManager, KEY_HELP } from './input.js';
 import { SetupScreen } from './setup.js';
 import { createWorld } from './world.js';
-import { buildScene, buildQuadModel, verticalFov } from './scene.js';
+import { buildScene, buildGates, buildQuadModel, verticalFov } from './scene.js';
+import { createRace, resetRace, raceUpdate, formatLap, loadBest, saveBest } from './course.js';
 
 // View settings (M6 puts these in the settings panel).
 const view = {
@@ -28,10 +29,19 @@ let scripted = false; // true once the flight script drives the sticks directly 
 let crashTimer = 0;
 let crashes = 0;
 
+// Gate course and lap timer. The best lap is kept in the browser (localStorage), per course.
+let storage = null;
+try { storage = window.localStorage; } catch { /* blocked: best lap lasts until the page closes */ }
+const race = createRace(world.course, storage ? loadBest(world.course, storage) : null);
+let racePrev = null;      // quad position and sim time at the previous frame
+let toast = null;         // { text, best, left } message in the middle of the screen (lap done)
+
 function resetFlight() {
   resetSim(sim);
   input.disarm();
   crashTimer = 0;
+  resetRace(race);
+  racePrev = null;
   Object.assign(sticks, { roll: 0, pitch: 0, yaw: 0, throttle: 0 });
 }
 function toggleMode() { sim.mode = sim.mode === MODES.ACRO ? MODES.ANGLE : MODES.ACRO; }
@@ -39,7 +49,7 @@ function toggleMode() { sim.mode = sim.mode === MODES.ACRO ? MODES.ANGLE : MODES
 // Test hook: the Playwright flight script (test/flight.mjs) drives and reads the sim through this.
 const hook = (window.__sim = {
   ready: false, frames: 0, errors: [], physicsHz: PHYSICS_HZ, physicsSteps: 0,
-  sim, sticks, input, setup, view, world, get scene() { return scene; }, get camera() { return camera; },
+  sim, sticks, input, setup, view, world, race, get scene() { return scene; }, get camera() { return camera; },
   setSticks(s) { scripted = true; Object.assign(sticks, s); },
   arm(on = true) { scripted = true; sim.armed = on; },
   setMode(m) { sim.mode = m; },
@@ -58,6 +68,7 @@ const hook = (window.__sim = {
       rollDeg: a.roll / DEG, pitchDeg: a.pitch / DEG, yawDeg: a.yaw / DEG,
       onGround: s.onGround, crashed: s.crashed, crashedInto: s.crashedInto || null, crashes,
       armed: sim.armed, mode: sim.mode, time: s.time,
+      race: { next: race.next, running: race.running, lapTime: race.lapTime, lastLap: race.lastLap, best: race.best, laps: race.laps, passed: race.passed },
       sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open,
       camera: { fov: camera.fov, pos: camera.position.toArray(), dir: camera.getWorldDirection(new THREE.Vector3()).toArray() } };
   },
@@ -65,8 +76,10 @@ const hook = (window.__sim = {
 window.addEventListener('error', (e) => hook.errors.push(String(e.message)));
 
 const canvas = document.getElementById('view');
-const hud = Object.fromEntries(['state', 'mode', 'thr', 'speed', 'alt'].map((k) => [k, document.getElementById('hud-' + k)]));
+const hud = Object.fromEntries(['state', 'mode', 'thr', 'speed', 'alt', 'gate', 'lap', 'best'].map((k) => [k, document.getElementById('hud-' + k)]));
 const hintEl = document.getElementById('hint');
+const guideEl = document.getElementById('guide'), guideArrow = document.getElementById('guide-arrow'), guideText = document.getElementById('guide-text');
+const toastEl = document.getElementById('toast');
 const controllerEl = document.getElementById('controller');
 const keysEl = document.getElementById('keys');
 keysEl.innerHTML = KEY_HELP.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
@@ -81,6 +94,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 const scene = buildScene(world, renderer, { fast });
 const quadModel = buildQuadModel();
 scene.add(quadModel);
+const gates = buildGates(world.course);
+scene.add(gates.group);
 const camera = new THREE.PerspectiveCamera(80, 1, 0.03, 2500);
 const sky = scene.getObjectByName('sky');
 
@@ -93,6 +108,7 @@ window.addEventListener('resize', resize);
 resize();
 
 const qBody = new THREE.Quaternion(), qTilt = new THREE.Quaternion(), X_AXIS = new THREE.Vector3(1, 0, 0);
+const fwd = [0, 0, 0];
 const camOffset = new THREE.Vector3(), chasePos = new THREE.Vector3(0, 1, 3), tmp = new THREE.Vector3();
 function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
 
@@ -118,8 +134,21 @@ function frame(now) {
     if (crashTimer >= CRASH_PAUSE) resetFlight();
   }
 
-  // Cameras.
+  // Gates and lap timer (sim time, so a slow computer does not change lap times).
   const s = sim.state;
+  if (racePrev && !s.crashed) {
+    for (const ev of raceUpdate(race, racePrev.pos, s.pos, racePrev.time, s.time)) {
+      if (ev.type === 'start') toast = { text: 'Lap started', best: false, left: 1.2 };
+      if (ev.type === 'lap') {
+        toast = { text: `Lap ${formatLap(ev.lapTime)}${ev.best ? ' · new best!' : ''}`, best: ev.best, left: 3.5 };
+        if (ev.best && storage) saveBest(world.course, storage, race.best);
+      }
+    }
+  }
+  racePrev = { pos: [s.pos[0], s.pos[1], s.pos[2]], time: s.time };
+  gates.highlight(race.next);
+
+  // Cameras.
   quadModel.position.set(s.pos[0], s.pos[1], s.pos[2]);
   qBody.set(s.quat[0], s.quat[1], s.quat[2], s.quat[3]);
   quadModel.quaternion.copy(qBody);
@@ -152,6 +181,21 @@ function frame(now) {
   setText(hud.thr, `${Math.round(sticks.throttle * 100)}%`);
   setText(hud.speed, `${Math.round(speed * 3.6)} km/h`);
   setText(hud.alt, `${s.pos[1].toFixed(1)} m`);
+  const nGates = world.course.gates.length;
+  setText(hud.gate, `${race.next + 1}/${nGates}`);
+  setText(hud.lap, race.running ? formatLap(race.lapTime) : formatLap(null));
+  setText(hud.best, formatLap(race.best));
+  // Guide to the next gate: an arrow that points where to turn (up = straight ahead) and the distance.
+  const g = world.course.gates[race.next];
+  rotate(s.quat, [0, 0, -1], fwd);
+  const gx = g.x - s.pos[0], gz = g.z - s.pos[2];
+  const rel = Math.atan2(gx * -fwd[2] + gz * fwd[0], gx * fwd[0] + gz * fwd[2]);
+  guideEl.hidden = !sim.armed || setup.open;
+  guideArrow.style.transform = `rotate(${Math.round(rel / DEG)}deg)`;
+  setText(guideText, `${race.running || race.next > 0 ? 'Gate' : 'Start: gate'} ${race.next + 1} · ${Math.round(Math.hypot(gx, gz))} m`);
+  if (toast) { toast.left -= dt; if (toast.left <= 0 || s.crashed) toast = null; }
+  toastEl.hidden = !toast;
+  if (toast) { setText(toastEl, toast.text); toastEl.dataset.best = String(toast.best); }
   let ctl = 'Keyboard (no controller found: plug one in and press a button)';
   if (input.gamepadId) ctl = input.needsSetup ? `Controller needs setup: ${input.gamepadId}` : `Controller: ${input.gamepadId}`;
   if (setup.message) ctl += ` · ${setup.message}`;
