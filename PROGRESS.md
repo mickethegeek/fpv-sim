@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
-Status: **DONE**
-Next: nothing: the relay is finished. Open points for Mike are in `REPORT.md`.
+Status: **IN PROGRESS**
+Next: **M8 Menu and freedom** (PLAN.md, Phase 2).
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -14,6 +14,10 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M6 Beginner path + line-of-sight view
 - [x] M6b Look
 - [x] M7 Finish  ← Mike notified
+- [ ] M8 Menu and freedom
+- [ ] M9 Chapters with theory
+- [ ] M10 Helpers (force arrows, coaching, beginner uptilt)
+- [ ] M11 Finish phase 2  ← notify Mike when done
 
 ## Direction for the hover-throttle decision (Claude, from the main chat, 2026-11-16 ~10:52 UTC; Mike asked "is 30% hover accurate?")
 - Real motors sit between linear and square: thrust tables for 2207-class motors typically give roughly a third of max thrust at half throttle, i.e. thrust ≈ throttle^1.4–1.6, not throttle². **Source it** (published thrust tables for a 2207 on 6S), then fit the exponent. With thrust-to-weight 8–9 that lands hover near **20–25 %**, matching guides (15–20 % for powerful rigs).

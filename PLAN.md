@@ -62,5 +62,30 @@ Look up typical values with sources; the numbers below are starting points, not 
 - **M6b Look** (only if M5 and M6 are done): sun with real shadows, sky lighting, tone mapping, haze, ground detail at every scale for speed and height cues, procedural textures. Quality setting low/high; keep 60 fps on a MacBook Air.
 - **M7 Finish:** 60 fps check, README (how to play, controls, how to connect a controller), final screenshot set in `proof/`, final report to Mike.
 
+## Phase 2: learn, then fly (Mike, 2026-11-16 evening)
+Mike: the lessons test him but never teach him. "I need a bit more theory, less practice. What makes what what." But **not** a wall of text: "more like skip tutorial to access the gates, or just skip chapter, not to overlay everything but to allow the player to control where and what as a complete sim for beginner to advanced." English.
+
+Rules for every M8–M11 change:
+- **The player decides.** Nothing is locked. Every chapter, part and tutorial can be skipped; gates and free flight are one click from anywhere. Progress is shown, never required.
+- **Show, don't tell.** Max 2 short sentences on screen at once. The sim does the explaining: slow motion, freeze, arrows.
+- **No overlays the player didn't ask for** during free flight and gates. Helpers (force arrows, stick overlay, coaching) are toggles.
+- Theory must match the sim's real physics (the arrows are the real forces from `physics.js`), and claims about real drones get a source in `docs/` like everything else.
+
+- **M8 Menu and freedom.** A start menu: **Learn** (chapters), **Gates**, **Free fly**, **Settings**. Remove lesson locking. Fully usable with the PlayStation controller (D-pad to move, ✕ to select, ◯ back, Options = pause menu) and with mouse/keyboard. Pause menu with Skip, Restart, Back to menu.
+- **M9 Chapters with theory.** Turn the 8 lessons into chapters. Each chapter has up to 4 parts, each skippable: **Learn** (1–4 cards; each card = one idea in ≤2 sentences + a live demo in the sim), **Watch** (the existing test pilot flies it with the stick overlay on), **Try** (the current lesson), **Check** (2–3 quick questions, optional). Concepts to cover, spread over the chapters where they're needed:
+  1. How 4 props fly, tilt and turn (yaw from props spinning opposite ways).
+  2. What each stick changes (show which motors speed up).
+  3. Tilt = move; tilting also costs height, so you add throttle when you go forward.
+  4. No brakes: momentum, drift, stopping by tilting back early.
+  5. Angle vs acro: in acro the stick sets rotation speed, letting go keeps the angle. Show the rates curve.
+  6. Orientation: controls are relative to the drone; why nose-in feels reversed.
+  7. Coordinated turns: roll + yaw (+ a little pitch), like leaning a bike.
+  8. Wind: the drone drifts with the air; lean into it.
+  9. The FPV camera: why it's tilted up, and why the drone flies tilted.
+  10. Safety on a real field: arm only when ready, disarm the moment you crash, props, failsafe, the observer rule.
+  A **Theory** page in the menu lists every card, so the player can revise any time.
+- **M10 Helpers.** Toggleable **force arrows** (thrust per motor, gravity, velocity) usable anywhere, including free flight. **Coaching**: after a failed Try, one line saying why, computed from the flight data ("you drifted left: you held roll too long, release earlier"). In the Learn camera, uptilt starts at a beginner value (guides: 10–15°; cite) and the setting stays the player's.
+- **M11 Finish phase 2.** Every chapter checked in Chrome (cards, demo, watch, try, check, skip at each step, controller navigation), README and REPORT updated, notify Mike.
+
 ## Definition of done
 Mike opens the live link, plugs in a controller, maps it in under a minute, and the flying feels right. A beginner can go from zero to the "real-drone ready" badge, and free laps. Every milestone has screenshots in `proof/Mx/` from the automated flight script.

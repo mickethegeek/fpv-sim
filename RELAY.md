@@ -18,8 +18,8 @@ You are one leg of a relay building Mike's FPV simulator. A scheduled task start
 ## 3. Hand over (always, even if you're stopping early)
 1. Update `Next:` and `Status:` (`IN PROGRESS` or `DONE`) in `PROGRESS.md`.
 2. Delete `LOCK`. Commit, push.
-3. If you just ticked **M3** or **M7**: send Mike a SendUserMessage, 4 lines max: what he can do now, the live link, the single thing you most want him to try or decide. (After M7: also how to plug in his controller.)
-4. If this was M7: set `Status: DONE`, turn off both "FPV sim relay" scheduled tasks (main and backup).
+3. If you just ticked **M3**, **M7** or **M11**: send Mike a SendUserMessage, 4 lines max: what he can do now, the live link, the single thing you most want him to try or decide. (After M7: also how to plug in his controller.)
+4. If this was the last milestone in PROGRESS.md (now M11): set `Status: DONE`, turn off both "FPV sim relay" scheduled tasks (main and backup).
 5. **Chain the next leg** (often blocked by the permission check; that's fine, the orchestrator and the :15/:45 runs restart the relay). If `Status` is not `DONE`, start the next leg right away: list_triggers, find "FPV sim relay", then fire_trigger on it. Do this as your very last action, after the lock is deleted and pushed. If the fire fails (for example a usage limit), do nothing else: the hourly run at :45 restarts the relay.
 
 ## If tool checks fail ("auto mode classifier gave no verdict")
