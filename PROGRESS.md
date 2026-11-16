@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: M5 step 1 (skill meters): the logic is done and unit-tested, the on-screen panel and browser proof are in progress; then M5 steps 2 to 8 in PLAN.md order
+Next: M5 Feel (new plan, see PLAN.md). Nothing of M5 is started yet.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -56,10 +56,12 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - `node test/flight.mjs Mx M4` runs only one block (quick reruns); without the second argument it runs everything (about 150 s).
 - Open-loop test flying: hover is about 30 % throttle; 31 % with 0.3 forward pitch holds height roughly. More than that climbs over the gates.
 
+- For M6 lessons: `src/skills.js` already has the "3 good runs in a row" gating (`recordResult`, `isUnlocked`, storage), an attempt recorder at 50 Hz, tasks for hover-in-a-box, orbit a pole, figure 8 and a gate lap, and scoring from drift, height wobble, line and stick jerk (`scoreAttempt`). It is unit-tested (`test/unit/skills.test.mjs`) but **not wired into the page yet** and its skill list follows the old plan: M6 must reshape the list to the 8 lessons in PLAN.md. `test/autopilot.mjs` has test pilots (`createHoverPilot`, `createCirclePilot`, `createAutopilot`, `steer`) to fly lessons in tests.
+
 ## Log
 - 2026-11-16 09:46 UTC · M0 done: scaffold, vendored three.js r170, `npm test` (node unit tests), `node test/flight.mjs Mx` (Chrome flight script → proof/Mx/), static server in tools/ · next: M1 physics core
 - 2026-11-16 09:55 UTC · M1 done: physics.js, flightcontroller.js (Actual rates, angle + acro, rate PID, mixer), sim.js, params.js; 11 unit tests pass and each fails on at least one deliberate breakage (test/mutations.mjs: thrust x0 fails 7 of 11); flown in Chrome (proof/M1/) · next: M2 controller input
 - 2026-11-16 10:00 UTC · M2 done: Gamepad API input, setup screen (axes, inversions, arm/mode button or switch), deadzone, Mode 2 default, localStorage in try/catch, keyboard fallback with on-screen keys, arm rules; 20 unit tests, browser proof with keyboard and a simulated USB radio (proof/M2/) · next: M3 FPV view + world
 - 2026-11-16 10:18 UTC · M3 done: FPV camera (25° uptilt, 115° horizontal FOV), field with grass grid, trees, banded poles, buildings, sky and fog, obstacle collisions, crash → pause → reset, reset button, HUD; 23 unit tests, 44 browser checks (proof/M3/) · next: M4 gates + timer
 - 2026-11-16 10:38 UTC · M4 done: 7-gate course, next gate highlighted orange, gate frames solid, lap timer with flying start, best lap saved and shown, guide arrow to the next gate; 29 unit tests incl. autopilot flying two laps on the real physics, 64 browser checks incl. a full lap in Chrome (proof/M4/) · next: M5 learning path
-- 2026-11-16 10:44 UTC · M5 step 1, logic only: `src/skills.js` (8 skills, attempts recorded at 50 Hz, scored from drift, height wobble, line, lap time, stick jerk; next skill unlocks after 3 good attempts in a row), test pilots for hover, circles and laps, 38 unit tests · next: skills panel in the page + browser proof
+- 2026-11-16 10:44 UTC · built for the old M5 plan (skill meters), logic only: `src/skills.js` (8 skills, attempts recorded at 50 Hz, scored from drift, height wobble, line, lap time, stick jerk; next skill unlocks after 3 good attempts in a row), test pilots for hover, circles and laps, 38 unit tests · the plan then changed (M5 is now Feel); this logic is kept for the M6 lessons · next: M5 Feel
