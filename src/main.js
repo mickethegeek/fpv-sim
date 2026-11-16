@@ -12,6 +12,7 @@ import { buildScene, buildGates, buildQuadModel, buildShadow, verticalFov } from
 import { PRESETS } from './params.js';
 import { SLIDERS, defaultTuning, sanitizeTuning, buildConfig, loadTuning, saveTuning } from './tuning.js';
 import { createRace, resetRace, raceUpdate, formatLap, loadBest, saveBest } from './course.js';
+import * as LS from './lessons.js';
 
 // View settings (M6 puts these in the settings panel).
 const view = {
@@ -60,6 +61,58 @@ const race = createRace(world.course, storage ? loadBest(world.course, storage) 
 let racePrev = null;      // quad position and sim time at the previous frame
 let toast = null;         // { text, best, left } message in the middle of the screen (lap done)
 
+// Beginner path (src/lessons.js). lesson = null is free flight. ?free starts in free flight, ?unlock opens every lesson.
+const progress = storage ? LS.loadProgress(storage) : LS.createProgress();
+const unlockAll = params.has('unlock');
+let lesson = null, attempt = null, card = null; // card: { title, text, good, left } result of the last run
+function setLesson(id) {
+  lesson = id ? LS.lessonById(id) : null;
+  attempt = lesson ? LS.createAttempt(lesson) : null;
+  card = null;
+  sim.quad.wind = lesson && lesson.wind ? LS.WIND : null;
+  if (lesson && !scripted) sim.mode = lesson.mode;
+  if (typeof renderLessons === 'function') renderLessons();
+}
+const VIEW_SHORT = { fpv: 'FPV', los: 'line of sight', any: '' };
+function lessonFrame(dt) {
+  if (!lesson) return;
+  const s = sim.state;
+  if (attempt.state === 'done' || attempt.state === 'failed') {
+    // The next run starts once the quad is disarmed (after a landing, a crash or a reset).
+    if (!sim.armed && !s.crashed) attempt = LS.createAttempt(lesson);
+    else return;
+  }
+  LS.attemptUpdate(attempt, { t: s.time, pos: s.pos, vel: s.vel, quat: s.quat, armed: sim.armed, crashed: s.crashed, onGround: s.onGround, mode: sim.mode, view: view.mode });
+  if (attempt.state === 'running' && card) card = null;
+  if (attempt.action) {
+    if (attempt.action.type === 'spin') { // a gust turns the quad to a heading the pilot did not choose
+      const h = (-attempt.action.yawDeg * DEG) / 2, [x, y, z, w] = s.quat, sy = Math.sin(h), cy = Math.cos(h);
+      s.quat = [cy * x + sy * z, cy * y + sy * w, cy * z - sy * x, cy * w - sy * y];
+    }
+    attempt.action = null;
+  }
+  if (attempt.state === 'done' || attempt.state === 'failed') {
+    const r = LS.attemptResult(attempt), rec = LS.recordResult(progress, lesson, attempt.key, r);
+    if (storage) LS.saveProgress(storage, progress);
+    const where = VIEW_SHORT[attempt.key] ? ` in ${VIEW_SHORT[attempt.key]}` : '';
+    const nums = r.metrics.map((m) => `${m.label} ${m.value.toFixed(1)} ${m.unit}`).join(' · ');
+    let title = r.good ? `Good run · ${rec.streak} of ${rec.needed} in a row${where}` : r.completed ? 'Finished, but not a good run' : 'Run failed';
+    let text = r.good ? nums : `${r.reason}${rec.needed > 1 ? ' · streak back to 0' : ''}`;
+    if (rec.passedLesson) {
+      const next = LS.nextLesson(progress);
+      title = lesson.id === 'ready' ? 'REAL-DRONE READY' : `Lesson passed: ${lesson.title}`;
+      text = lesson.id === 'ready' ? 'You flew everything in one flight. You can fly a real drone with confidence.' : next ? `Next: ${next.title}` : '';
+    } else if (rec.passedView) {
+      const other = lesson.views.find((v) => !progress[lesson.id][v].passed);
+      title = `Passed${where}`;
+      text = `Now the same in ${VIEW_SHORT[other]}: ${names().view} switches view`;
+    }
+    card = { title, text, good: r.good, left: 8, result: r, passedLesson: rec.passedLesson };
+    renderLessons();
+  }
+}
+const names = () => (input.gamepadId && !input.needsSetup && !input.profiles[input.gamepadId] ? buttonNames(input.gamepadId) : { view: 'V', mode: 'M', reset: 'R', arm: 'Space' });
+
 function resetFlight() {
   resetSim(sim);
   input.disarm();
@@ -75,6 +128,7 @@ const hook = (window.__sim = {
   ready: false, frames: 0, errors: [], physicsHz: PHYSICS_HZ, physicsSteps: 0,
   sim, sticks, input, setup, view, world, race, get tuning() { return tuning; }, get config() { return config; },
   setTuning(t) { applyTuning({ ...tuning, ...t }); }, get scene() { return scene; }, get camera() { return camera; },
+  setLesson, LS, get attempt() { return attempt; },
   setSticks(s) { scripted = true; Object.assign(sticks, s); },
   arm(on = true) { scripted = true; sim.armed = on; },
   setMode(m) { sim.mode = m; },
@@ -93,6 +147,8 @@ const hook = (window.__sim = {
       rollDeg: a.roll / DEG, pitchDeg: a.pitch / DEG, yawDeg: a.yaw / DEG,
       onGround: s.onGround, crashed: s.crashed, crashedInto: s.crashedInto || null, crashes,
       armed: sim.armed, mode: sim.mode, time: s.time,
+      lesson: lesson ? { id: lesson.id, state: attempt.state, step: attempt.step, status: attempt.status, key: attempt.key, prompt: attempt.prompt } : null,
+      card: card ? { title: card.title, text: card.text, good: card.good } : null, progress: JSON.parse(JSON.stringify(progress)), wind: sim.quad.wind || null,
       race: { next: race.next, running: race.running, lapTime: race.lapTime, lastLap: race.lastLap, best: race.best, laps: race.laps, passed: race.passed },
       view: view.mode, sticksShown: !sticksEl.hidden, sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open,
       camera: { fov: camera.fov, pos: camera.position.toArray(), dir: camera.getWorldDirection(new THREE.Vector3()).toArray() } };
@@ -111,6 +167,46 @@ const keysEl = document.getElementById('keys');
 keysEl.innerHTML = KEY_HELP.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
 document.getElementById('btn-setup').addEventListener('click', (e) => { e.currentTarget.blur(); setup.start(); });
 document.getElementById('btn-reset').addEventListener('click', (e) => { e.currentTarget.blur(); resetFlight(); });
+
+// Lessons panel.
+const lessonListEl = document.getElementById('lesson-list'), lessonEl = document.getElementById('lesson'), lessonTitle = document.getElementById('lesson-title'),
+  lessonLine = document.getElementById('lesson-line'), lessonStep = document.getElementById('lesson-step'), cardEl = document.getElementById('card'),
+  cardTitle = document.getElementById('card-title'), cardText = document.getElementById('card-text'), badgeEl = document.getElementById('badge');
+function renderLessons() {
+  const dots = (l, k) => { const p = progress[l.id][k], n = LS.streakNeeded(l); return p.passed ? '✓' : '●'.repeat(p.streak) + '○'.repeat(n - p.streak); };
+  lessonListEl.innerHTML = LS.LESSONS.map((l, i) => {
+    const open = unlockAll || LS.isUnlocked(progress, l.id), done = LS.lessonPassed(progress, l);
+    const marks = LS.viewKeys(l).map((k) => `<span>${k === 'any' ? '' : k === 'los' ? 'LOS ' : 'FPV '}${dots(l, k)}</span>`).join(' ');
+    return `<button type="button" class="lesson${lesson === l ? ' on' : ''}${done ? ' done' : ''}" data-id="${l.id}" ${open ? '' : 'disabled'}><b>${i + 1}. ${l.title}</b><small>${open ? marks : 'Locked: pass the lesson before'}</small></button>`;
+  }).join('') + `<button type="button" class="lesson${lesson ? '' : ' on'}" data-id=""><b>Free flight and gates</b><small>Always open</small></button>`;
+  badgeEl.hidden = !LS.isReady(progress);
+}
+lessonListEl.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  resetFlight(); setLesson(b.dataset.id || null);
+});
+// Markers for the lessons: hover boxes, two cones with their circles, the far ring.
+const lessonMarks = (() => {
+  const g = {}, mk = (name) => { g[name] = new THREE.Group(); g[name].visible = false; return g[name]; };
+  const line = (color) => new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 });
+  const flat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false });
+  const ring = (c, r, color) => { const m = new THREE.Mesh(new THREE.RingGeometry(r - 0.12, r + 0.12, 64), flat(color, 0.75)); m.rotation.x = -Math.PI / 2; m.position.set(c.x, 0.03, c.z); return m; };
+  for (const [name, b] of [['box', LS.BOX], ['bigbox', LS.BIG_BOX]]) {
+    const m = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(2 * b.half, 2 * b.halfY, 2 * b.half)), line(0xffd23f));
+    m.position.set(b.x, b.y, b.z); mk(name).add(m);
+  }
+  mk('cones');
+  for (const c of [LS.CONE_A, LS.CONE_B]) {
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 16), new THREE.MeshLambertMaterial({ color: 0xff7a1a }));
+    cone.position.set(c.x, 0.4, c.z);
+    g.cones.add(cone, ring(c, 3.5, 0xff9a4a));
+  }
+  mk('far').add(ring(LS.FAR, LS.FAR.r, 0xffffff));
+  const flag = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2, 8), new THREE.MeshLambertMaterial({ color: 0xffffff }));
+  flag.position.set(LS.FAR.x, 1, LS.FAR.z - LS.FAR.r); g.far.add(flag);
+  return g;
+})();
 
 // Feel tuning panel.
 const presetEl = document.getElementById('tune-preset'), slidersEl = document.getElementById('tune-sliders'), tuneInfo = document.getElementById('tune-info');
@@ -151,6 +247,8 @@ const gates = buildGates(world.course);
 scene.add(gates.group);
 const camera = new THREE.PerspectiveCamera(80, 1, 0.03, 2500);
 const sky = scene.getObjectByName('sky');
+for (const m of Object.values(lessonMarks)) scene.add(m);
+if (!params.has('free')) { const n = LS.nextLesson(progress); setLesson(n ? n.id : null); } else renderLessons();
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -181,6 +279,7 @@ function frame(now) {
     sim.armed = input.armed && !sim.state.crashed;
   }
   hook.physicsSteps += simAdvance(sim, sticks, dt);
+  lessonFrame(dt);
 
   // Crash: freeze, show it for a moment, then put the quad back on the pad, disarmed.
   if (sim.state.crashed) {
@@ -261,7 +360,21 @@ function frame(now) {
   rotate(s.quat, [0, 0, -1], fwd);
   const gx = g.x - s.pos[0], gz = g.z - s.pos[2];
   const rel = Math.atan2(gx * -fwd[2] + gz * fwd[0], gx * fwd[0] + gz * fwd[2]);
-  guideEl.hidden = !sim.armed || setup.open;
+  guideEl.hidden = !sim.armed || setup.open || !!lesson;
+  // Lesson banner, result card and markers.
+  for (const [k, m] of Object.entries(lessonMarks)) m.visible = !!lesson && lesson.markers.includes(k);
+  lessonEl.hidden = !lesson || setup.open;
+  if (lesson) {
+    setText(lessonTitle, `Lesson ${LS.LESSONS.indexOf(lesson) + 1}: ${lesson.title}`);
+    setText(lessonLine, lesson.line);
+    const running = attempt.state === 'running';
+    setText(lessonStep, running || attempt.state === 'ready' ? attempt.status : '');
+    lessonStep.dataset.alarm = String(!!attempt.prompt);
+    lessonLine.hidden = running;
+  }
+  if (card) { card.left -= dt; if (card.left <= 0 && !card.passedLesson) card = null; }
+  cardEl.hidden = !card || setup.open;
+  if (card) { setText(cardTitle, card.title); setText(cardText, card.text); cardEl.dataset.good = String(card.good); }
   guideArrow.style.transform = `rotate(${Math.round(rel / DEG)}deg)`;
   setText(guideText, `${race.running || race.next > 0 ? 'Gate' : 'Start: gate'} ${race.next + 1} · ${Math.round(Math.hypot(gx, gz))} m`);
   if (toast) { toast.left -= dt; if (toast.left <= 0 || s.crashed) toast = null; }

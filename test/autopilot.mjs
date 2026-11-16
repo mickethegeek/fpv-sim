@@ -6,6 +6,9 @@ import { gateLocal } from '../src/course.js';
 
 import { stickForThrust } from '../src/params.js';
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
+// The quad the pilots fly (for the throttle that hovers it). Default: the freestyle preset; the browser script passes the page's own.
+let pilotQuad, pilotFc;
+export function setPilotQuad(quad, fc) { pilotQuad = quad; pilotFc = fc; }
 
 const _f = [0, 0, 0], _up = [0, 0, 0];
 // Sticks (angle mode) that fly toward the point (tx, tz) relative to the quad at up to `speed`, holding `alt`.
@@ -30,7 +33,7 @@ export function steer(s, tx, tz, speed, alt, maxTilt = Math.PI / 3, faceMove = t
   // Hold height.
   rotate(s.quat, [0, 1, 0], _up);
   const climb = clamp(2.5 * (alt - s.pos[1]) - 2.5 * s.vel[1], -4, 6);
-  const throttle = clamp(stickForThrust((1 + climb / GRAVITY) / Math.max(0.5, _up[1])), 0.03, 0.9);
+  const throttle = clamp(stickForThrust((1 + climb / GRAVITY) / Math.max(0.5, _up[1]), pilotQuad, pilotFc), 0.03, 0.9);
   return { roll, pitch, yaw, throttle };
 }
 

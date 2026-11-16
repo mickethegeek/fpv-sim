@@ -25,6 +25,8 @@
   <div class="stick"><i id="stick-r"></i></div>
 </div>
 <div id="guide" hidden><span id="guide-arrow">▲</span><span id="guide-text"></span></div>
+<div id="lesson" hidden><b id="lesson-title"></b><span id="lesson-line"></span><span id="lesson-step"></span></div>
+<div id="card" hidden><b id="card-title"></b><span id="card-text"></span></div>
 <div id="toast" hidden></div>
 <div id="hint" hidden></div>
 <div id="panel">
@@ -34,6 +36,11 @@
     <button type="button" id="btn-reset">Reset (R)</button>
   </div>
   <table id="keys"></table>
+  <details id="lessons" open>
+    <summary>Lessons</summary>
+    <div id="badge" hidden>★ Real-drone ready</div>
+    <div id="lesson-list"></div>
+  </details>
   <details id="tuning">
     <summary>Feel tuning</summary>
     <label class="tune-row">Quad <select id="tune-preset"></select></label>

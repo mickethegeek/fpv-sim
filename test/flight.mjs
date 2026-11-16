@@ -34,7 +34,7 @@ let failed = false;
 const check = (name, ok, detail = '') => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${name} ${detail}`); if (!ok) failed = true; };
 const shot = (name) => page.screenshot({ path: `${outDir}${name}.png` });
 
-await page.goto(url + '?fast&preset=freestyle'); // ?fast: no antialiasing or anisotropic filtering, 3x quicker in software GL; same sim and UI
+await page.goto(url + '?fast&free&preset=freestyle'); // ?fast: no antialiasing or anisotropic filtering, 3x quicker in software GL; same sim and UI
 await page.waitForFunction(() => window.__sim && window.__sim.ready, null, { timeout: 20000 });
 const f0 = await page.evaluate(() => window.__sim.frames);
 await page.waitForTimeout(1000);
@@ -393,7 +393,7 @@ if (runs('M5')) {
 // --- M5b: Feel tuning panel, presets, and the PlayStation spring-stick throttle (page opened the way Mike opens it) ---
 if (runs('M5')) {
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
-  await page.goto(url + '?fast');
+  await page.goto(url + '?fast&free');
   await page.waitForFunction(() => window.__sim && window.__sim.ready);
   await simWait(100);
   const tune = () => page.evaluate(() => ({ t: window.__sim.tuning, hover: window.__sim.config.hover, limit: window.__sim.sim.fcCfg.throttleLimit,
@@ -455,7 +455,7 @@ if (runs('M5')) {
 
 // --- M6: stick overlay and line-of-sight view ---
 if (runs('M6')) {
-  await page.goto(url + '?fast&preset=freestyle');
+  await page.goto(url + '?fast&free&preset=freestyle');
   await page.waitForFunction(() => window.__sim && window.__sim.ready);
   await page.evaluate(() => { window.__sim.reset(); window.__sim.setMode('angle'); window.__sim.arm(true); });
   let s = await fly({ ...neutral, throttle: stickForThrust(1.25), roll: 0.5, yaw: -0.5 }, 700);
@@ -479,6 +479,123 @@ if (runs('M6')) {
   s = await snap();
   check('M6 V again goes back to FPV', s.view === 'fpv' && s.sticksShown);
   await page.evaluate(() => window.__sim.reset());
+}
+
+// --- M6: the lessons, flown in Chrome by the test pilot (test/autopilot.mjs) ---
+if (runs('M6L')) {
+  const open = async (query, seed) => {
+    await page.goto(url + '?fast' + query);
+    if (seed !== undefined) { await page.evaluate((v) => { if (v === null) localStorage.removeItem('fpvsim.lessons.v1'); else localStorage.setItem('fpvsim.lessons.v1', JSON.stringify(v)); }, seed); await page.reload(); }
+    await page.waitForFunction(() => window.__sim && window.__sim.ready);
+    await page.evaluate(async (u) => {
+      const { createLessonPilot, setPilotQuad } = await import(u + 'test/autopilot.mjs');
+      setPilotQuad(window.__sim.sim.quad, window.__sim.sim.fcCfg);
+      // Fly one run of the current lesson; resolves with the snapshot when the result card is up.
+      window.__flyLesson = (opts) => new Promise((res) => {
+        const sim = window.__sim, pilot = createLessonPilot(opts);
+        let started = false;
+        const tick = () => {
+          const a = sim.attempt, snap = sim.snapshot();
+          if (a.state === 'running') started = true;
+          if (started && snap.card) { sim.arm(false); sim.setSticks({ roll: 0, pitch: 0, yaw: 0, throttle: 0 }); return res(snap); }
+          const out = pilot.update(sim.sim.state, a);
+          sim.setSticks(out.sticks); sim.arm(out.arm && !sim.sim.state.crashed);
+          requestAnimationFrame(tick);
+        };
+        tick();
+      });
+    }, url);
+  };
+  const flyLesson = (opts = {}) => page.evaluate((o) => window.__flyLesson(o), opts);
+  const until = (fn, arg) => page.waitForFunction(fn, arg, { timeout: 90000, polling: 30 });
+  const T = { timeout: 300000 };
+
+  // First visit: lesson 1 is up, the rest are locked, free flight is open.
+  await open('', null);
+  let s = await snap();
+  const list = await page.$$eval('#lesson-list button', (bs) => bs.map((b) => [b.textContent, b.disabled, b.classList.contains('on')]));
+  const banner = await page.textContent('#lesson');
+  check('M6 first visit opens lesson 1 with the real-radio line; lessons 2 to 8 locked; free flight open', s.lesson && s.lesson.id === 'takeoff' && s.lesson.state === 'ready' && /On a real radio the throttle stays where you leave it/.test(banner)
+    && list.length === 9 && list[0][2] && !list[0][1] && list.slice(1, 8).every((b) => b[1]) && !list[8][1], `("${banner}")`);
+  await shot('40-m6-lesson1-start');
+  let run = flyLesson();
+  await until(() => window.__sim.attempt.state === 'running' && window.__sim.attempt.hold > 2);
+  await shot('41-m6-lesson1-hover-in-box-fpv');
+  let r = await run;
+  check('M6 lesson 1 in FPV: a good run counts 1 of 3', r.card.good && /1 of 3 in a row in FPV/.test(r.card.title) && r.progress.takeoff.fpv.streak === 1, `("${r.card.title}" · "${r.card.text}")`);
+  await shot('42-m6-lesson1-good-run-card');
+  r = await flyLesson({ descend: 5 });
+  check('M6 a hard landing is not a good run and puts the streak back to 0', !r.card.good && /Touchdown/.test(r.card.text) && r.progress.takeoff.fpv.streak === 0, `("${r.card.title}" · "${r.card.text}")`);
+  await shot('43-m6-lesson1-hard-landing');
+  for (let i = 0; i < 3; i++) r = await flyLesson();
+  check('M6 three good runs in a row pass lesson 1 in FPV; lesson 2 stays locked until line of sight is done too', r.progress.takeoff.fpv.passed && /Passed in FPV/.test(r.card.title) && /line of sight/.test(r.card.text)
+    && await page.$eval('#lesson-list button[data-id=directions]', (b) => b.disabled), `("${r.card.title}" · "${r.card.text}")`);
+  await page.keyboard.press('KeyV');
+  run = flyLesson();
+  await until(() => window.__sim.attempt.state === 'running' && window.__sim.attempt.hold > 2);
+  await shot('44-m6-lesson1-line-of-sight');
+  await run;
+  await flyLesson(); r = await flyLesson();
+  check('M6 lesson 1 passed in both views: lesson 2 unlocked, progress saved', /Lesson passed/.test(r.card.title) && /Hover facing four ways/.test(r.card.text) && !(await page.$eval('#lesson-list button[data-id=directions]', (b) => b.disabled))
+    && JSON.parse(await page.evaluate(() => localStorage.getItem('fpvsim.lessons.v1'))).takeoff.los.passed, `("${r.card.title}" · "${r.card.text}")`);
+  await shot('45-m6-lesson1-passed');
+
+  // Lesson 2 by clicking it; nose toward you in line of sight.
+  await page.evaluate(() => window.__sim.arm(false)); await simWait(100);
+  await page.click('#lesson-list button[data-id=directions]');
+  run = flyLesson();
+  await until(() => window.__sim.attempt.step === 2 && window.__sim.attempt.hold > 1.5);
+  s = await snap();
+  check('M6 lesson 2: nose toward you, held in the box', Math.abs(Math.abs(s.yawDeg) - 180) < 20 && s.view === 'los' && /Nose toward you/.test(s.lesson.status), `(heading ${s.yawDeg.toFixed(0)}°, "${s.lesson.status}")`);
+  await shot('46-m6-lesson2-nose-toward-you');
+  r = await run;
+  check('M6 lesson 2 run is good', r.card.good, `("${r.card.title}")`);
+
+  // The other lessons, opened with ?unlock.
+  await open('&unlock');
+  for (const [id, view, name] of [['turns', 'los', '47-m6-lesson3-figure8'], ['outback', 'fpv', '48-m6-lesson4-coming-back'], ['wind', 'fpv', '49-m6-lesson5-wind']]) {
+    await page.click(`#lesson-list button[data-id=${id}]`);
+    if ((await snap()).view !== view) await page.keyboard.press('KeyV');
+    run = flyLesson();
+    await until(() => window.__sim.attempt.state === 'running' && window.__sim.attempt.step === 1 && (window.__sim.attempt.lesson.id !== 'turns' || Math.abs(window.__sim.attempt.wind) > 2));
+    s = await snap();
+    await shot(name);
+    r = await run;
+    check(`M6 lesson "${id}" flown to a good run in ${view}`, r.card.good && (id === 'wind') === !!s.wind, `("${r.card.title}" · "${r.card.text}"${s.wind ? ` · wind ${s.wind[0]} m/s` : ''})`);
+    await page.evaluate(() => window.__sim.arm(false)); await simWait(100);
+  }
+  await page.click('#lesson-list button[data-id=emergency]');
+  run = flyLesson();
+  await until(() => window.__sim.attempt.prompt === true);
+  await shot('50-m6-lesson6-disarm-now');
+  check('M6 lesson 6: DISARM NOW is called during the low hover', /DISARM NOW/.test(await page.textContent('#lesson-step')));
+  await until(() => window.__sim.attempt.step === 4);
+  s = await snap();
+  await shot('51-m6-lesson6-spun-round');
+  r = await run;
+  check('M6 lesson 6: disarmed in time, armed again, spun round at the far ring, came back and landed', r.card.good && /Disarm reaction 0\.[0-9] s/.test(r.card.text) && Math.abs(s.yawDeg) > 60, `(heading after the spin ${s.yawDeg.toFixed(0)}°, "${r.card.text}")`);
+  await page.evaluate(() => window.__sim.arm(false)); await simWait(100);
+  await page.click('#lesson-list button[data-id=acro]');
+  s = await snap();
+  r = await flyLesson();
+  check('M6 lesson 7: choosing it switches to acro; flown to a good run', s.mode === 'acro' && r.card.good, `("${r.card.title}" · "${r.card.text}")`);
+  await shot('52-m6-lesson7-acro');
+
+  // Ready check with lessons 1 to 7 passed: one good run gives the badge.
+  const seed = await page.evaluate(() => { const L = window.__sim.LS, p = L.createProgress(); for (const l of L.LESSONS.slice(0, 7)) for (const k of Object.keys(p[l.id])) p[l.id][k] = { streak: 3, runs: 3, passed: true }; return p; });
+  await open('', seed);
+  s = await snap();
+  check('M6 with lessons 1 to 7 passed the page opens on the Ready check, no badge yet', s.lesson.id === 'ready' && !(await page.isVisible('#badge')));
+  run = flyLesson();
+  await until(() => window.__sim.attempt.step === 4);
+  await shot('53-m6-ready-check-figure8-in-wind');
+  r = await run;
+  check('M6 Ready check: one good run in light wind gives the real-drone ready badge', /REAL-DRONE READY/.test(r.card.title) && await page.isVisible('#badge') && r.wind && r.wind[0] === 2.6, `("${r.card.title}" · "${r.card.text}")`);
+  await page.evaluate(() => window.__sim.arm(false)); await simWait(200);
+  s = await snap();
+  check('M6 after the badge the page is in free flight', s.lesson === null || s.lesson.id === 'ready', JSON.stringify(s.lesson));
+  await shot('54-m6-real-drone-ready-badge');
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
 const simErrors = await page.evaluate(() => window.__sim.errors);
