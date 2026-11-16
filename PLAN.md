@@ -40,7 +40,7 @@ Look up typical values with sources; the numbers below are starting points, not 
   - Angle mode must feel like a real beginner quad: self-levels, holds its tilt limit, no wobble.
   - One "Feel tuning" panel with a few named sliders (rates, expo, responsiveness, floatiness) and **Reset to default**.
   - Prove it with the browser script: step inputs, plotted responses saved to `proof/M5/`.
-- **M6 Beginner path: "if someone hands you a real drone, you can fly it with confidence."** Beginner-first, not racer-first. Keep explanations to one line each; no battery or throttle-detail lessons (Mike, 2026-11-16).
+- **M6 Beginner path** — first, check that every PS-controller item under "Fixed decisions" is done; if not, do those first. **Goal: "if someone hands you a real drone, you can fly it with confidence."** Beginner-first, not racer-first. Keep explanations to one line each; no battery or throttle-detail lessons (Mike, 2026-11-16).
   - Live **stick overlay** on screen, always available.
   - Lessons, each passed only after **3 good runs in a row** (measured, not one lucky pass):
     1. Take off, hover in a box, land gently.
