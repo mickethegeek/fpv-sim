@@ -8,7 +8,7 @@ import { DEG } from './params.js';
 import { InputManager, KEY_HELP, buttonNames } from './input.js';
 import { SetupScreen } from './setup.js';
 import { createWorld } from './world.js';
-import { buildScene, buildGates, buildQuadModel, buildShadow, verticalFov } from './scene.js';
+import { buildScene, buildGates, buildQuadModel, buildShadow, shadowPoint, verticalFov } from './scene.js';
 import { PRESETS } from './params.js';
 import { SLIDERS, defaultTuning, sanitizeTuning, buildConfig, loadTuning, saveTuning } from './tuning.js';
 import { createRace, resetRace, raceUpdate, formatLap, loadBest, saveBest } from './course.js';
@@ -130,7 +130,7 @@ function toggleMode() { sim.mode = sim.mode === MODES.ACRO ? MODES.ANGLE : MODES
 
 // Test hook: the Playwright flight script (test/flight.mjs) drives and reads the sim through this.
 const hook = (window.__sim = {
-  ready: false, frames: 0, errors: [], physicsHz: PHYSICS_HZ, physicsSteps: 0,
+  ready: false, frames: 0, fps: 0, errors: [], shadowPoint, get quality() { return quality; }, get renderer() { return renderer; }, physicsHz: PHYSICS_HZ, physicsSteps: 0,
   sim, sticks, input, setup, view, world, race, get tuning() { return tuning; }, get config() { return config; },
   setTuning(t) { applyTuning({ ...tuning, ...t }); }, get scene() { return scene; }, get camera() { return camera; },
   setLesson, LS, get attempt() { return attempt; },
@@ -241,10 +241,27 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyO') view.sticks = !view.sticks;
 });
 
-// ?fast in the URL turns antialiasing off (slow machines, and the software-GL test browser).
-const fast = params.has('fast');
+// Graphics quality, saved in the browser. High: smooth edges, sharp ground at a distance, full screen resolution (up to 2x).
+// Low: none of the three, for slow computers. Sun, shadows, sky, haze and ground detail are the same in both (they cost almost nothing).
+// ?fast or ?quality=low in the link forces low (the software-GL test browser uses ?fast); ?quality=high forces high.
+const QUALITY_KEY = 'fpvsim.quality.v1';
+let savedQuality = null;
+try { savedQuality = storage && storage.getItem(QUALITY_KEY); } catch { /* blocked */ }
+const quality = params.has('fast') ? 'low' : ['low', 'high'].includes(params.get('quality')) ? params.get('quality') : savedQuality === 'low' ? 'low' : 'high';
+const fast = quality === 'low';
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: !fast });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(fast ? 1 : Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.NeutralToneMapping; // bright sunlit surfaces roll off instead of clipping; colours stay true
+renderer.toneMappingExposure = 1.0;
+const qualityEl = document.getElementById('quality'), fpsEl = document.getElementById('fps');
+qualityEl.value = quality;
+qualityEl.addEventListener('change', () => {
+  try { if (storage) storage.setItem(QUALITY_KEY, qualityEl.value); } catch { /* blocked */ }
+  const u = new URL(location.href);
+  u.searchParams.delete('fast'); u.searchParams.delete('quality');
+  if (!storage) u.searchParams.set('quality', qualityEl.value);
+  location.replace(u); // antialiasing can only be chosen when the page starts, so the page reloads
+});
 const scene = buildScene(world, renderer, { fast });
 const quadModel = buildQuadModel();
 scene.add(quadModel);
@@ -270,9 +287,10 @@ const fwd = [0, 0, 0];
 const camOffset = new THREE.Vector3(), chasePos = new THREE.Vector3(0, 1, 3), tmp = new THREE.Vector3();
 function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
 
-let last = performance.now();
+let last = performance.now(), fpsCount = 0, fpsTime = 0;
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
+  fpsTime += (now - last) / 1000;
   last = now;
 
   setup.update(dt);
@@ -313,8 +331,7 @@ function frame(now) {
   quadModel.position.set(s.pos[0], s.pos[1], s.pos[2]);
   qBody.set(s.quat[0], s.quat[1], s.quat[2], s.quat[3]);
   quadModel.quaternion.copy(qBody);
-  shadow.position.set(s.pos[0], 0.04, s.pos[2]);
-  shadow.material.opacity = 0.45 / (1 + s.pos[1] / 12); // fades with height like a real shadow softens
+  shadow.update(s.pos, s.quat);
   quadModel.visible = view.mode !== 'fpv';
   quadModel.scale.setScalar(view.mode === 'los' ? view.losModelScale : 1);
   if (view.mode === 'los') {
@@ -406,6 +423,8 @@ function frame(now) {
   if (hint) setText(hintEl, hint);
 
   renderer.render(scene, camera);
+  fpsCount++;
+  if (fpsTime >= 1) { hook.fps = fpsCount / fpsTime; setText(fpsEl, `${Math.round(hook.fps)} fps`); fpsCount = 0; fpsTime = 0; }
   hook.frames++;
   hook.ready = true;
   requestAnimationFrame(frame);
