@@ -54,7 +54,7 @@ export function stickForThrust(ratio, quad = defaultQuad(), fc = defaultFc()) {
 //   trainer:   what pilots do to tame a 5-inch for a beginner: Betaflight throttle limit (SCALE) at 70 %.
 // Rates and angle limit stay at the Betaflight defaults in both (no sourced beginner values found yet).
 export const PRESETS = {
-  trainer: { label: 'Trainer (throttle limit 70 %)', throttleLimit: 0.7 },
-  freestyle: { label: '5-inch freestyle (full power)', throttleLimit: 1 },
+  trainer: { label: 'Trainer (70 % throttle)', throttleLimit: 0.7 },
+  freestyle: { label: 'Freestyle (full power)', throttleLimit: 1 },
 };
 export const DEFAULT_PRESET = 'trainer';

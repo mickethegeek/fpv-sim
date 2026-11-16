@@ -1,7 +1,7 @@
 # Physics numbers and where they come from
 
 Rule (RELAY.md): real-world numbers are looked up and cited here, never taken from memory.
-Every parameter in `src/params.js` is listed below as **cited**, **derived** (computed from cited values), or **uncited** (a starting value from PLAN.md that no leg has sourced yet). Uncited values are open work for M6.
+Every parameter in `src/params.js` is listed below as **cited**, **derived** (computed from cited values), or **uncited** (a starting value from PLAN.md that no leg has sourced yet). Since PLAN.md's real-data rule (2026-11-16), a value with no source is marked **UNSOURCED**. The newer sources (F numbers) are listed in `docs/feel.md`, which is the scoreboard.
 
 Looked up 2026-11-16.
 
@@ -34,18 +34,20 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 | Yaw torque per newton of thrust | 0.0122 m | derived | c_d / c_l = 1.909e-8 / 1.563e-6 from the same Table II [7] |
 | Linear drag | 0.3 N per m/s | cited | k_vx, k_vy in Table II [7] (the paper uses 0.15 on the thrust axis; the sim uses 0.3 on all axes) |
 | Level top speed target | about 150 km/h | cited | "A typical 6S 5-inch freestyle FPV drone can reach about 150 km/h" [8] |
-| Mass with battery | 0.68 kg | uncited | PLAN.md range 0.6 to 0.7 kg. Close to the 0.768 kg of [7], whose inertia is used. |
-| Thrust-to-weight | 9 | uncited | PLAN.md range 8 to 10. Gives 15 N static thrust per motor. |
-| Motor arm length | 0.11 m | uncited | PLAN.md |
-| Motor time constant | 30 ms | uncited | PLAN.md range 20 to 40 ms. [7] models motors as first order but prints no value. |
-| Quadratic body drag | 0.006 N per (m/s)² | uncited | placeholder, equal to a drag area of about 0.01 m² |
+| Mass with battery | 0.68 kg | cited | 625 to 670 g with a 6S 1300 mAh pack (`docs/feel.md` F7) |
+| Thrust-to-weight | 9 | cited (range) | 7.5 measured in flight trim on an 870 g race quad, 10 to 11 from bench thrust (`docs/feel.md` F4 to F6); 9 is the middle. Gives 15 N static thrust per motor. |
+| Motor arm length | 0.11 m | cited | 107.5 to 112.5 mm (`docs/feel.md` F4, F9) |
+| Motor time constant | 33 ms | cited | NeuroBEM paper (`docs/feel.md` F8) |
+| Thrust against command | max x command^1.25 | cited (fit) | 2207 6S bench table (`docs/feel.md` F5, note 2); rows to be checked by eye |
+| Idle command | 5 % | **UNSOURCED** | assumption |
+| Quadratic body drag | 0.006 N per (m/s)² | **UNSOURCED** | placeholder, equal to a drag area of about 0.01 m² |
 | Prop pitch speed at full throttle | tuned | tuned | Chosen so level top speed lands on the cited 150 km/h. See below. |
 
 ## Model choices
 
-- **Thrust falls with airspeed.** A fixed-pitch prop makes less thrust as air flows faster through it. Model: `T = Tmax * u * (u - v_axial / v_pitch)`, clamped at 0, where `u` is motor speed 0..1 and `v_axial` is airspeed along the thrust axis. At rest this is `Tmax * u²`. This, not body drag, is what limits top speed, so the quad still coasts when you cut throttle. `v_pitch` is the one tuned number.
-- **Throttle stick is linear in motor speed**, thrust goes with speed squared, so hover sits at `sqrt(1 / thrust-to-weight)` = 33 % stick.
-- **Motors**: first-order lag on motor speed.
+- **Thrust falls with airspeed.** A fixed-pitch prop makes less thrust as air flows faster through it. Model: `T = Tmax * n * (n - v_axial / v_pitch)`, clamped at 0, where `n` is prop speed 0..1 and `v_axial` is airspeed along the thrust axis. At rest this is `Tmax * n²`. This, not body drag, is what limits top speed, so the quad still coasts when you cut throttle. `v_pitch` is the one tuned number.
+- **Throttle stick is linear in the ESC command** (as in Betaflight). Static thrust = `Tmax * command^1.25`, fitted to a bench table, so prop speed `n = command^0.625` and hover sits at 13 % stick (was 30 % with thrust = command²).
+- **Motors**: first-order lag (33 ms) on the command.
 - **Integration**: 1 kHz fixed step, semi-implicit Euler, quaternion renormalised each step.
 
 ## Gate course (M4)
@@ -69,5 +71,5 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 9. MultiGP shop, "Standard MultiGP Gate 5'x5'": https://shop.multigp.com/?p=569
 10. MultiGP shop, "Champ Size MultiGP Start - Finish Gate 7'x6'": https://shop.multigp.com/?p=615
 
-## Still to source (M6)
-Thrust per motor for a 2207-class motor on 6S with a 5-inch prop, all-up weight, motor time constant, arm length, camera uptilt and FOV. Two pages tried on 2026-11-16 had no usable figures (Unmanned Tech thrust-to-weight article; arXiv 2312.09981 covers 9 to 10 inch props only).
+## Still to source
+See `docs/feel.md`, note 6 (UNSOURCED list) and note 7 (beginner quad specs).
