@@ -34,7 +34,7 @@ let failed = false;
 const check = (name, ok, detail = '') => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${name} ${detail}`); if (!ok) failed = true; };
 const shot = (name) => page.screenshot({ path: `${outDir}${name}.png` });
 
-await page.goto(url + '?fast'); // ?fast: no antialiasing or anisotropic filtering, 3x quicker in software GL; same sim and UI
+await page.goto(url + '?fast&preset=freestyle'); // ?fast: no antialiasing or anisotropic filtering, 3x quicker in software GL; same sim and UI
 await page.waitForFunction(() => window.__sim && window.__sim.ready, null, { timeout: 20000 });
 const f0 = await page.evaluate(() => window.__sim.frames);
 await page.waitForTimeout(1000);
@@ -388,6 +388,65 @@ if (runs('M5')) {
   await plots.screenshot({ path: `${outDir}32-m5-feel-step-responses.png`, fullPage: true });
   await plots.close();
   check('M5 step-response plots saved', feel.svgs.length >= 8, `(${feel.svgs.length} plots)`);
+}
+
+// --- M5b: Feel tuning panel, presets, and the PlayStation spring-stick throttle (page opened the way Mike opens it) ---
+if (runs('M5')) {
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+  await page.goto(url + '?fast');
+  await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  await simWait(100);
+  const tune = () => page.evaluate(() => ({ t: window.__sim.tuning, hover: window.__sim.config.hover, limit: window.__sim.sim.fcCfg.throttleLimit,
+    max: window.__sim.sim.fcCfg.rates.roll.max, kp: window.__sim.sim.fcCfg.kp, drag: window.__sim.sim.quad.dragLinear, inp: window.__sim.input.tune }));
+  const slide = (key, v) => page.evaluate(([k, x]) => { const el = document.getElementById('tune-' + k); el.value = String(x); el.dispatchEvent(new Event('input', { bubbles: true })); }, [key, v]);
+  let t = await tune();
+  check('M5 first visit starts on the Trainer preset (throttle limit 70 %)', t.t.preset === 'trainer' && t.limit === 0.7, `(hover ${(t.hover * 100).toFixed(1)} %)`);
+  await page.click('#tuning summary');
+  await shot('33-m5-feel-tuning-panel-trainer');
+  const info = await page.textContent('#tune-info');
+  check('M5 panel shows the hover throttle and 8 sliders', /Hovers at \d+% throttle/.test(info) && await page.locator('#tune-sliders input[type=range]').count() === 8, `("${info}")`);
+
+  // A standard-layout pad (PlayStation controller) with the sticks at rest: throttle = hover, and the quad holds height.
+  await page.evaluate(() => {
+    const pad = { id: 'DualSense Wireless Controller (test)', index: 0, connected: true, mapping: 'standard', timestamp: 0,
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    window.__pad = pad;
+    Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [pad, null, null, null] });
+  });
+  await simWait(200);
+  let s = await snap();
+  check('M5 PlayStation pad at rest gives hover throttle, no setup needed', s.source === 'gamepad' && Math.abs(s.sticks.throttle - t.hover) < 1e-9 && !s.setupOpen, `(throttle ${(s.sticks.throttle * 100).toFixed(1)} %)`);
+  await page.evaluate(() => { window.__pad.axes = [0, 1, 0, 0]; }); await simWait(100);          // throttle stick down
+  await page.evaluate(() => { window.__pad.buttons[0] = { pressed: true, value: 1 }; }); await simWait(100);
+  await page.evaluate(() => { window.__pad.buttons[0] = { pressed: false, value: 0 }; }); await simWait(100);
+  check('M5 pad: stick down then the arm button arms', (await snap()).armed);
+  await page.evaluate(() => { window.__pad.axes = [0, -0.5, 0, 0]; }); await simWait(1500);      // push up: climb
+  await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0]; }); await simWait(2500);         // let go: should settle near hover
+  s = await snap();
+  const y0 = s.pos[1];
+  await simWait(2000);
+  s = await snap();
+  check('M5 pad: let go of the stick and the quad hovers (angle mode)', s.armed && !s.crashed && y0 > 1 && Math.abs(s.pos[1] - y0) < 1.5 && Math.abs(s.vel[1]) < 0.6, `(alt ${y0.toFixed(1)} -> ${s.pos[1].toFixed(1)} m, vertical ${s.vel[1].toFixed(2)} m/s)`);
+  await shot('34-m5-pad-hands-off-hover');
+  await page.evaluate(() => { window.__pad.buttons[1] = { pressed: true, value: 1 }; }); await simWait(100);
+  await page.evaluate(() => { window.__pad.buttons[1] = { pressed: false, value: 0 }; }); await simWait(200);
+
+  // Sliders change the sim, survive a reload, and Reset to default undoes them.
+  await page.selectOption('#tune-preset', 'freestyle');
+  await slide('rateMax', 900); await slide('responsiveness', 0.5); await slide('floatiness', 2); await slide('throttleMid', 0.3);
+  const d = await tune();
+  check('M5 preset and sliders change the sim', d.t.preset === 'freestyle' && d.limit === 1 && d.max === 900 && Math.abs(d.kp - 60) < 1e-9 && Math.abs(d.drag - 0.15) < 1e-9 && d.inp.throttleMid === 0.3 && d.hover < t.hover, JSON.stringify(d.t));
+  await shot('35-m5-feel-tuning-changed');
+  await page.reload();
+  await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  const r = await tune();
+  check('M5 tuning survives a page reload', JSON.stringify(r.t) === JSON.stringify(d.t) && r.max === 900);
+  await page.click('#tuning summary');
+  await page.click('#tune-reset');
+  const z = await tune();
+  check('M5 Reset to default restores the sourced values, keeps the chosen quad', z.t.preset === 'freestyle' && z.max === 670 && z.kp === 120 && Math.abs(z.drag - 0.3) < 1e-9 && z.t.throttleMid === null && Math.abs(z.inp.throttleMid - z.hover) < 1e-12);
+  await shot('36-m5-feel-tuning-reset');
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
 const simErrors = await page.evaluate(() => window.__sim.errors);

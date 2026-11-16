@@ -9,6 +9,8 @@ import { InputManager, KEY_HELP } from './input.js';
 import { SetupScreen } from './setup.js';
 import { createWorld } from './world.js';
 import { buildScene, buildGates, buildQuadModel, verticalFov } from './scene.js';
+import { PRESETS } from './params.js';
+import { SLIDERS, defaultTuning, sanitizeTuning, buildConfig, loadTuning, saveTuning } from './tuning.js';
 import { createRace, resetRace, raceUpdate, formatLap, loadBest, saveBest } from './course.js';
 
 // View settings (M6 puts these in the settings panel).
@@ -19,19 +21,32 @@ const view = {
 };
 const CRASH_PAUSE = 1.5; // s shown "crashed" before the automatic reset
 
+let storage = null;
+try { storage = window.localStorage; } catch { /* blocked: settings and best lap last until the page closes */ }
+const params = new URLSearchParams(location.search);
 const world = createWorld();
 const sim = createSim({ mode: MODES.ANGLE, world });
 // Sticks the sim flies on: copied from the controller/keyboard each frame, unless a test script has taken over.
 const sticks = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
 const input = new InputManager(window);
 const setup = new SetupScreen(input);
+// Feel tuning: preset + sliders (src/tuning.js). ?preset=freestyle|trainer in the URL starts from that preset's defaults.
+let tuning = params.has('preset') ? defaultTuning(params.get('preset')) : (storage && loadTuning(storage)) || defaultTuning();
+let config = null;
+function applyTuning(next, save = true) {
+  tuning = sanitizeTuning(next);
+  config = buildConfig(tuning);
+  Object.assign(sim.quad, config.quad);
+  Object.assign(sim.fcCfg, config.fc);
+  input.tune = config.input;
+  if (save && storage) saveTuning(storage, tuning);
+  if (typeof renderTuning === 'function') renderTuning();
+}
 let scripted = false; // true once the flight script drives the sticks directly (window.__sim.setSticks)
 let crashTimer = 0;
 let crashes = 0;
 
 // Gate course and lap timer. The best lap is kept in the browser (localStorage), per course.
-let storage = null;
-try { storage = window.localStorage; } catch { /* blocked: best lap lasts until the page closes */ }
 const race = createRace(world.course, storage ? loadBest(world.course, storage) : null);
 let racePrev = null;      // quad position and sim time at the previous frame
 let toast = null;         // { text, best, left } message in the middle of the screen (lap done)
@@ -49,7 +64,8 @@ function toggleMode() { sim.mode = sim.mode === MODES.ACRO ? MODES.ANGLE : MODES
 // Test hook: the Playwright flight script (test/flight.mjs) drives and reads the sim through this.
 const hook = (window.__sim = {
   ready: false, frames: 0, errors: [], physicsHz: PHYSICS_HZ, physicsSteps: 0,
-  sim, sticks, input, setup, view, world, race, get scene() { return scene; }, get camera() { return camera; },
+  sim, sticks, input, setup, view, world, race, get tuning() { return tuning; }, get config() { return config; },
+  setTuning(t) { applyTuning({ ...tuning, ...t }); }, get scene() { return scene; }, get camera() { return camera; },
   setSticks(s) { scripted = true; Object.assign(sticks, s); },
   arm(on = true) { scripted = true; sim.armed = on; },
   setMode(m) { sim.mode = m; },
@@ -85,10 +101,30 @@ const keysEl = document.getElementById('keys');
 keysEl.innerHTML = KEY_HELP.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
 document.getElementById('btn-setup').addEventListener('click', (e) => { e.currentTarget.blur(); setup.start(); });
 document.getElementById('btn-reset').addEventListener('click', (e) => { e.currentTarget.blur(); resetFlight(); });
+
+// Feel tuning panel.
+const presetEl = document.getElementById('tune-preset'), slidersEl = document.getElementById('tune-sliders'), tuneInfo = document.getElementById('tune-info');
+presetEl.innerHTML = Object.entries(PRESETS).map(([k, p]) => `<option value="${k}">${p.label}</option>`).join('');
+slidersEl.innerHTML = SLIDERS.map((s) => `<label class="tune-row"><span>${s.label}</span><output id="tune-out-${s.key}"></output>
+  <input type="range" id="tune-${s.key}" min="${s.min}" max="${s.max}" step="${s.step}"></label>`).join('');
+function renderTuning() {
+  presetEl.value = tuning.preset;
+  for (const s of SLIDERS) {
+    const v = s.key === 'throttleMid' ? config.input.throttleMid : tuning[s.key];
+    document.getElementById('tune-' + s.key).value = String(v);
+    document.getElementById('tune-out-' + s.key).textContent = s.show(v) + (s.key === 'throttleMid' && tuning.throttleMid === null ? ' (hover)' : '');
+  }
+  tuneInfo.textContent = `Hovers at ${Math.round(config.hover * 100)}% throttle. Throttle centre and expo apply to spring-centred sticks (gamepads).`;
+}
+presetEl.addEventListener('change', () => applyTuning({ ...tuning, preset: presetEl.value }));
+for (const s of SLIDERS) document.getElementById('tune-' + s.key).addEventListener('input', (e) => applyTuning({ ...tuning, [s.key]: Number(e.target.value) }));
+for (const el of [presetEl, ...slidersEl.querySelectorAll('input')]) el.addEventListener('change', () => el.blur()); // give the keys back to flying
+document.getElementById('tune-reset').addEventListener('click', (e) => { e.currentTarget.blur(); applyTuning(defaultTuning(tuning.preset)); });
+applyTuning(tuning, false);
 window.addEventListener('keydown', (e) => { if (e.code === 'KeyC' && !e.repeat) view.chase = !view.chase; });
 
 // ?fast in the URL turns antialiasing off (slow machines, and the software-GL test browser).
-const fast = new URLSearchParams(location.search).has('fast');
+const fast = params.has('fast');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: !fast });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 const scene = buildScene(world, renderer, { fast });

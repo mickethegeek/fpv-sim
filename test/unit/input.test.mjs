@@ -185,3 +185,60 @@ test('localStorage that throws does not break input', () => {
   inp.clear();
   assert.equal(inp.update(0.016).armed, false);
 });
+
+// --- M5: spring-centred throttle and feel tuning ---
+import { throttleCurve } from '../../src/input.js';
+import { defaultTuning, sanitizeTuning, buildConfig, loadTuning, saveTuning, TUNING_KEY } from '../../src/tuning.js';
+import { hoverStick, defaultQuad as dq, defaultFc as dfc, PRESETS } from '../../src/params.js';
+import { createSim as mkSim, simSteps as steps } from '../../src/sim.js';
+
+test('spring-stick throttle: bottom 0, centre = mid, top 1, monotonic; expo flattens the centre', () => {
+  for (const expo of [0, 0.5, 1]) {
+    assert.equal(throttleCurve(0, 0.2, expo), 0);
+    assert.ok(Math.abs(throttleCurve(0.5, 0.2, expo) - 0.2) < 1e-12);
+    assert.ok(Math.abs(throttleCurve(1, 0.2, expo) - 1) < 1e-12);
+    let prev = -1;
+    for (let x = 0; x <= 1.0001; x += 0.01) { const y = throttleCurve(x, 0.2, expo); assert.ok(y >= prev); prev = y; }
+  }
+  assert.ok(throttleCurve(0.6, 0.2, 0.8) - 0.2 < throttleCurve(0.6, 0.2, 0) - 0.2);
+});
+
+test('a PlayStation-style pad at rest gives the hover throttle and the quad holds its height; a radio stays linear', () => {
+  for (const preset of Object.keys(PRESETS)) {
+    const cfg = buildConfig(defaultTuning(preset));
+    const s = readSticks([0, 0, 0, 0], defaultMapping('pad'), cfg.input);
+    assert.ok(Math.abs(s.throttle - cfg.hover) < 1e-12);
+    const sim = mkSim({ quad: cfg.quad, fcCfg: cfg.fc });
+    sim.state.pos[1] = 100; sim.armed = true;
+    steps(sim, s, 3000);
+    assert.ok(Math.abs(sim.state.pos[1] - 100) < 1.0, `${preset}: drifted to ${sim.state.pos[1]}`);
+    assert.equal(readSticks([0, 1, 0, 0], defaultMapping('pad'), cfg.input).throttle, 0);
+    assert.equal(readSticks([0, -1, 0, 0], defaultMapping('pad'), cfg.input).throttle, 1);
+  }
+  const radio = { version: 1, id: 'radio', axes: { throttle: { index: 2, sign: 1 }, yaw: { index: 3, sign: 1 }, pitch: { index: 1, sign: 1 }, roll: { index: 0, sign: 1 } } };
+  assert.equal(readSticks([0, 0, 0, 0], radio, buildConfig(defaultTuning()).input).throttle, 0.5);
+});
+
+test('presets: trainer limits full-stick thrust and hovers at a higher stick than freestyle', () => {
+  const fr = buildConfig(defaultTuning('freestyle')), tr = buildConfig(defaultTuning('trainer'));
+  assert.ok(tr.hover > fr.hover && fr.hover > 0.10 && fr.hover < 0.20 && tr.hover < 0.30, `${fr.hover} ${tr.hover}`);
+  assert.ok(Math.abs(fr.hover - hoverStick(dq(), dfc())) < 1e-12);
+  const climb = (cfg) => { const sim = mkSim({ quad: cfg.quad, fcCfg: cfg.fc }); sim.state.pos[1] = 100; sim.armed = true; steps(sim, { roll: 0, pitch: 0, yaw: 0, throttle: 1 }, 300); return sim.state.vel[1]; };
+  assert.ok(climb(tr) > 3 && climb(tr) < 0.75 * climb(fr), `${climb(tr)} ${climb(fr)}`);
+});
+
+test('tuning: sliders change the sim numbers, bad stored values are cleaned, save and load round-trip', () => {
+  const base = buildConfig(defaultTuning('freestyle'));
+  const c = buildConfig({ ...defaultTuning('freestyle'), rateMax: 900, expo: 0.5, responsiveness: 0.5, floatiness: 2, throttleMid: 0.3 });
+  assert.equal(c.fc.rates.roll.max, 900); assert.equal(c.fc.rates.yaw.expo, 0.5);
+  assert.equal(c.fc.kp, base.fc.kp / 2); assert.equal(c.quad.dragLinear, base.quad.dragLinear / 2);
+  assert.equal(c.input.throttleMid, 0.3);
+  const bad = sanitizeTuning({ preset: 'nope', rateMax: 1e9, expo: 'x', deadzone: -1 });
+  assert.equal(bad.preset, defaultTuning().preset); assert.equal(bad.rateMax, 1200); assert.equal(bad.expo, 0); assert.equal(bad.deadzone, 0);
+  const store = new Map(), st = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
+  assert.equal(loadTuning(st), null);
+  saveTuning(st, c.tuning);
+  assert.deepEqual(loadTuning(st), c.tuning);
+  assert.equal(loadTuning({ getItem() { throw new Error('blocked'); } }), null);
+  assert.ok(store.has(TUNING_KEY));
+});

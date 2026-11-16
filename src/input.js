@@ -24,6 +24,7 @@ export function defaultMapping(id = '') {
     arm: { type: 'button', index: 0, kind: 'toggle' },
     mode: { type: 'button', index: 3, kind: 'toggle' },
     reset: { type: 'button', index: 1, kind: 'toggle' },
+    springThrottle: true, // gamepad sticks snap back to the middle: stick centre gives "throttle mid" (about hover)
   };
 }
 
@@ -43,14 +44,26 @@ export function sourceOn(src, axes, buttons) {
   return pressed(buttons[src.index]);
 }
 
+// Throttle for a spring-centred stick. x = stick position 0..1 (0.5 at rest). Bottom = 0, centre = mid, top = 1,
+// so letting go means "about hover", not "half power". expo flattens the curve around the centre (0 = two straight lines).
+export function throttleCurve(x, mid, expo = 0) {
+  const t = Math.max(-1, Math.min(1, 2 * x - 1));
+  const shaped = t * (1 - expo) + t * t * t * expo;
+  return t < 0 ? mid * (1 + shaped) : mid + (1 - mid) * shaped;
+}
+
 // Raw gamepad readings -> sticks. Throttle maps the axis range -1..1 to 0..1 and has no deadzone.
-export function readSticks(axes, mapping) {
-  const dz = mapping.deadzone ?? DEFAULT_DEADZONE, a = mapping.axes;
+// opts (from the Feel tuning panel): { deadzone, throttleMid, throttleExpo }. The throttle curve only applies to
+// spring-centred sticks (mapping.springThrottle); a radio's throttle stays linear.
+export function readSticks(axes, mapping, opts = {}) {
+  const dz = opts.deadzone ?? mapping.deadzone ?? DEFAULT_DEADZONE, a = mapping.axes;
+  let throttle = a.throttle ? (axisVal(axes, a.throttle) + 1) / 2 : 0;
+  if (mapping.springThrottle && Number.isFinite(opts.throttleMid)) throttle = throttleCurve(throttle, opts.throttleMid, opts.throttleExpo || 0);
   return {
     roll: applyDeadzone(axisVal(axes, a.roll), dz),
     pitch: applyDeadzone(axisVal(axes, a.pitch), dz),
     yaw: applyDeadzone(axisVal(axes, a.yaw), dz),
-    throttle: a.throttle ? (axisVal(axes, a.throttle) + 1) / 2 : 0,
+    throttle,
   };
 }
 
@@ -179,6 +192,7 @@ export class InputManager {
     this.prev = { arm: false, mode: false, reset: false };
     this.events = [];             // 'mode', 'reset' (consumed by main each frame)
     this.acroSwitch = null;       // true/false when the mode source is a switch
+    this.tune = {};               // { deadzone, throttleMid, throttleExpo } from the Feel tuning panel
     this.paused = false;          // true while the setup wizard owns the controller
     win.addEventListener('keydown', (e) => this.onKey(e, true));
     win.addEventListener('keyup', (e) => this.onKey(e, false));
@@ -242,7 +256,7 @@ export class InputManager {
     if (map) {
       if (this.source !== 'gamepad') this.prev = { arm: true, mode: true, reset: true }; // no phantom edges on connect
       this.source = 'gamepad';
-      Object.assign(this.sticks, readSticks(pad.axes, map));
+      Object.assign(this.sticks, readSticks(pad.axes, map, this.tune));
       for (const key of ['arm', 'mode', 'reset']) {
         const src = map[key];
         const on = sourceOn(src, pad.axes, pad.buttons);
