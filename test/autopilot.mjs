@@ -76,3 +76,41 @@ export function createCirclePilot(circles, opts = {}) {
   };
   return ap;
 }
+
+// Flies a lesson (src/lessons.js) step by step. update(state, attempt) -> { sticks, arm }.
+// opts: disarmDelay (s after the DISARM call), descend (m/s on landing), speed (m/s).
+import { currentStep, headingDeg, PAD, LOW } from '../src/lessons.js';
+export function createLessonPilot(opts = {}) {
+  const speed = opts.speed ?? 3, descend = opts.descend ?? 0.5, disarmDelay = opts.disarmDelay ?? 0.2;
+  const p = { arm: true, sign: 1, promptSeen: null };
+  const turnTo = (s, deg) => { let e = deg - headingDeg(s.quat); while (e > 180) e -= 360; while (e < -180) e += 360; return clamp(e / 40, -0.6, 0.6); };
+  p.update = (s, a) => {
+    const idle = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
+    if (a.state !== 'running') { p.arm = a.state === 'ready'; return { sticks: idle, arm: p.arm }; }
+    const st = currentStep(a);
+    let sticks = idle;
+    if (st.type === 'box') {
+      sticks = steer(s, st.box.x - s.pos[0], st.box.z - s.pos[2], speed, st.box.y, Math.PI / 3, false);
+      if (st.heading !== undefined) sticks.yaw = turnTo(s, st.heading);
+    } else if (st.type === 'orbit') {
+      const c = st.cone, r = 3.5, ang = Math.atan2(s.pos[2] - c.z, s.pos[0] - c.x);
+      const dir = st.opposite && a.lastSign ? -a.lastSign : 1;
+      const lead = ang + dir * 0.7;
+      sticks = steer(s, c.x + r * Math.cos(lead) - s.pos[0], c.z + r * Math.sin(lead) - s.pos[2], speed, 2);
+    } else if (st.type === 'reach') {
+      sticks = steer(s, st.at.x - s.pos[0], st.at.z - s.pos[2], speed, 2);
+      if (st.heading !== undefined && Math.hypot(st.at.x - s.pos[0], st.at.z - s.pos[2]) < 4) sticks.yaw = turnTo(s, st.heading);
+    } else if (st.type === 'land') {
+      const d = Math.hypot(PAD.x - s.pos[0], PAD.z - s.pos[2]);
+      sticks = steer(s, PAD.x - s.pos[0], PAD.z - s.pos[2], speed, d < 1 ? s.pos[1] - descend : Math.max(1.2, s.pos[1]), Math.PI / 3, false);
+      if (s.onGround) sticks = idle;
+    } else if (st.type === 'disarm') {
+      sticks = steer(s, PAD.x - s.pos[0], PAD.z - s.pos[2], speed, (LOW.min + LOW.max) / 2, Math.PI / 3, false);
+      if (a.prompt) { p.promptSeen ??= s.time; if (s.time - p.promptSeen >= disarmDelay) p.arm = false; }
+    } else if (st.type === 'rearm') {
+      p.arm = s.onGround; // wait for the drop to end, then arm again
+    }
+    return { sticks, arm: p.arm };
+  };
+  return p;
+}

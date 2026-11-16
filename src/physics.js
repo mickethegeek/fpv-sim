@@ -54,6 +54,7 @@ const _up = [0, 0, 0];
 
 // Advance the state by dt seconds. cmd = commanded motor speeds [4], each 0..1. Mutates and returns state.
 // world (optional): { hit(pos) -> truthy when the quad touches an obstacle } (see world.js). Any obstacle hit is a crash.
+const NO_WIND = [0, 0, 0];
 export function stepPhysics(s, cmd, dt, p, world) {
   if (s.crashed) return s;
   // Motor lag.
@@ -64,7 +65,10 @@ export function stepPhysics(s, cmd, dt, p, world) {
   }
   // Forces and torques.
   bodyUp(s.quat, _up);
-  const vAxial = s.vel[0] * _up[0] + s.vel[1] * _up[1] + s.vel[2] * _up[2];
+  // Air velocity: ground velocity minus the wind (p.wind, m/s, optional). A quad sitting on the ground is not pushed by it.
+  const w = p.wind && !s.onGround ? p.wind : NO_WIND;
+  const rvx = s.vel[0] - w[0], rvy = s.vel[1] - w[1], rvz = s.vel[2] - w[2];
+  const vAxial = rvx * _up[0] + rvy * _up[1] + rvz * _up[2];
   const d = p.armLength * Math.SQRT1_2;
   let thrust = 0, tx = 0, ty = 0, tz = 0;
   for (let i = 0; i < 4; i++) {
@@ -75,11 +79,11 @@ export function stepPhysics(s, cmd, dt, p, world) {
     tz += m.sx * d * f;
     ty += m.spin * p.yawTorquePerThrust * f;
   }
-  const speed = Math.hypot(s.vel[0], s.vel[1], s.vel[2]);
+  const speed = Math.hypot(rvx, rvy, rvz);
   const drag = p.dragLinear + p.dragQuadratic * speed;
-  const ax = (thrust * _up[0] - drag * s.vel[0]) / p.mass;
-  const ay = (thrust * _up[1] - drag * s.vel[1]) / p.mass - GRAVITY;
-  const az = (thrust * _up[2] - drag * s.vel[2]) / p.mass;
+  const ax = (thrust * _up[0] - drag * rvx) / p.mass;
+  const ay = (thrust * _up[1] - drag * rvy) / p.mass - GRAVITY;
+  const az = (thrust * _up[2] - drag * rvz) / p.mass;
 
   // Angular: I * domega = torque - omega x (I * omega).
   const [ix, iy, iz] = p.inertia;
