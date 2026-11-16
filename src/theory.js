@@ -44,7 +44,7 @@ export const CHAPTERS = [
   ] },
   { lesson: 'outback', cards: [
     { id: 'no-brakes', concept: 4, title: 'No brakes', demo: 'coast',
-      text: 'Level the drone and it keeps gliding: air slows it only a little. To stop, tilt back against the movement.' },
+      text: 'Level the drone and it keeps gliding: only the air slows it. To stop where you want, tilt back against the movement.' },
     { id: 'stop-early', concept: 4, title: 'Stop early', demo: 'stop-distance',
       text: 'Stopping takes room, and more speed takes much more. Start slowing down well before the place you want to stop.' },
     { id: 'camera', concept: 9, title: 'The tilted camera', demo: 'camera-tilt',
