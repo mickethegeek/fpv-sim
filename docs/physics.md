@@ -58,6 +58,18 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 | Large start/finish gate | 7 ft x 6 ft (2.13 m x 1.83 m) | cited | MultiGP "Champ Size Start-Finish Gate 7'x6'" [10] |
 | Gates in the sim | 3.0 m wide x 2.4 m tall opening | assumption | About twice the standard width so a beginner gets through. `GATE_W`, `GATE_H` in `src/course.js`. |
 
+## Lessons (M6)
+
+| What | Value | Status | Source |
+|---|---|---|---|
+| Light wind (lesson 5, Ready check) | 2.6 m/s steady, from the left | cited | Beaufort force 2 "Light breeze", limits 4 to 6 knots (2 to 3 m/s); the middle, 5 knots x 0.514 = 2.6 m/s [11]. `WIND` in `src/lessons.js`. No gusts: no sourced gust figure yet. |
+| Wind force on the quad | body drag on air speed (ground speed minus wind) | derived | Same drag numbers as above, applied to the velocity through the air; also used for the thrust loss with airspeed. `src/physics.js`. |
+| Gentle landing | touchdown under 1.5 m/s | **UNSOURCED** | A judgement: a quarter of the 6 m/s crash speed. `GENTLE_LANDING`. |
+| "Slow" in the turns lesson | under 8 m/s (29 km/h) | **UNSOURCED** | A judgement. `SLOW`. |
+| Disarm reaction | within 1.0 s of the call | **UNSOURCED** | A judgement. `DISARM_REACTION`. |
+| Heading tolerance | 20° either side | **UNSOURCED** | A judgement. `HEADING_TOL`. |
+| Lesson layout | hover box 3 x 3 m, 1 to 3 m up; cones 8.6 m out; far ring 12 m out | assumption | Sized so the quad stays readable in line-of-sight view (within about 17 m of the pilot). |
+
 ## Sources
 
 1. Betaflight source, `src/main/fc/controlrate_profile.c`: https://github.com/betaflight/betaflight/blob/master/src/main/fc/controlrate_profile.c
@@ -70,6 +82,7 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 8. Unmanned Tech, "FPV drone top speed: how fast, real world, by build class" (June 2026): https://www.unmannedtechshop.co.uk/blogs/knowledge-base/fpv-drone-top-speed-how-fast-real-world-by-build-class
 9. MultiGP shop, "Standard MultiGP Gate 5'x5'": https://shop.multigp.com/?p=569
 10. MultiGP shop, "Champ Size MultiGP Start - Finish Gate 7'x6'": https://shop.multigp.com/?p=615
+11. Met Office, "Beaufort wind force scale" (force 2, Light breeze: 4-6 knots, 2-3 m/s; "for m/s multiply by 0.514"): https://weather.metoffice.gov.uk/guides/coast-and-sea/beaufort-scale
 
 ## Still to source
 See `docs/feel.md`, note 6 (UNSOURCED list) and note 7 (beginner quad specs).

@@ -70,7 +70,7 @@ function setLesson(id) {
   attempt = lesson ? LS.createAttempt(lesson) : null;
   card = null;
   sim.quad.wind = lesson && lesson.wind ? LS.WIND : null;
-  if (lesson && !scripted) sim.mode = lesson.mode;
+  if (lesson) sim.mode = lesson.mode;
   if (typeof renderLessons === 'function') renderLessons();
 }
 const VIEW_SHORT = { fpv: 'FPV', los: 'line of sight', any: '' };

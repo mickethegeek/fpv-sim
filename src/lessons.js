@@ -47,7 +47,7 @@ export const LESSONS = [
       face(-90, 'Nose to the left: hold 3 s'), face(0, 'Nose away from you again: hold 3 s'), land()] },
   { id: 'turns', title: 'Slow turns, orbit, figure 8', mode: 'angle', views: ['fpv', 'los'], limit: 150, markers: ['cones'], maxSpeed: SLOW,
     line: 'Turn with yaw and a little roll together, and keep it slow.',
-    steps: [orbit(CONE_A, 'Fly one slow circle around the left cone'), orbit(CONE_B, 'Now circle the right cone the other way: that makes a figure 8', true), land()] },
+    steps: [orbit(CONE_A, 'Fly one slow circle around the left cone'), orbit(CONE_B, 'Circle the right cone the other way (a figure 8)', true), land()] },
   { id: 'outback', title: 'Fly out, turn around, come back, land', mode: 'angle', views: ['fpv', 'los'], limit: 120, markers: ['far'],
     line: 'Coming back, the quad faces you: steer as if you sat in it.',
     steps: [...outAndBack(), land()] },

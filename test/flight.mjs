@@ -565,7 +565,7 @@ if (runs('M6L')) {
     await page.evaluate(() => window.__sim.arm(false)); await simWait(100);
   }
   await page.click('#lesson-list button[data-id=emergency]');
-  run = flyLesson();
+  run = flyLesson({ disarmDelay: 0.7 });
   await until(() => window.__sim.attempt.prompt === true);
   await shot('50-m6-lesson6-disarm-now');
   check('M6 lesson 6: DISARM NOW is called during the low hover', /DISARM NOW/.test(await page.textContent('#lesson-step')));
