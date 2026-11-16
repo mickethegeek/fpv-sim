@@ -10,7 +10,7 @@ A browser simulator for learning to fly an FPV drone before you own one. A 5-inc
 
 **PlayStation controller (DualShock 4 or DualSense)**
 1. Plug it in with a USB cable, or pair it over Bluetooth.
-2. Open the link and press any button on the controller. The panel at the top right shows its name.
+2. Open the link and press any button on the controller. Settings in the menu shows its name.
 3. No setup needed. It flies in Mode 2:
 
 | Control | Does |
@@ -22,7 +22,9 @@ A browser simulator for learning to fly an FPV drone before you own one. A 5-inc
 | R1 | arm / disarm |
 | L1 | angle mode / acro mode |
 | △ | FPV view / line-of-sight view |
-| Options | reset to the pad |
+| Options | pause menu (Resume, Restart, Skip, Settings, Back to menu) |
+| Share / Create | reset to the pad, straight away |
+| D-pad, ✕, ◯ | in menus: move, select, back |
 
 To arm: pull the left stick down, then press R1. This is the same safety rule as a real quad (no arming with the throttle up).
 
@@ -31,17 +33,20 @@ To arm: pull the left stick down, then press R1. This is the same safety rule as
 2. The setup screen opens by itself: move each stick when asked, then flip the arm switch.
 3. The radio keeps its own saved setup, separate from the PlayStation controller. Its throttle is linear, as on the real quad.
 
-Other gamepads with the standard layout work like the PlayStation one (RB arm, LB mode, Y view, Start reset). "Set up controller" in the panel maps anything else. "Reset this controller" throws a saved setup away.
+Other gamepads with the standard layout work like the PlayStation one (RB arm, LB mode, Y view, View reset, Menu pause; A select, B back). "Set up controller" in Settings maps anything else. "Reset this controller" throws a saved setup away.
 
-**No controller:** the keyboard works as a backup. The keys are listed on screen (W / S throttle, A / D yaw, arrows pitch and roll, Space arm).
+**No controller:** the keyboard works as a backup. The keys are listed in Settings (W / S throttle, A / D yaw, arrows pitch and roll, Space arm, Esc menu). Menus work with the arrows, Enter and Esc, or the mouse.
 
 ## How to play
 
-- **Lessons** (panel, top right). Eight lessons take you from the first take-off to a "real-drone ready" badge: hover, hover facing all four ways, turns and a figure 8, fly out and come back, the same in wind, emergencies, a first taste of acro, and a final check. A lesson is passed after 3 good runs in a row. Lessons 1 to 4 are flown twice: through the camera (FPV) and standing on the ground watching the drone (line of sight).
-- **Free flight and gates** is always open: a 7-gate course with a lap timer. The orange gate is the next one. Your best lap is saved.
+The page opens on a menu: **Learn**, **Gates**, **Free fly**, **Settings**. Nothing is locked: open any lesson, skip one from the pause menu (Options or Esc), or go straight to the gates.
+
+- **Learn.** Eight lessons take you from the first take-off to a "real-drone ready" badge: hover, hover facing all four ways, turns and a figure 8, fly out and come back, the same in wind, emergencies, a first taste of acro, and a final check. A lesson is passed after 3 good runs in a row. Lessons 1 to 4 are flown twice: through the camera (FPV) and standing on the ground watching the drone (line of sight).
+- **Gates:** a 7-gate course with a lap timer. The orange gate is the next one. Your best lap is saved.
+- **Free fly:** the same field with nothing extra on screen (no gate guide, no lap timer).
 - **Angle mode** levels the quad when you let go. **Acro mode** does not: it holds the angle you leave it at, like a real FPV quad.
-- **Quad** (under "Feel tuning"): *Trainer* is the same quad limited to 70 % power, the default. *5-inch freestyle* is full power.
-- **Crash:** the quad goes back to the pad after a moment. R (or Options) does the same at any time.
+- **Quad** (Settings, under "Feel tuning"): *Trainer* is the same quad limited to 70 % power, the default. *5-inch freestyle* is full power.
+- **Crash:** the quad goes back to the pad after a moment. R (or Share / Create on the controller) does the same at any time.
 - Other keys: V view, C chase view, O stick overlay, M mode.
 
 ## Settings
@@ -50,7 +55,7 @@ Other gamepads with the standard layout work like the PlayStation one (RB arm, L
 - **Feel tuning:** rates, expo, responsiveness, floatiness, throttle at stick centre, deadzone. "Reset to default" goes back to the sourced values.
 - Everything is saved in the browser, per computer.
 
-Link options: `?free` starts in free flight, `?unlock` opens every lesson, `?preset=freestyle` picks the full-power quad, `?quality=low`.
+Link options: `?learn` (or `?learn=wind`), `?gates` and `?free` skip the menu and start there, `?preset=freestyle` picks the full-power quad, `?quality=low`.
 
 ## How real is it
 
