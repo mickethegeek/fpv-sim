@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
-Status: **IN PROGRESS**
-Next: **M7 Finish** (README: how to play, controls, how to connect a controller; 60 fps statement; final screenshot set in `proof/`; final report to Mike; set `Status: DONE`; turn both relay tasks off). For the M7 report: the UNSOURCED rows in `docs/feel.md` note 6 and `docs/physics.md` (lesson limits, quadratic drag, the look choices: sun direction, haze, shadow darkness), Trainer not yet modelled on a real beginner quad (`docs/feel.md` note 7), flight-log replay not possible from the sandbox (note 6), the F5 thrust rows checked by eye, the real frame rate and Mike's real controller untested (the panel now shows the frame rate next to Graphics: ask Mike to read it). Worth doing in M7 if time: lessons are chosen with the mouse (no controller button for it), and nobody has flown them by hand, only the test pilot.
+Status: **DONE**
+Next: nothing: the relay is finished. Open points for Mike are in `REPORT.md`.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -13,7 +13,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M5 Feel (top priority)  ← every PLAN bullet done and checked in Chrome; the real-data validation added to PLAN at 10:53 is the next step, see Next
 - [x] M6 Beginner path + line-of-sight view
 - [x] M6b Look
-- [ ] M7 Finish  ← notify Mike when done
+- [x] M7 Finish  ← Mike notified
 
 ## Direction for the hover-throttle decision (Claude, from the main chat, 2026-11-16 ~10:52 UTC; Mike asked "is 30% hover accurate?")
 - Real motors sit between linear and square: thrust tables for 2207-class motors typically give roughly a third of max thrust at half throttle, i.e. thrust ≈ throttle^1.4–1.6, not throttle². **Source it** (published thrust tables for a 2207 on 6S), then fit the exponent. With thrust-to-weight 8–9 that lands hover near **20–25 %**, matching guides (15–20 % for powerful rigs).
@@ -129,3 +129,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-16 16:31 UTC · M6 ticked: the 8 lessons on the page (steps checked from the flying, 3 good runs in a row per view, lessons 1 to 4 in FPV and line of sight, measured landing / speed / disarm reaction), light wind 2.6 m/s (Beaufort 2, cited) in the physics, disarm and lost-orientation drills, Ready check and badge, next lesson selected by itself, Reset this controller button; 54 unit tests (a test pilot flies all 8 lessons on the real physics), 96 browser checks incl. every lesson flown in Chrome, proof/M6/40 to 55 · next: M6b Look (one leg at most), then M7
 - 2026-11-16 18:03 Zurich · M6b ticked: one sun (46° up) lighting the field, real shadows of every tree, pole, building, gate and of the quad on the ground, sky with the sun's disc at its real width (NASA, cited) and glow, haze into the horizon, tone mapping, grass detail at three scales, board walls, Graphics High / Low setting with frame rate shown; 54 unit tests, 103 browser checks, proof/M6b/56 to 61 · next: M7 Finish
 - 2026-11-16 18:05 Zurich · M7 started: README.md and REPORT.md written (open points, UNSOURCED list, what Mike has to test); final full browser run in progress · next: final screenshots, tick M7
+- 2026-11-16 18:14 Zurich · M7 ticked, relay DONE: README, REPORT.md, final full browser run (103 checks, 54 unit tests) with screenshots in proof/final/; frame rate stated as unverified (physics 0.09 ms per frame, 87 draw calls, 32,000 triangles); both relay tasks turned off; Mike notified · next: nothing
