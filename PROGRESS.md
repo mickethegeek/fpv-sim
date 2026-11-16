@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M6 Beginner path, in progress.** Done: PlayStation checklist, stick overlay, line-of-sight view (V), ground shadow. Left, in this order: (1) the 8 lessons from PLAN.md wired into the page (reshape `src/skills.js`: it has the 3-in-a-row gating, recorder and scoring but the old skill list and is not on the page; lesson 1 carries the line "On a real radio the throttle stays where you leave it"), lessons 1 to 4 passable in both FPV and line of sight; (2) light wind for lesson 5 (needs a sourced wind speed and a wind force in `physics.js`); (3) the "Ready" check and badge; (4) a "reset this controller" button. Open real-data items, for whichever leg has time and for the M7 report: Trainer modelled on a real beginner quad (PLAN; specs so far in `docs/feel.md` note 7), flight-log replay (not possible from the sandbox, `docs/feel.md` note 6), the F5 thrust rows checked by eye.
+Next: **M6b Look** (PLAN.md: sun with real shadows, sky lighting, tone mapping, haze, ground detail, quality setting low/high), one leg at most, then **M7 Finish** (README, 60 fps statement, final screenshots, final report to Mike, turn the relay off). If a leg is short on time, skip M6b and do M7. For the M7 report: the UNSOURCED rows in `docs/feel.md` note 6 and `docs/physics.md` (lesson limits, quadratic drag), Trainer not yet modelled on a real beginner quad (`docs/feel.md` note 7), flight-log replay not possible from the sandbox (note 6), the F5 thrust rows checked by eye, the real frame rate and Mike's real controller untested. Worth doing in M7 if time: lessons are chosen with the mouse (no controller button for it), and nobody has flown them by hand, only the test pilot.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -11,7 +11,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M3 FPV view + world  ← Mike notified
 - [x] M4 Gates + timer
 - [x] M5 Feel (top priority)  ← every PLAN bullet done and checked in Chrome; the real-data validation added to PLAN at 10:53 is the next step, see Next
-- [ ] M6 Beginner path + line-of-sight view
+- [x] M6 Beginner path + line-of-sight view
 - [ ] M6b Look (if time)
 - [ ] M7 Finish  ← notify Mike when done
 
@@ -59,6 +59,15 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - Motor idle 5.5 % (Betaflight default). Gamepad deadzone stays 5 %: UNSOURCED, slider in the panel.
 - A controller mapped through the setup screen is treated as a radio (linear throttle), also when it is a PlayStation pad: the setup screen does not ask whether the throttle stick springs back. To get the default back, clear the site data. A "reset this controller" button is still to do.
 
+- Lessons (M6): a run is "good" when every step is done and the measured values are inside limits: touchdown under 1.5 m/s, top speed under 8 m/s in the turns lesson and the Ready check, disarm within 1.0 s of the call, headings within 20°. All four limits are judgements (UNSOURCED, listed in `docs/physics.md`); change them at the top of `src/lessons.js`.
+- Lessons 1 to 4 need 3 good runs in a row in FPV and 3 in line of sight; lessons 5 to 7 need 3 in a row in any one view; the Ready check needs one good run (PLAN: "one run"). A chase-view run does not count for lessons 1 to 4.
+- Lesson markers are near the pad (cones 8.6 m out, far ring 12 m out) instead of the poles 16 m away, so the quad stays readable in line of sight. Cones and rings are not obstacles.
+- Light wind = 2.6 m/s steady from the left (Beaufort 2, Met Office), no gusts. Wind does not push a quad sitting on the ground.
+- "Recover when you lose orientation" (lesson 6, Ready check): at the far ring the quad is turned to a random heading (90 to 270° off) in one frame, as if a gust spun it; the pilot has to work out where it points and come back. A real gust does not turn a quad that fast: this is a drill, not physics.
+- Disarm drill: the call comes after 1.5 to 4.5 s of hovering under 1.5 m; the quad then drops (under the 6 m/s crash speed from that height).
+- First visit opens lesson 1 (the next unpassed lesson on later visits). `?free` in the link opens free flight, `?unlock` opens every lesson without passing the ones before. After a pass the next lesson is selected by itself when the quad is disarmed.
+- Choosing a lesson sets angle or acro mode for it. Lessons are chosen with the mouse in the side panel; there is no controller button for it.
+
 ## Notes for the next leg
 - After any physics or controller change: `node test/feel.mjs` and update the tables in `docs/feel.md`.
 - Run: `npm test` (38 unit tests), `node test/mutations.mjs` (proof each test fails on a broken model, 13 breakages), `node test/flight.mjs Mx` (browser, screenshots to proof/Mx/; add your milestone's steps after the M1 block).
@@ -82,6 +91,12 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - Controllers: profiles per controller id in `input.profiles` (storage `fpvsim.controllers.v2`); default pad buttons R1 arm (5), L1 mode (4), Options reset (9), triangle view (3); `buttonNames(id)` gives the on-screen names.
 - Full browser run without touching the proof folders: `node test/flight.mjs tmpcheck` then delete `proof/tmpcheck`. 78 checks, about 2.5 minutes. `node test/flight.mjs M6 M6` runs only the M6 block.
 
+- Lessons: `src/lessons.js` (pure: `LESSONS` with steps of type box / orbit / reach / land / disarm / rearm / spin, `createAttempt`, `attemptUpdate` once per frame, `attemptResult`, progress per lesson and view under storage key `fpvsim.lessons.v1`). `main.js`: `setLesson`, `lessonFrame`, `renderLessons`, `lessonMarks`; test hook `__sim.setLesson(id)`, `__sim.attempt`, `snapshot().lesson / .card / .progress / .wind`. Wind is `sim.quad.wind` (read in `physics.js`).
+- `createLessonPilot` in `test/autopilot.mjs` flies any lesson (unit tests in `test/unit/lessons.test.mjs`; in Chrome in the `M6L` block of `test/flight.mjs`, about 7 minutes: run it in the background with output to a file, a foreground run hits the 10-minute command limit). `setPilotQuad` tells the pilots which quad they fly (the page defaults to Trainer).
+- Old flight-script blocks open the page with `&free` so they stay in free flight.
+- `src/skills.js` is gone (replaced by `src/lessons.js`).
+- "Reset this controller" button (shown only for a controller with a saved setup): `input.forget(id)`.
+
 ## Real flight data: what was found (scouting, 2026-11-16 11:10 UTC, nothing downloaded yet)
 - Best match: TII "Race Against the Machine" dataset, 5-inch, 6S, about 870 g, Betaflight 4.3.1, piloted flights with RC channels (100 Hz) + gyro (500 Hz) + motor thrust in CSV; the repo also has the quad's Betaflight CLI backup (`quadrotor/BTFL_cli_backup.txt`: its real rates and PIDs). Repo https://github.com/tii-racing/drone-racing-dataset . Problem: the CSVs only come inside release zips of 12 GB (piloted), bundled with images. Too big for a leg unless a per-flight CSV link exists; look in the repo for one.
 - Raw blackbox logs, airframe not stated (read the log header first): https://raw.githubusercontent.com/Plasmatree/PID-Analyzer/master/good_tune.BBL (4.8 MB), `.../stock_tune.BFL` (13 MB); https://raw.githubusercontent.com/pichim/bf_controller_tuning/main/logs/example_logs/Gyro_Angle.TXT (27 MB, chirp test, 2026 firmware).
@@ -104,3 +119,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-16 11:17 UTC · real-data pass: second 2207 6S thrust table read directly (exponent 1.45 against 1.24), middle 1.35 used, hover now 15.2 % (Trainer 21.7 %); real race-quad Betaflight settings found; flight-log replay tried and not possible from the sandbox (web tool keeps no binary files), written up in docs/feel.md note 6 · next: M6
 - 2026-11-16 11:25 UTC · M6 PlayStation checklist: arm on R1, angle/acro on L1, reset on Options, names shown on screen, one saved profile per controller (old saved mapping still read), setup opens by itself for a non-standard controller; 43 unit tests, 74 browser checks · next: M6 stick overlay, line-of-sight view, lessons
 - 2026-11-16 11:32 UTC · M6: live stick overlay (O), line-of-sight view (V or triangle) with the pilot standing behind the pad, ground shadow, light quad model; 43 unit tests, 78 browser checks, proof/M6/ · next: the 8 lessons
+- 2026-11-16 16:31 UTC · M6 ticked: the 8 lessons on the page (steps checked from the flying, 3 good runs in a row per view, lessons 1 to 4 in FPV and line of sight, measured landing / speed / disarm reaction), light wind 2.6 m/s (Beaufort 2, cited) in the physics, disarm and lost-orientation drills, Ready check and badge, next lesson selected by itself, Reset this controller button; 54 unit tests (a test pilot flies all 8 lessons on the real physics), 96 browser checks incl. every lesson flown in Chrome, proof/M6/40 to 55 · next: M6b Look (one leg at most), then M7
