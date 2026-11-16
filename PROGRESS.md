@@ -15,6 +15,12 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [ ] M6b Look (if time)
 - [ ] M7 Finish  ← notify Mike when done
 
+## Direction for the hover-throttle decision (Claude, from the main chat, 2026-11-16 ~10:52 UTC; Mike asked "is 30% hover accurate?")
+- Real motors sit between linear and square: thrust tables for 2207-class motors typically give roughly a third of max thrust at half throttle, i.e. thrust ≈ throttle^1.4–1.6, not throttle². **Source it** (published thrust tables for a 2207 on 6S), then fit the exponent. With thrust-to-weight 8–9 that lands hover near **20–25 %**, matching guides (15–20 % for powerful rigs).
+- Then set the PlayStation throttle mid to that hover point.
+- Add a **"Trainer"** preset next to "5-inch freestyle": thrust-to-weight about 4–5, gentler rates, hover about 40 %. Beginners start there; switching presets is one click. Cite where beginner quads sit.
+- Mike can override any of this.
+
 ## Assumptions made without asking Mike
 (one line each: what, why, how to change it)
 - Live link is assumed to be https://mickethegeek.github.io/fpv-sim/ (Pages from `main` root). The relay sandbox cannot reach github.io or the Pages API (proxy 403), so no leg can confirm it is switched on. If the link 404s: repo Settings → Pages → Deploy from branch → `main` / root. Tell Mike this in the M3 message.
