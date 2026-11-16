@@ -29,8 +29,17 @@ Look up typical values with sources; the numbers below are starting points, not 
 - **M3 FPV view + world:** camera fixed to the quad with uptilt (default 25°), FOV ~110–120°. Open field: textured ground with scale cues (grass grid, trees, poles, a few buildings), sky. Crash → short pause → reset. Reset button. Minimal HUD (armed, mode, throttle, speed).
   → **FIRST FLYABLE: notify Mike** (see RELAY.md).
 - **M4 Gates + timer:** a 6–8 gate course, gate highlight for next gate, lap timer, best lap saved.
-- **M5 Learning path:** 4 short lessons with pass conditions: (1) angle-mode hover in a box for 10 s, (2) angle mode through 3 gates, (3) acro hover 10 s, (4) acro full lap. Free-fly unlocked always.
-- **M6 Settings + feel:** settings panel: rates, uptilt, FOV, mode, controller remap. One "5-inch freestyle" preset. Tune feel against the cited numbers.
+- **M5 Real-life mechanics, gamified** (Mike, 2026-11-16: the goal is to learn to fly a *real* one, so gamify real mechanics, not just tutorials). Build in this order; if time runs out, cut from the bottom and say so in M7.
+  1. **Skill meters with consistency gating.** Skills in the order real pilots learn them: hover, orbit around a pole, figure-8, gates at speed. Score each one from measured data: altitude and position variance, stick smoothness (jerk), line accuracy. A skill unlocks after **3 good attempts in a row**, not one lucky pass, because consistency is what transfers. Angle mode first, acro after.
+  2. **Battery.** One pack lasts about 3–5 minutes (cite it). Voltage sags under punch-outs, thrust drops as the pack empties, and landing below a safe voltage scores as a damaged pack. A session is **4 packs**, like a real day at the field.
+  3. **Crash wallet.** Crashes cost real-world part prices (props, arms, motors, camera), depending on impact speed and what was hit (cite the prices). Show money spent per session. This teaches real risk management, not just "reset".
+  4. **Stick overlay + replay.** Live overlay of both sticks, as real pilots use with stick cams. After each attempt, a replay with an optional ghost of your best run.
+  5. **Video like real FPV.** Fisheye distortion, slight noise, and breakup that grows with distance and when obstacles block the line of sight. Signal lost → failsafe → the drone drops. A video-latency setting (analog-like low vs digital-like higher).
+  6. **Wind.** Steady wind plus gusts, settable. Optional "today's wind" setting: the browser fetches the live wind for Zurich from open-meteo.com at runtime (data, not a library, so it's allowed). Shows "would today be flyable?".
+  7. **Real rules.** Swiss/EASA open category: soft ceiling at 120 m with a warning and score penalty, and a pre-flight checklist screen that includes the FPV observer rule (cite the EASA source).
+  8. **Bring your real settings.** Paste a Betaflight `rateprofile` / CLI dump, and the sim uses those exact rates. Later the same rates go on the real drone.
+- **M5b Lessons:** the 4 lessons from before become the first tier of the skill meters (hover box → 3 gates in angle → acro hover → acro lap).
+- **M6 Settings + feel + look:** settings panel: rates, uptilt, FOV, mode, controller remap, wind, latency. One "5-inch freestyle" preset. Tune feel against the cited numbers. **Look**, in order of impact: sun with real shadows, sky lighting (hemisphere/environment light), ACES tone mapping, distance fog/haze, ground with detail at every scale (procedural textures, since asset sites aren't reachable from the sandbox), grass/clutter near the ground for speed and depth cues. Keep it at 60 fps on a MacBook Air: quality setting low/high.
 - **M7 Finish:** 60 fps check, README (how to play, controls, how to connect a controller), final screenshot set in `proof/`, final report to Mike.
 
 ## Definition of done
