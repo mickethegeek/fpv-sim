@@ -52,6 +52,10 @@ const simWait = async (ms) => {
 };
 const fly = async (sticks, ms) => { await page.evaluate((s) => window.__sim.setSticks(s), sticks); await simWait(ms); return snap(); };
 const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
+// Menus (M8): open a menu screen (and screens on top of it), or close them. The sim stands still while a menu is open.
+const menuTo = (...screens) => page.evaluate((sc) => { const m = window.__sim.menu; m.open(sc[0]); for (const x of sc.slice(1)) m.push(x); }, screens);
+const menuClose = () => page.evaluate(() => window.__sim.menu.close());
+const frames = async (n = 2) => { const f = (await page.evaluate(() => window.__sim.frames)) + n; await page.waitForFunction((t) => window.__sim.frames >= t, f, { timeout: 30000, polling: 10 }); };
 // The open-loop throttles below were written when thrust went with command squared (hover at 30 % stick).
 // thr(old) gives the stick with the same thrust on today's curve, so the flights stay the same.
 const thr = (old) => stickForThrust(9 * (0.05 + 0.95 * old) ** 2);
@@ -97,8 +101,10 @@ if (runs('M2')) {
   const hold = async (code, ms) => { await page.keyboard.down(code); await simWait(ms); await page.keyboard.up(code); };
   await page.evaluate(() => { try { localStorage.clear(); } catch {} window.__sim.input.clear(); window.__sim.setMode('angle'); window.__sim.useInput(); });
   let s = await snap();
-  check('M2 keyboard is the fallback and its keys are shown', s.source === 'keyboard' && await page.isVisible('#keys') && (await page.textContent('#keys')).includes('Space'));
+  await menuTo('pause', 'settings'); await frames();
+  check('M2 keyboard is the fallback and its keys are shown (Settings)', s.source === 'keyboard' && await page.isVisible('#keys') && (await page.textContent('#keys')).includes('Space'));
   await shot('07-m2-keyboard-help');
+  await menuClose();
   await hold('KeyW', 500);
   await page.keyboard.press('Space');
   await simWait(150);
@@ -215,7 +221,7 @@ if (runs('M3')) {
   check('M3 FPV camera sits on the quad, tilted up 25 deg', Math.abs(tilt - 25) < 0.5 && Math.hypot(s.camera.pos[0] - s.pos[0], s.camera.pos[1] - s.pos[1], s.camera.pos[2] - s.pos[2]) < 0.1 && s.camera.dir[2] < 0, `(tilt ${tilt.toFixed(1)} deg)`);
   const hfov = 2 * Math.atan(Math.tan(s.camera.fov * Math.PI / 360) * 1280 / 720) * 180 / Math.PI;
   check('M3 horizontal field of view is 115 deg', Math.abs(hfov - 115) < 0.5, `(${hfov.toFixed(1)} deg, vertical ${s.camera.fov.toFixed(1)})`);
-  check('M3 on the pad: hint tells how to start, panel visible', /arm/i.test(await page.textContent('#hint')) && await page.isVisible('#btn-reset'));
+  check('M3 on the pad: hint tells how to start, the corner says how to open the menu', /arm/i.test(await page.textContent('#hint')) && await page.isVisible('#corner') && /menu/.test(await page.textContent('#corner')));
   await shot('14-m3-on-the-pad');
 
   // Fly it from the script: hover, cruise, look around.
@@ -258,10 +264,11 @@ if (runs('M3')) {
 
   // Reset button.
   await page.evaluate(() => { window.__sim.place(20, 10, -20, 0); });
+  await menuTo('pause');
   await page.click('#btn-reset');
   await simWait(50);
   s = await snap();
-  check('M3 reset button puts the quad back on the pad', Math.hypot(s.pos[0], s.pos[2]) < 0.01 && !s.armed);
+  check('M3 Restart in the pause menu puts the quad back on the pad', Math.hypot(s.pos[0], s.pos[2]) < 0.01 && !s.armed);
 
   // The whole thing by keyboard, as Mike would without a controller: arm, climb, fly forward.
   await page.evaluate(() => window.__sim.useInput());
@@ -401,8 +408,10 @@ if (runs('M5')) {
   const slide = (key, v) => page.evaluate(([k, x]) => { const el = document.getElementById('tune-' + k); el.value = String(x); el.dispatchEvent(new Event('input', { bubbles: true })); }, [key, v]);
   let t = await tune();
   check('M5 first visit starts on the Trainer preset (throttle limit 70 %)', t.t.preset === 'trainer' && t.limit === 0.7, `(hover ${(t.hover * 100).toFixed(1)} %)`);
+  await menuTo('pause', 'settings');
   await page.click('#tuning summary');
   await shot('33-m5-feel-tuning-panel-trainer');
+  await menuClose();
   const info = await page.textContent('#tune-info');
   check('M5 panel shows the hover throttle and 8 sliders', /Hovers at \d+% throttle/.test(info) && await page.locator('#tune-sliders input[type=range]').count() === 8, `("${info}")`);
 
@@ -428,11 +437,11 @@ if (runs('M5')) {
   s = await snap();
   check('M5 pad: let go of the stick and the quad hovers (angle mode)', s.armed && !s.crashed && y0 > 1 && Math.abs(s.pos[1] - y0) < 1.5 && Math.abs(s.vel[1]) < 0.6, `(alt ${y0.toFixed(1)} -> ${s.pos[1].toFixed(1)} m, vertical ${s.vel[1].toFixed(2)} m/s)`);
   await shot('34-m5-pad-hands-off-hover');
-  await page.evaluate(() => { window.__pad.buttons[9] = { pressed: true, value: 1 }; }); await simWait(100);
-  await page.evaluate(() => { window.__pad.buttons[9] = { pressed: false, value: 0 }; }); await simWait(200);
+  await page.evaluate(() => { window.__pad.buttons[8] = { pressed: true, value: 1 }; }); await simWait(100);
+  await page.evaluate(() => { window.__pad.buttons[8] = { pressed: false, value: 0 }; }); await simWait(200);
   s = await snap();
   const padLabel = await page.textContent('#controller'), padHint = await page.textContent('#hint');
-  check('M6 pad: Options resets; PlayStation button names on screen', !s.armed && s.onGround && /R1 arm · L1 angle\/acro · Options reset/.test(padLabel) && /press R1 to arm/.test(padHint), `("${padHint}")`);
+  check('M6 pad: Share resets; PlayStation button names on screen', !s.armed && s.onGround && /R1 arm · L1 angle\/acro · Share reset · △ view · Options menu/.test(padLabel) && /press R1 to arm/.test(padHint), `("${padHint}")`);
   await shot('37-m6-playstation-names');
 
   // Sliders change the sim, survive a reload, and Reset to default undoes them.
@@ -445,11 +454,13 @@ if (runs('M5')) {
   await page.waitForFunction(() => window.__sim && window.__sim.ready);
   const r = await tune();
   check('M5 tuning survives a page reload', JSON.stringify(r.t) === JSON.stringify(d.t) && r.max === 900);
+  await menuTo('pause', 'settings');
   await page.click('#tuning summary');
   await page.click('#tune-reset');
   const z = await tune();
   check('M5 Reset to default restores the sourced values, keeps the chosen quad', z.t.preset === 'freestyle' && z.max === 670 && z.kp === 120 && Math.abs(z.drag - 0.3) < 1e-9 && z.t.throttleMid === null && Math.abs(z.inp.throttleMid - z.hover) < 1e-12);
   await shot('36-m5-feel-tuning-reset');
+  await menuClose();
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
@@ -510,13 +521,14 @@ if (runs('M6L')) {
   const until = (fn, arg) => page.waitForFunction(fn, arg, { timeout: 90000, polling: 30 });
   const T = { timeout: 300000 };
 
-  // First visit: lesson 1 is up, the rest are locked, free flight is open.
-  await open('', null);
+  // Learn from the link (?learn): lesson 1 is up; nothing is locked (M8), lesson 1 is marked as the next one.
+  await open('&learn', null);
   let s = await snap();
   const list = await page.$$eval('#lesson-list button', (bs) => bs.map((b) => [b.textContent, b.disabled, b.classList.contains('on')]));
   const banner = await page.textContent('#lesson');
-  check('M6 first visit opens lesson 1 with the real-radio line; lessons 2 to 8 locked; free flight open', s.lesson && s.lesson.id === 'takeoff' && s.lesson.state === 'ready' && /On a real radio the throttle stays where you leave it/.test(banner)
-    && list.length === 9 && list[0][2] && !list[0][1] && list.slice(1, 8).every((b) => b[1]) && !list[8][1], `("${banner}")`);
+  const nextTag = () => page.$eval('#lesson-list .next', (n) => n.closest('button').dataset.id);
+  check('M6 ?learn opens lesson 1 with the real-radio line; all 8 lessons can be opened, lesson 1 marked Next', s.lesson && s.lesson.id === 'takeoff' && s.lesson.state === 'ready' && /On a real radio the throttle stays where you leave it/.test(banner)
+    && list.length === 8 && list[0][2] && list.every((b) => !b[1]) && await nextTag() === 'takeoff', `("${banner}")`);
   await shot('40-m6-lesson1-start');
   let run = flyLesson();
   await until(() => window.__sim.attempt.state === 'running' && window.__sim.attempt.hold > 2);
@@ -528,15 +540,15 @@ if (runs('M6L')) {
   check('M6 a hard landing is not a good run and puts the streak back to 0', !r.card.good && /Touchdown/.test(r.card.text) && r.progress.takeoff.fpv.streak === 0, `("${r.card.title}" · "${r.card.text}")`);
   await shot('43-m6-lesson1-hard-landing');
   for (let i = 0; i < 3; i++) r = await flyLesson();
-  check('M6 three good runs in a row pass lesson 1 in FPV; lesson 2 stays locked until line of sight is done too', r.progress.takeoff.fpv.passed && /Passed in FPV/.test(r.card.title) && /line of sight/.test(r.card.text)
-    && await page.$eval('#lesson-list button[data-id=directions]', (b) => b.disabled), `("${r.card.title}" · "${r.card.text}")`);
+  check('M6 three good runs in a row pass lesson 1 in FPV; lesson 1 stays the next one until line of sight is done too', r.progress.takeoff.fpv.passed && /Passed in FPV/.test(r.card.title) && /line of sight/.test(r.card.text)
+    && await nextTag() === 'takeoff', `("${r.card.title}" · "${r.card.text}")`);
   await page.keyboard.press('KeyV');
   run = flyLesson();
   await until(() => window.__sim.attempt.state === 'running' && window.__sim.attempt.hold > 2);
   await shot('44-m6-lesson1-line-of-sight');
   await run;
   await flyLesson(); r = await flyLesson();
-  check('M6 lesson 1 passed in both views: lesson 2 unlocked, progress saved', /Lesson passed/.test(r.card.title) && /Hover facing four ways/.test(r.card.text) && !(await page.$eval('#lesson-list button[data-id=directions]', (b) => b.disabled))
+  check('M6 lesson 1 passed in both views: lesson 2 is the next one, progress saved', /Lesson passed/.test(r.card.title) && /Hover facing four ways/.test(r.card.text) && await nextTag() === 'directions'
     && JSON.parse(await page.evaluate(() => localStorage.getItem('fpvsim.lessons.v1'))).takeoff.los.passed, `("${r.card.title}" · "${r.card.text}")`);
   await shot('45-m6-lesson1-passed');
 
@@ -552,10 +564,10 @@ if (runs('M6L')) {
   r = await run;
   check('M6 lesson 2 run is good', r.card.good, `("${r.card.title}")`);
 
-  // The other lessons, opened with ?unlock.
-  await open('&unlock');
+  // The other lessons, opened straight away (nothing is locked).
+  await open('&learn');
   for (const [id, view, name] of [['turns', 'los', '47-m6-lesson3-figure8'], ['outback', 'fpv', '48-m6-lesson4-coming-back'], ['wind', 'fpv', '49-m6-lesson5-wind']]) {
-    await page.click(`#lesson-list button[data-id=${id}]`);
+    await page.evaluate((l) => window.__sim.start('learn', l), id);
     if ((await snap()).view !== view) await page.keyboard.press('KeyV');
     run = flyLesson();
     await until(() => window.__sim.attempt.state === 'running' && window.__sim.attempt.step === 1 && (window.__sim.attempt.lesson.id !== 'turns' || Math.abs(window.__sim.attempt.wind) > 2));
@@ -565,7 +577,7 @@ if (runs('M6L')) {
     check(`M6 lesson "${id}" flown to a good run in ${view}`, r.card.good && (id === 'wind') === !!s.wind, `("${r.card.title}" · "${r.card.text}"${s.wind ? ` · wind ${s.wind[0]} m/s` : ''})`);
     await page.evaluate(() => window.__sim.arm(false)); await simWait(100);
   }
-  await page.click('#lesson-list button[data-id=emergency]');
+  await page.evaluate(() => window.__sim.start('learn', 'emergency'));
   run = flyLesson({ disarmDelay: 0.7 });
   await until(() => window.__sim.attempt.prompt === true);
   await shot('50-m6-lesson6-disarm-now');
@@ -576,7 +588,7 @@ if (runs('M6L')) {
   r = await run;
   check('M6 lesson 6: disarmed in time, armed again, spun round at the far ring, came back and landed', r.card.good && /Disarm reaction 0\.[0-9] s/.test(r.card.text) && Math.abs(s.yawDeg) > 60, `(heading after the spin ${s.yawDeg.toFixed(0)}°, "${r.card.text}")`);
   await page.evaluate(() => window.__sim.arm(false)); await simWait(100);
-  await page.click('#lesson-list button[data-id=acro]');
+  await page.evaluate(() => window.__sim.start('learn', 'acro'));
   s = await snap();
   r = await flyLesson();
   check('M6 lesson 7: choosing it switches to acro; flown to a good run', s.mode === 'acro' && r.card.good, `("${r.card.title}" · "${r.card.text}")`);
@@ -584,7 +596,7 @@ if (runs('M6L')) {
 
   // Ready check with lessons 1 to 7 passed: one good run gives the badge.
   const seed = await page.evaluate(() => { const L = window.__sim.LS, p = L.createProgress(); for (const l of L.LESSONS.slice(0, 7)) for (const k of Object.keys(p[l.id])) p[l.id][k] = { streak: 3, runs: 3, passed: true }; return p; });
-  await open('', seed);
+  await open('&learn', seed);
   s = await snap();
   check('M6 with lessons 1 to 7 passed the page opens on the Ready check, no badge yet', s.lesson.id === 'ready' && !(await page.isVisible('#badge')));
   run = flyLesson();
@@ -594,7 +606,7 @@ if (runs('M6L')) {
   check('M6 Ready check: one good run in light wind gives the real-drone ready badge', /REAL-DRONE READY/.test(r.card.title) && await page.isVisible('#badge') && r.wind && r.wind[0] === 2.6, `("${r.card.title}" · "${r.card.text}")`);
   await page.evaluate(() => window.__sim.arm(false)); await simWait(200);
   s = await snap();
-  check('M6 after the badge the page goes to free flight; the pass is saved', s.lesson === null && s.progress.ready.any.passed && /Free flight/.test(await page.$eval('#lesson-list button.on', (b) => b.textContent)), JSON.stringify(s.lesson));
+  check('M6 after the badge the page goes to free flight; the pass is saved', s.lesson === null && s.app === 'free' && s.progress.ready.any.passed, JSON.stringify(s.lesson));
   await shot('54-m6-real-drone-ready-badge');
 
   // "Reset this controller": a PlayStation pad that was put through the setup screen (so it is treated as a radio) gets its default back.
@@ -607,13 +619,17 @@ if (runs('M6L')) {
   });
   await simWait(200);
   s = await snap();
+  await menuTo('pause', 'settings'); await frames();
   const radioThr = s.sticks.throttle, shown = await page.isVisible('#btn-forget');
   await shot('55-m6-reset-this-controller');
   await page.click('#btn-forget');
+  await frames(3);
+  const gone = !(await page.isVisible('#btn-forget'));
+  await menuClose();
   await simWait(200);
   s = await snap();
   check('M6 "Reset this controller" shows for a saved setup and gives the pad its default back (stick centre = hover again)', shown && Math.abs(radioThr - 0.5) < 0.01 && Math.abs(s.sticks.throttle - (await page.evaluate(() => window.__sim.config.hover))) < 1e-9
-    && !(await page.isVisible('#btn-forget')) && /R1 arm/.test(await page.textContent('#controller')), `(throttle at rest ${(radioThr * 100).toFixed(0)} % -> ${(s.sticks.throttle * 100).toFixed(1)} %)`);
+    && gone && /R1 arm/.test(await page.textContent('#controller')), `(throttle at rest ${(radioThr * 100).toFixed(0)} % -> ${(s.sticks.throttle * 100).toFixed(1)} %)`);
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
@@ -695,11 +711,139 @@ if (runs('M6b')) {
   await page.waitForFunction(() => window.__sim.fps > 0, null, { timeout: 30000 });
   const fpsText = await page.textContent('#fps');
   await release();
+  await menuTo('pause', 'settings');
   await Promise.all([page.waitForNavigation(), page.selectOption('#quality', 'low')]);
   await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  const backIn = (await snap()).menu;
+  await menuClose(); await frames();
   const lo = await page.evaluate(() => ({ q: window.__sim.quality, aa: window.__sim.renderer.getContext().getContextAttributes().antialias, sel: document.getElementById('quality').value, saved: localStorage.getItem('fpvsim.quality.v1') }));
-  check('M6b Graphics: High by default (smooth edges), Low is saved and applied after the reload; frame rate shown', hi.q === 'high' && hi.aa && hi.sel === 'high' && lo.q === 'low' && !lo.aa && lo.sel === 'low' && lo.saved === 'low' && /^\d+ fps$/.test(fpsText), `(${fpsText} in software GL on high)`);
+  check('M6b Graphics: High by default (smooth edges), Low is saved and applied after the reload; frame rate shown', hi.q === 'high' && hi.aa && hi.sel === 'high' && lo.q === 'low' && !lo.aa && lo.sel === 'low' && lo.saved === 'low' && backIn.screen === 'settings' && /^\d+ fps$/.test(fpsText), `(${fpsText} in software GL on high)`);
   await shot('61-m6b-graphics-low');
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+}
+
+// --- M8: start menu, nothing locked, pause menu; all of it with the PlayStation controller, the keyboard and the mouse ---
+if (runs('M8')) {
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+  await page.goto(url + '?fast');
+  await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  await page.evaluate(() => {
+    const pad = { id: 'DualSense Wireless Controller (test)', index: 0, connected: true, mapping: 'standard', timestamp: 0,
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    window.__pad = pad;
+    Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [pad, null, null, null] });
+  });
+  const BTN = { cross: 0, circle: 1, share: 8, options: 9, up: 12, down: 13, left: 14, right: 15, r1: 5 };
+  const press = async (name, times = 1) => {
+    for (let i = 0; i < times; i++) {
+      await page.evaluate((b) => { window.__pad.buttons[b] = { pressed: true, value: 1 }; }, BTN[name]); await frames(2);
+      await page.evaluate((b) => { window.__pad.buttons[b] = { pressed: false, value: 0 }; }, BTN[name]); await frames(2);
+    }
+  };
+  const steps = () => page.evaluate(() => window.__sim.physicsSteps);
+  const visible = (sel) => page.$eval(sel, (el) => getComputedStyle(el).visibility !== 'hidden' && el.offsetParent !== null);
+  await frames(3);
+  let s = await snap();
+  const mainItems = await page.$$eval('#menu [data-screen=main] button b', (bs) => bs.map((b) => b.textContent));
+  const st0 = await steps(); await page.waitForTimeout(400);
+  check('M8 the page opens on the start menu: Learn, Gates, Free fly, Settings; the sim stands still behind it', s.menu.open && s.menu.screen === 'main' && mainItems.join() === 'Learn,Gates,Free fly,Settings'
+    && /^Learn/.test(s.menu.item) && await steps() === st0 && !(await visible('#hud')), `(${mainItems.join(', ')})`);
+  const help = await page.textContent('#menu-help');
+  check('M8 the menu says which controller buttons to use, as PlayStation symbols', /D-pad: move · ✕ select · ◯ back/.test(help), `("${help}")`);
+  await shot('62-m8-start-menu');
+
+  // Controller: D-pad down to Settings, cross to open, circle back.
+  await press('down', 3);
+  s = await snap();
+  const onSettings = /^Settings/.test(s.menu.item);
+  await press('cross');
+  s = await snap();
+  const inSettings = s.menu.screen === 'settings' && /Set up controller/.test(s.menu.item);
+  await press('down', 2);                         // Graphics, then Stick overlay
+  const before = (await snap()).menu.item;
+  await press('cross');
+  const after = (await snap()).menu.item;
+  await press('down', 2);                         // View, then Feel tuning
+  await press('cross');                           // opens the Feel tuning section
+  await press('down', 2);                         // Quad, then the first slider
+  const rate0 = await page.evaluate(() => window.__sim.tuning.rateMax);
+  await press('right', 2);
+  const rate1 = await page.evaluate(() => window.__sim.tuning.rateMax);
+  await shot('63-m8-settings-with-the-controller');
+  check('M8 controller in Settings: cross switches the stick overlay off, left / right moves a Feel slider', onSettings && inSettings && /overlay: on/.test(before) && /overlay: off/.test(after) && rate1 > rate0,
+    `("${before}" -> "${after}", max rate ${rate0} -> ${rate1} deg/s)`);
+  await page.evaluate(() => { window.__sim.setTuning({ rateMax: 670 }); window.__sim.view.sticks = true; });
+  await press('circle');
+  s = await snap();
+  check('M8 circle goes back to the start menu, pointer still on Settings', s.menu.screen === 'main' && /^Settings/.test(s.menu.item), `("${s.menu.item}")`);
+
+  // Learn: every lesson can be opened; open lesson 4 without having passed 1 to 3.
+  await press('up', 3); await press('cross');
+  s = await snap();
+  const lessons = await page.$$eval('#lesson-list button', (bs) => bs.map((b) => [b.dataset.id, b.disabled]));
+  await shot('64-m8-learn-nothing-locked');
+  check('M8 Learn lists the 8 lessons, none locked; the pointer starts on the next one', s.menu.screen === 'learn' && lessons.length === 8 && lessons.every((l) => !l[1]) && /^1\. /.test(s.menu.item), `("${s.menu.item}")`);
+  await press('down', 3); await press('cross');
+  s = await snap();
+  check('M8 lesson 4 opens although lessons 1 to 3 are not passed', !s.menu.open && s.app === 'learn' && s.lesson && s.lesson.id === 'outback' && await page.isVisible('#lesson'), JSON.stringify(s.lesson));
+
+  // Options: pause menu. Skip goes to the next lesson.
+  await press('options');
+  s = await snap();
+  const pauseItems = await page.$$eval('#menu [data-screen=pause] button', (bs) => bs.filter((b) => b.offsetParent).map((b) => b.textContent));
+  await shot('65-m8-pause-menu-in-a-lesson');
+  check('M8 Options opens the pause menu: Resume, Restart, Skip, Settings, Back to menu', s.menu.screen === 'pause' && pauseItems.join() === 'Resume,Restart,Skip this lesson,Settings,Back to menu' && s.menu.item === 'Resume', `(${pauseItems.join(', ')})`);
+  await press('down', 2); await press('cross');
+  s = await snap();
+  check('M8 Skip moves on to lesson 5 without flying lesson 4', !s.menu.open && s.lesson && s.lesson.id === 'wind' && !s.progress.outback.fpv.passed, JSON.stringify(s.lesson));
+
+  // Pause in the air: everything stops, Resume carries on where it was, still armed.
+  await press('options'); await press('down', 4); await press('cross');   // Back to menu
+  s = await snap();
+  const backMain = s.menu.screen === 'main' && s.app === 'free' && s.lesson === null;
+  await press('down'); await press('cross');                               // Gates
+  s = await snap();
+  check('M8 Back to menu, then Gates: the gate course with its lap timer', backMain && !s.menu.open && s.app === 'gates' && await visible('#hud .race'), `(app ${s.app})`);
+  await page.evaluate(() => { window.__sim.useInput(); window.__pad.axes = [0, 1, 0, 0]; }); await simWait(100);   // throttle stick down
+  await press('r1');
+  await page.evaluate(() => { window.__pad.axes = [0, -0.5, 0, 0]; }); await simWait(1200);                        // climb
+  const guideShown = await page.isVisible('#guide');
+  await page.evaluate(() => { window.__pad.axes = [0, 0, 0, -0.4]; }); await simWait(600);                         // forward
+  await press('options');
+  const p1 = await snap(), st1 = await steps();
+  await page.waitForTimeout(600);
+  const p2 = await snap();
+  await shot('66-m8-paused-in-the-air');
+  await press('options');                                                   // Options again: resume
+  await simWait(400);
+  const p3 = await snap();
+  check('M8 pausing in the air freezes the flight; Options again resumes it, still armed and moving', p1.armed && p1.pos[1] > 2 && p1.menu.screen === 'pause' && await steps() >= st1 && p2.time === p1.time && p2.pos[2] === p1.pos[2]
+    && !p3.menu.open && p3.armed && p3.pos[2] < p1.pos[2] - 0.5 && guideShown, `(alt ${p1.pos[1].toFixed(1)} m, paused at z ${p1.pos[2].toFixed(2)}, after resume z ${p3.pos[2].toFixed(2)})`);
+  await press('options'); await press('down'); await press('cross');       // Restart
+  await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0]; }); await simWait(100);
+  s = await snap();
+  check('M8 Restart from the pause menu: back on the pad, disarmed', !s.menu.open && !s.armed && Math.hypot(s.pos[0], s.pos[2]) < 0.01 && s.app === 'gates');
+
+  // Free fly: nothing extra on screen. Share resets. Keyboard and mouse work the menus too.
+  await page.keyboard.press('Escape');
+  const escPause = (await snap()).menu.screen === 'pause';
+  await page.keyboard.press('ArrowUp'); await page.keyboard.press('Enter');  // wraps to Back to menu
+  const escMain = (await snap()).menu.screen === 'main';
+  await page.click('#menu [data-act=free]');
+  await page.evaluate(() => { window.__pad.axes = [0, 1, 0, 0]; }); await simWait(100);
+  await press('r1');
+  await page.evaluate(() => { window.__pad.axes = [0, -0.5, 0, 0]; }); await simWait(1000);
+  s = await snap();
+  const clean = s.app === 'free' && s.armed && !(await page.isVisible('#guide')) && !(await visible('#hud .race')) && !(await page.isVisible('#lesson'));
+  await shot('67-m8-free-fly-clean-screen');
+  await press('share'); await simWait(100);
+  const afterShare = await snap();
+  await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0]; });
+  check('M8 keyboard (Esc, arrows, Enter) and mouse work the menus; Free fly shows no gate guide and no lap timer; Share resets', escPause && escMain && clean && !afterShare.armed && afterShare.onGround,
+    `(Esc pause ${escPause}, back to menu ${escMain}, clean ${clean})`);
+  await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
+  s = await snap();
+  check('M8 Esc opens the pause menu and Esc again closes it; Skip is not offered outside a lesson', !s.menu.open && !(await page.$eval('#btn-skip', (b) => !b.hidden)));
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
