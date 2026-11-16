@@ -453,6 +453,34 @@ if (runs('M5')) {
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
+// --- M6: stick overlay and line-of-sight view ---
+if (runs('M6')) {
+  await page.goto(url + '?fast&preset=freestyle');
+  await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  await page.evaluate(() => { window.__sim.reset(); window.__sim.setMode('angle'); window.__sim.arm(true); });
+  let s = await fly({ ...neutral, throttle: stickForThrust(1.25), roll: 0.5, yaw: -0.5 }, 700);
+  const dots = await page.evaluate(() => ['stick-l', 'stick-r'].map((id) => { const d = document.getElementById(id).getBoundingClientRect(), b = document.getElementById(id).parentElement.getBoundingClientRect();
+    return [(d.x + d.width / 2 - b.x - b.width / 2), (d.y + d.height / 2 - b.y - b.height / 2)]; }));
+  check('M6 stick overlay shows the live sticks (left: throttle + yaw, right: pitch + roll)', s.sticksShown && dots[0][0] < -14 && dots[0][1] > 10 && dots[1][0] > 14 && Math.abs(dots[1][1]) < 1, JSON.stringify(dots.map((d) => d.map((v) => Math.round(v)))));
+  await shot('38-m6-stick-overlay-fpv');
+  await page.evaluate(() => { window.__sim.place(-3, 2.5, -8, 90); window.__sim.arm(true); });
+  await fly({ ...neutral, throttle: stickForThrust(1) }, 300);
+  await page.keyboard.press('KeyV');
+  await simWait(100);
+  s = await snap();
+  const onScreen = await page.evaluate(() => { const p = window.__sim.scene.children.find((c) => c.visible && c.type === 'Group' && c.children.length === 8).position.clone().project(window.__sim.camera); return [p.x, p.y, p.z]; });
+  check('M6 V switches to line of sight: camera stands at the pilot, quad in the middle of the view', s.view === 'los' && Math.abs(s.camera.pos[1] - 1.7) < 1e-6 && Math.abs(s.camera.pos[2] - 5) < 1e-6 && Math.abs(onScreen[0]) < 0.05 && Math.abs(onScreen[1]) < 0.05 && /LINE OF SIGHT/.test(await page.textContent('#hud')), JSON.stringify(onScreen.map((v) => +v.toFixed(3))));
+  await shot('39-m6-line-of-sight');
+  await page.keyboard.press('KeyO');
+  await simWait(100);
+  check('M6 O hides the stick overlay', !(await snap()).sticksShown);
+  await page.keyboard.press('KeyO'); await page.keyboard.press('KeyV');
+  await simWait(100);
+  s = await snap();
+  check('M6 V again goes back to FPV', s.view === 'fpv' && s.sticksShown);
+  await page.evaluate(() => window.__sim.reset());
+}
+
 const simErrors = await page.evaluate(() => window.__sim.errors);
 check('no page errors', problems.length === 0 && simErrors.length === 0, JSON.stringify([...problems, ...simErrors]));
 

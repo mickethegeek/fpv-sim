@@ -8,7 +8,7 @@ import { DEG } from './params.js';
 import { InputManager, KEY_HELP, buttonNames } from './input.js';
 import { SetupScreen } from './setup.js';
 import { createWorld } from './world.js';
-import { buildScene, buildGates, buildQuadModel, verticalFov } from './scene.js';
+import { buildScene, buildGates, buildQuadModel, buildShadow, verticalFov } from './scene.js';
 import { PRESETS } from './params.js';
 import { SLIDERS, defaultTuning, sanitizeTuning, buildConfig, loadTuning, saveTuning } from './tuning.js';
 import { createRace, resetRace, raceUpdate, formatLap, loadBest, saveBest } from './course.js';
@@ -17,8 +17,16 @@ import { createRace, resetRace, raceUpdate, formatLap, loadBest, saveBest } from
 const view = {
   uptiltDeg: 25,   // camera tilted up from the quad's nose
   fovDeg: 115,     // horizontal field of view
-  chase: false,    // C toggles an outside view (handy to see what the quad is doing)
+  mode: 'fpv',     // 'fpv' (camera on the quad) | 'los' (line of sight: you stand on the ground and watch it) | 'chase'
+  pilot: [0, 1.7, 5], // where you stand in line-of-sight view: eye height, 5 m behind the pad
+  losFovDeg: 50,   // vertical field of view in line-of-sight view: no zoom, the quad gets small with distance like in real life
+  losModelScale: 1.5, // the quad is drawn this much bigger in line-of-sight view: a screen shows far less detail than the eye
+  sticks: true,    // live stick overlay
+  get chase() { return this.mode === 'chase'; },
+  set chase(on) { this.mode = on ? 'chase' : 'fpv'; },
 };
+const VIEW_NAMES = { fpv: 'FPV', los: 'LINE OF SIGHT', chase: 'CHASE' };
+function nextView() { view.mode = view.mode === 'fpv' ? 'los' : 'fpv'; }
 const CRASH_PAUSE = 1.5; // s shown "crashed" before the automatic reset
 
 let storage = null;
@@ -86,17 +94,18 @@ const hook = (window.__sim = {
       onGround: s.onGround, crashed: s.crashed, crashedInto: s.crashedInto || null, crashes,
       armed: sim.armed, mode: sim.mode, time: s.time,
       race: { next: race.next, running: race.running, lapTime: race.lapTime, lastLap: race.lastLap, best: race.best, laps: race.laps, passed: race.passed },
-      sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open,
+      view: view.mode, sticksShown: !sticksEl.hidden, sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open,
       camera: { fov: camera.fov, pos: camera.position.toArray(), dir: camera.getWorldDirection(new THREE.Vector3()).toArray() } };
   },
 });
 window.addEventListener('error', (e) => hook.errors.push(String(e.message)));
 
 const canvas = document.getElementById('view');
-const hud = Object.fromEntries(['state', 'mode', 'thr', 'speed', 'alt', 'gate', 'lap', 'best'].map((k) => [k, document.getElementById('hud-' + k)]));
+const hud = Object.fromEntries(['state', 'mode', 'view', 'thr', 'speed', 'alt', 'gate', 'lap', 'best'].map((k) => [k, document.getElementById('hud-' + k)]));
 const hintEl = document.getElementById('hint');
 const guideEl = document.getElementById('guide'), guideArrow = document.getElementById('guide-arrow'), guideText = document.getElementById('guide-text');
 const toastEl = document.getElementById('toast');
+const sticksEl = document.getElementById('sticks'), stickL = document.getElementById('stick-l'), stickR = document.getElementById('stick-r');
 const controllerEl = document.getElementById('controller');
 const keysEl = document.getElementById('keys');
 keysEl.innerHTML = KEY_HELP.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
@@ -122,7 +131,12 @@ for (const s of SLIDERS) document.getElementById('tune-' + s.key).addEventListen
 for (const el of [presetEl, ...slidersEl.querySelectorAll('input')]) el.addEventListener('change', () => el.blur()); // give the keys back to flying
 document.getElementById('tune-reset').addEventListener('click', (e) => { e.currentTarget.blur(); applyTuning(defaultTuning(tuning.preset)); });
 applyTuning(tuning, false);
-window.addEventListener('keydown', (e) => { if (e.code === 'KeyC' && !e.repeat) view.chase = !view.chase; });
+window.addEventListener('keydown', (e) => {
+  if (e.repeat || (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName || ''))) return;
+  if (e.code === 'KeyC') view.chase = !view.chase;
+  if (e.code === 'KeyV') nextView();
+  if (e.code === 'KeyO') view.sticks = !view.sticks;
+});
 
 // ?fast in the URL turns antialiasing off (slow machines, and the software-GL test browser).
 const fast = params.has('fast');
@@ -131,6 +145,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 const scene = buildScene(world, renderer, { fast });
 const quadModel = buildQuadModel();
 scene.add(quadModel);
+const shadow = buildShadow();
+scene.add(shadow);
 const gates = buildGates(world.course);
 scene.add(gates.group);
 const camera = new THREE.PerspectiveCamera(80, 1, 0.03, 2500);
@@ -160,7 +176,7 @@ function frame(now) {
   if (input.needsSetup && !setup.open && autoSetupFor !== input.gamepadId) { autoSetupFor = input.gamepadId; setup.start(); }
   if (!scripted) {
     Object.assign(sticks, inp.sticks);
-    for (const ev of inp.events) { if (ev === 'mode') toggleMode(); else if (ev === 'reset') resetFlight(); }
+    for (const ev of inp.events) { if (ev === 'mode') toggleMode(); else if (ev === 'reset') resetFlight(); else if (ev === 'view') nextView(); }
     if (inp.acroSwitch !== null) sim.mode = inp.acroSwitch ? MODES.ACRO : MODES.ANGLE;
     sim.armed = input.armed && !sim.state.crashed;
   }
@@ -191,8 +207,17 @@ function frame(now) {
   quadModel.position.set(s.pos[0], s.pos[1], s.pos[2]);
   qBody.set(s.quat[0], s.quat[1], s.quat[2], s.quat[3]);
   quadModel.quaternion.copy(qBody);
-  quadModel.visible = view.chase;
-  if (view.chase) {
+  shadow.position.set(s.pos[0], 0.04, s.pos[2]);
+  shadow.material.opacity = 0.45 / (1 + s.pos[1] / 12); // fades with height like a real shadow softens
+  quadModel.visible = view.mode !== 'fpv';
+  quadModel.scale.setScalar(view.mode === 'los' ? view.losModelScale : 1);
+  if (view.mode === 'los') {
+    // Line of sight: the pilot stands still on the ground and turns the head to follow the quad.
+    camera.position.set(view.pilot[0], view.pilot[1], view.pilot[2]);
+    camera.fov = view.losFovDeg;
+    camera.up.set(0, 1, 0);
+    camera.lookAt(quadModel.position);
+  } else if (view.chase) {
     // Behind and above the quad, following its heading only (not its roll/pitch).
     const yaw = attitude(s.quat).yaw;
     tmp.set(s.pos[0] - Math.sin(yaw) * 2.2, s.pos[1] + 0.8, s.pos[2] + Math.cos(yaw) * 2.2);
@@ -217,6 +242,13 @@ function frame(now) {
   setText(hud.state, state);
   hud.state.dataset.state = state;
   setText(hud.mode, sim.mode === MODES.ACRO ? 'ACRO' : 'ANGLE');
+  setText(hud.view, VIEW_NAMES[view.mode]);
+  // Stick overlay: where the sticks are right now (left: throttle + yaw, right: pitch + roll; Mode 2).
+  sticksEl.hidden = !view.sticks || setup.open;
+  if (view.sticks) {
+    stickL.style.transform = `translate(${(sticks.yaw * 34).toFixed(1)}px, ${((0.5 - sticks.throttle) * 68).toFixed(1)}px)`;
+    stickR.style.transform = `translate(${(sticks.roll * 34).toFixed(1)}px, ${(-sticks.pitch * 34).toFixed(1)}px)`;
+  }
   setText(hud.thr, `${Math.round(sticks.throttle * 100)}%`);
   setText(hud.speed, `${Math.round(speed * 3.6)} km/h`);
   setText(hud.alt, `${s.pos[1].toFixed(1)} m`);
@@ -238,7 +270,7 @@ function frame(now) {
   let ctl = 'Keyboard (no controller found: plug one in and press a button)';
   const names = buttonNames(input.gamepadId), usesDefault = input.gamepadId && !input.needsSetup && !input.profiles[input.gamepadId];
   if (input.gamepadId) ctl = input.needsSetup ? `Controller needs setup: ${input.gamepadId}` : `Controller: ${input.gamepadId}`;
-  if (usesDefault) ctl += ` · ${names.arm} arm · ${names.mode} angle/acro · ${names.reset} reset`;
+  if (usesDefault) ctl += ` · ${names.arm} arm · ${names.mode} angle/acro · ${names.reset} reset · ${names.view} view`;
   if (setup.message) ctl += ` · ${setup.message}`;
   setText(controllerEl, ctl);
   keysEl.hidden = input.source !== 'keyboard';

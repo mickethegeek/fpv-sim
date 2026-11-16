@@ -166,7 +166,7 @@ export function buildGates(course) {
 // Small quad model for the chase view. Body axes: -Z is the nose (orange).
 export function buildQuadModel() {
   const quad = new THREE.Group();
-  const dark = new THREE.MeshLambertMaterial({ color: 0x222222 });
+  const dark = new THREE.MeshLambertMaterial({ color: 0xf2f2f2 }); // light frame: easier to see from the ground
   for (const a of [Math.PI / 4, -Math.PI / 4]) {
     const arm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.012, 0.025), dark);
     arm.rotation.y = a;
@@ -189,4 +189,12 @@ export function buildQuadModel() {
 // Vertical FOV (what three.js wants) from a horizontal FOV, both in degrees.
 export function verticalFov(horizontalDeg, aspect) {
   return 2 * Math.atan(Math.tan((horizontalDeg * Math.PI) / 360) / aspect) * 180 / Math.PI;
+}
+
+// Shadow of the quad on the ground (sun straight overhead): the main real-life cue for height and position, in every view.
+export function buildShadow() {
+  const m = new THREE.Mesh(new THREE.CircleGeometry(0.2, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2;
+  m.renderOrder = 2;
+  return m;
 }

@@ -46,3 +46,11 @@ button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 #tune-info { margin-top: 6px; color: #c5cedb; font-size: 12px; }
 #tune-reset { margin-top: 10px; }
 #panel { max-height: calc(100vh - 40px); overflow-y: auto; box-sizing: border-box; }
+#hud-view { color: #c5cedb; font-size: 12px; letter-spacing: .06em; }
+#sticks { position: fixed; left: 50%; bottom: 62px; transform: translateX(-50%); display: flex; gap: 26px; }
+#sticks[hidden] { display: none; }
+.stick { position: relative; width: 80px; height: 80px; background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.45); border-radius: 8px; }
+.stick::before, .stick::after { content: ''; position: absolute; background: rgba(255,255,255,.25); }
+.stick::before { left: 50%; top: 4px; bottom: 4px; width: 1px; }
+.stick::after { top: 50%; left: 4px; right: 4px; height: 1px; }
+.stick i { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #ffd23f; }
