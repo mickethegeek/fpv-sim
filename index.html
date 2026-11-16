@@ -27,6 +27,13 @@
 <div id="guide" hidden><span id="guide-arrow">▲</span><span id="guide-text"></span></div>
 <div id="lesson" hidden><b id="lesson-title"></b><span id="lesson-line"></span><span id="lesson-step"></span></div>
 <div id="card" hidden><b id="card-title"></b><span id="card-text"></span></div>
+<div id="theory" hidden>
+  <small id="theory-where"></small>
+  <b id="theory-title"></b>
+  <span id="theory-text"></span>
+  <div class="row"><button type="button" id="theory-prev">Back</button><button type="button" id="theory-next">Next</button></div>
+  <small id="theory-keys"></small>
+</div>
 <div id="toast" hidden></div>
 <div id="hint" hidden></div>
 <div id="corner" hidden></div>
@@ -37,18 +44,35 @@
       <button type="button" class="big" data-go="learn" data-first><b>Learn</b><small id="main-learn">Eight lessons, from first take-off to real-drone ready</small></button>
       <button type="button" class="big" data-act="gates"><b>Gates</b><small id="main-gates">Seven gates against the clock</small></button>
       <button type="button" class="big" data-act="free"><b>Free fly</b><small>The open field, nothing on screen you did not ask for</small></button>
+      <button type="button" class="big" data-go="theory"><b>Theory</b><small>Every card, to revise any time</small></button>
       <button type="button" class="big" data-go="settings"><b>Settings</b><small>Controller, graphics, feel</small></button>
     </section>
     <section data-screen="learn" data-title="Learn" hidden>
-      <p class="menu-note">Start anywhere. Nothing is locked.</p>
+      <p class="menu-note">Start anywhere. Nothing is locked, every part can be skipped.</p>
       <div id="badge" hidden>★ Real-drone ready</div>
       <div id="lesson-list"></div>
+      <button type="button" data-go="back">Back</button>
+    </section>
+    <section data-screen="chapter" data-title="Chapter" hidden>
+      <div id="chapter-parts"></div>
+      <button type="button" data-go="back">Back</button>
+    </section>
+    <section data-screen="check" data-title="Check" hidden>
+      <p id="check-q"></p>
+      <div id="check-answers"></div>
+      <p id="check-result" class="menu-note"></p>
+      <button type="button" data-act="check-next" id="check-next" hidden>Next question</button>
+      <button type="button" data-go="back">Back</button>
+    </section>
+    <section data-screen="theory" data-title="Theory" hidden>
+      <p class="menu-note">Pick a card to see it shown in the sim.</p>
+      <div id="theory-list"></div>
       <button type="button" data-go="back">Back</button>
     </section>
     <section data-screen="pause" data-title="Paused" hidden>
       <button type="button" data-act="resume" data-first>Resume</button>
       <button type="button" data-act="restart" id="btn-reset">Restart</button>
-      <button type="button" data-act="skip" id="btn-skip">Skip this lesson</button>
+      <button type="button" data-act="skip" id="btn-skip">Skip this part</button>
       <button type="button" data-go="settings">Settings</button>
       <button type="button" data-act="quit">Back to menu</button>
     </section>

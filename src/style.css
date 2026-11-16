@@ -99,3 +99,21 @@ body.flying #corner { opacity: 0; }
 body.mode-free .race { display: none; }
 body.menu-open #hud, body.menu-open #sticks { visibility: hidden; }
 button.lesson .next { color: #ffd23f; font-weight: 600; }
+/* Chapters: the card shown beside a live demo, the chapter screen, the check questions, the Theory page. */
+#theory { position: fixed; left: 12px; top: 12px; width: 290px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px;
+  background: rgba(12,16,26,.78); border-radius: 10px; border-left: 4px solid #ffd23f; }
+#theory[hidden], #theory-prev[hidden], #check-next[hidden] { display: none; }
+#theory-where, #theory-keys { color: #a9b4c4; font-size: 12px; }
+#theory-title { font-size: 19px; }
+#theory-text { font-size: 16px; line-height: 1.35; }
+#theory .row button { padding: 5px 14px; }
+#theory-prev { background: rgba(255,255,255,.16); }
+#chapter-parts, #check-answers, #theory-list { display: flex; flex-direction: column; gap: 8px; }
+#chapter-parts button, #check-answers button, #theory-list button { text-align: left; background: rgba(255,255,255,.12); padding: 9px 12px; font-size: 16px; }
+#chapter-parts button, #theory-list button { display: grid; gap: 2px; }
+#theory-list button b { font-size: 15px; }
+#theory-list p { margin: 6px 0 0; }
+#check-q { margin: 0; font-size: 18px; font-weight: 600; }
+#check-answers button.right { background: #1f7a3a; }
+#check-answers button.wrong { background: #a3342c; }
+#chapter-parts .done::after { content: ' ✓'; color: #6fe38a; }

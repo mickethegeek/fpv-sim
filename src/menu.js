@@ -41,8 +41,8 @@ export function navNames(id = '') {
 export class Menu {
   // root: the #menu element, holding one <section data-screen="name" data-title="..."> per screen.
   // onAction(act, el): a button with data-act was chosen. onBack(root): back was pressed on the bottom screen.
-  constructor({ root, win = window, onAction, onBack, blocked = () => false }) {
-    Object.assign(this, { root, win, onAction, onBack, blocked });
+  constructor({ root, win = window, onAction, onBack, onNav = () => {}, blocked = () => false }) {
+    Object.assign(this, { root, win, onAction, onBack, onNav, blocked }); // onNav(ev): controller presses while no menu is open (cards)
     this.stack = [];
     this.came = [];          // where the pointer was on the screens below, to come back to
     this.nav = createNav();
@@ -154,7 +154,10 @@ export class Menu {
     if (this.blocked()) { this.nav = createNav(); return this.isOpen; }
     const std = pad && pad.mapping === 'standard';
     const events = std ? navUpdate(this.nav, pad.buttons, pad.axes, dt) : [];
-    if (!this.isOpen) { if (canPause && events.includes('pause')) this.onAction('pause', null); return this.isOpen; }
+    if (!this.isOpen) {
+      for (const ev of events) { if (ev !== 'pause') this.onNav(ev); else if (canPause) this.onAction('pause', null); if (this.isOpen) break; }
+      return this.isOpen;
+    }
     for (const ev of events) { if (!this.isOpen) break; this.handle(ev); }
     return this.isOpen;
   }

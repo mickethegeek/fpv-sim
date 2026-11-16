@@ -14,6 +14,10 @@ import { SLIDERS, defaultTuning, sanitizeTuning, buildConfig, loadTuning, saveTu
 import { createRace, resetRace, raceUpdate, formatLap, loadBest, saveBest } from './course.js';
 import * as LS from './lessons.js';
 import { Menu, navNames } from './menu.js';
+import * as TH from './theory.js';
+import { DEMOS, demoHelpers, runDemo } from './demos.js';
+import { createLessonPilot, setPilotQuad } from './pilot.js';
+import { buildArrows } from './arrows.js';
 
 // View settings (M6 puts these in the settings panel).
 const view = {
@@ -23,6 +27,7 @@ const view = {
   pilot: [0, 1.7, 5], // where you stand in line-of-sight view: eye height, 5 m behind the pad
   losFovDeg: 50,   // vertical field of view in line-of-sight view: no zoom, the quad gets small with distance like in real life
   losModelScale: 1.5, // the quad is drawn this much bigger in line-of-sight view: a screen shows far less detail than the eye
+  demoFovDeg: 36, demoModelScale: 2, // theory demos: a slightly zoomed camera and a quad drawn twice its size, so tilt and arrows read at 10 m (UNSOURCED look choices)
   sticks: true,    // live stick overlay
   get chase() { return this.mode === 'chase'; },
   set chase(on) { this.mode = on ? 'chase' : 'fpv'; },
@@ -75,6 +80,7 @@ function setLesson(id) {
   card = null;
   sim.quad.wind = lesson && lesson.wind ? LS.WIND : null;
   if (lesson) sim.mode = lesson.mode;
+  if (lesson && typeof chapter !== 'undefined' && chapter && chapter.lesson !== lesson) chapter = { lesson, ch: TH.chapterFor(lesson.id), part: 'try', i: 0 };
   if (typeof renderLessons === 'function') renderLessons();
 }
 const VIEW_SHORT = { fpv: 'FPV', los: 'line of sight', any: '' };
@@ -100,6 +106,7 @@ function lessonFrame(dt) {
     }
     attempt.action = null;
   }
+  if (watching && (attempt.state === 'done' || attempt.state === 'failed')) { partDone('watch'); return; } // the test pilot's run is not yours: nothing is recorded
   if (attempt.state === 'done' || attempt.state === 'failed') {
     const r = LS.attemptResult(attempt), rec = LS.recordResult(progress, lesson, attempt.key, r);
     if (storage) LS.saveProgress(storage, progress);
@@ -137,7 +144,7 @@ const hook = (window.__sim = {
   ready: false, frames: 0, fps: 0, paused: false, errors: [], shadowPoint, get quality() { return quality; }, get renderer() { return renderer; }, physicsHz: PHYSICS_HZ, physicsSteps: 0,
   sim, sticks, input, setup, view, world, race, get tuning() { return tuning; }, get config() { return config; },
   setTuning(t) { applyTuning({ ...tuning, ...t }); }, get scene() { return scene; }, get camera() { return camera; },
-  setLesson, LS, get attempt() { return attempt; }, get menu() { return menu; }, get app() { return appMode; }, start(mode, id) { start(mode, id); },
+  setLesson, LS, TH, DEMOS, get attempt() { return attempt; }, showChapter(id, part) { showChapter(id, part); }, startPart(part, i) { startPart(part, i); }, cardStep(d) { cardStep(d); }, get menu() { return menu; }, get app() { return appMode; }, start(mode, id) { start(mode, id); },
   setSticks(s) { scripted = true; Object.assign(sticks, s); },
   arm(on = true) { scripted = true; sim.armed = on; },
   setMode(m) { sim.mode = m; },
@@ -159,6 +166,9 @@ const hook = (window.__sim = {
       lesson: lesson ? { id: lesson.id, state: attempt.state, step: attempt.step, status: attempt.status, key: attempt.key, prompt: attempt.prompt } : null,
       card: card ? { title: card.title, text: card.text, good: card.good } : null, progress: JSON.parse(JSON.stringify(progress)), wind: sim.quad.wind || null,
       race: { next: race.next, running: race.running, lapTime: race.lapTime, lastLap: race.lastLap, best: race.best, laps: race.laps, passed: race.passed },
+      chapter: chapter ? { lesson: chapter.lesson.id, part: chapter.part, i: chapter.i } : null, demo: demo ? demo.card.demo : null, watching: !!watching,
+      theory: theoryEl.hidden ? null : { where: theoryWhere.textContent, title: theoryTitle.textContent, text: theoryText.textContent, next: theoryNext.textContent },
+      arrows: arrows.visible, seen: JSON.parse(JSON.stringify(seen)),
       app: appMode, menu: { open: menu.isOpen, screen: menu.screen, item: menu.current ? menu.current.textContent.trim() : null },
       view: view.mode, sticksShown: !sticksEl.hidden, sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open,
       camera: { fov: camera.fov, pos: camera.position.toArray(), dir: camera.getWorldDirection(new THREE.Vector3()).toArray() } };
@@ -192,7 +202,7 @@ function renderLessons() {
   lessonListEl.innerHTML = LS.LESSONS.map((l, i) => {
     const done = LS.lessonPassed(progress, l);
     const marks = LS.viewKeys(l).map((k) => `<span>${k === 'any' ? '' : k === 'los' ? 'LOS ' : 'FPV '}${dots(l, k)}</span>`).join(' ');
-    return `<button type="button" class="lesson${lesson === l ? ' on' : ''}${done ? ' done' : ''}" data-id="${l.id}"${l === (lesson || next) ? ' data-first' : ''}><b>${i + 1}. ${l.title}</b><small>${marks}${l === next ? ' <span class="next">Next</span>' : ''}</small></button>`;
+    return `<button type="button" class="lesson${lesson === l ? ' on' : ''}${done ? ' done' : ''}" data-id="${l.id}"${l === ((chapter && chapter.lesson) || lesson || next) ? ' data-first' : ''}><b>${i + 1}. ${l.title}</b><small>${marks}${l === next ? ' <span class="next">Next</span>' : ''}</small></button>`;
   }).join('');
   badgeEl.hidden = !LS.isReady(progress);
   document.getElementById('main-learn').textContent = LS.isReady(progress) ? 'All eight lessons passed: real-drone ready' : `${passed} of ${LS.LESSONS.length} lessons passed · next: ${next.title}`;
@@ -201,21 +211,125 @@ function renderLessons() {
 }
 lessonListEl.addEventListener('click', (e) => {
   const b = e.target.closest('button');
-  if (b) start('learn', b.dataset.id);
+  if (b) { chapter = { lesson: LS.lessonById(b.dataset.id), ch: TH.chapterFor(b.dataset.id), part: null, i: 0 }; renderChapter(); menu.push('chapter'); }
 });
+
+// Chapters (M9): each lesson is a chapter with up to four parts, every one optional and skippable:
+// Learn (theory cards, each with a live demo), Watch (the test pilot flies the lesson), Check (quick questions), Try (the lesson itself).
+// chapter = { lesson, ch (cards and questions from src/theory.js), part, i (card or question number), fromTheory }.
+const PART_NAMES = { learn: 'Learn', watch: 'Watch', check: 'Check', try: 'Try' };
+const SEEN_KEY = 'fpvsim.chapters.v1';
+let chapter = null, demo = null, watching = null, answered = false; // demo: { def, card }; watching: the test pilot flying the lesson
+let seen = {};                                                       // { lessonId: { learn, watch, check } }: parts gone through (shown as a tick, never required)
+try { seen = (storage && JSON.parse(storage.getItem(SEEN_KEY))) || {}; } catch { /* blocked or damaged */ }
+const partsOf = (c) => ['learn', 'watch', 'check', 'try'].filter((p) => (p === 'learn' ? c.ch.cards.length : p === 'check' ? c.ch.check.length : true));
+const chapterEl = document.querySelector('#menu [data-screen=chapter]'), partsEl = document.getElementById('chapter-parts'), checkEl = document.querySelector('#menu [data-screen=check]'),
+  checkQ = document.getElementById('check-q'), checkAnswers = document.getElementById('check-answers'), checkResult = document.getElementById('check-result'), checkNext = document.getElementById('check-next'),
+  theoryEl = document.getElementById('theory'), theoryWhere = document.getElementById('theory-where'), theoryTitle = document.getElementById('theory-title'), theoryText = document.getElementById('theory-text'),
+  theoryPrev = document.getElementById('theory-prev'), theoryNext = document.getElementById('theory-next'), theoryKeys = document.getElementById('theory-keys');
+function renderChapter(first) {
+  const c = chapter, n = LS.LESSONS.indexOf(c.lesson) + 1, done = seen[c.lesson.id] || {}, parts = partsOf(c);
+  const what = { learn: `${c.ch.cards.length} short cards, each shown in the sim`, watch: 'The test pilot flies it. Watch the sticks.', check: `${c.ch.check.length} quick questions`,
+    try: LS.lessonPassed(progress, c.lesson) ? 'Passed. Fly it again any time.' : 'Your turn: fly it.' };
+  chapterEl.dataset.title = `${n}. ${c.lesson.title}`;
+  partsEl.innerHTML = parts.map((p) => `<button type="button" data-act="part" data-part="${p}"${p === (first || parts[0]) ? ' data-first' : ''}><b class="${done[p] || (p === 'try' && LS.lessonPassed(progress, c.lesson)) ? 'done' : ''}">${PART_NAMES[p]}</b><small>${what[p]}</small></button>`).join('');
+}
+// Back to the chapter screen, pointer on `part`.
+function showChapter(id, part) {
+  stopAuto(); resetFlight(); setLesson(null);
+  chapter = { lesson: LS.lessonById(id), ch: TH.chapterFor(id), part: null, i: 0 };
+  renderLessons(); renderChapter(part);
+  menu.open('main'); menu.push('learn'); menu.push('chapter');
+}
+function stopAuto() { demo = null; watching = null; arrows.visible = false; }
+function markSeen(part) {
+  (seen[chapter.lesson.id] ||= {})[part] = true;
+  try { if (storage) storage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch { /* blocked */ }
+}
+// A part is over (finished or skipped): on to the next one, or to the next chapter after Try.
+function partDone(part, skipped = false) {
+  const c = chapter, parts = partsOf(c), k = parts.indexOf(part);
+  if (!skipped) markSeen(part);
+  if (c.fromTheory) { stopAuto(); resetFlight(); setLesson(null); chapter = null; menu.open('main'); menu.push('theory'); return; }
+  if (k < parts.length - 1) return showChapter(c.lesson.id, parts[k + 1]);
+  const n = LS.LESSONS[LS.LESSONS.indexOf(c.lesson) + 1];
+  if (n) showChapter(n.id); else { stopAuto(); resetFlight(); setLesson(null); chapter = null; renderLessons(); menu.open('main'); }
+}
+function startPart(part, i = 0) {
+  const c = chapter;
+  if (part === 'learn') return playCard(i);
+  if (part === 'check') { c.part = 'check'; c.i = 0; renderCheck(); if (menu.screen !== 'check') menu.push('check'); else menu.refresh(true); return; }
+  start('learn', c.lesson.id);           // Try; Watch is the same lesson flown by the test pilot
+  if (part === 'watch') { chapter.part = 'watch'; setPilotQuad(sim.quad, sim.fcCfg); watching = createLessonPilot(); }
+}
+// Learn: card i of the chapter, with its demo running in the sim.
+function playCard(i) {
+  const c = chapter;
+  stopAuto(); setLesson(null);
+  appMode = 'learn'; c.part = 'learn'; c.i = i;
+  demo = { card: c.ch.cards[i], def: DEMOS[c.ch.cards[i].demo] };
+  placeDemo();
+  closeMenu(false);
+}
+function placeDemo() {
+  const [x, y, z, yaw = 0] = demo.def.start, h = (-yaw * DEG) / 2;
+  resetFlight();
+  sim.state.pos = [x, y, z]; sim.state.quat = [0, Math.sin(h), 0, Math.cos(h)];
+  sim.mode = demo.def.mode || MODES.ANGLE;
+  sim.quad.wind = demo.def.wind ? LS.WIND : null;
+  setPilotQuad(sim.quad, sim.fcCfg);
+  demo.h = demoHelpers(sim.quad, sim.fcCfg);
+}
+// Next / previous card; past the last one the Learn part is done, before the first one it is back to the chapter.
+function cardStep(d) {
+  if (watching) { if (d > 0) partDone('watch', true); return; }
+  if (!demo || menu.isOpen) return;
+  const c = chapter, i = c.i + d;
+  if (i >= c.ch.cards.length) partDone('learn');
+  else if (i < 0) { if (c.fromTheory) partDone('learn', true); else showChapter(c.lesson.id, 'learn'); }
+  else playCard(i);
+}
+theoryNext.addEventListener('click', (e) => { e.currentTarget.blur(); cardStep(1); });
+theoryPrev.addEventListener('click', (e) => { e.currentTarget.blur(); cardStep(-1); });
+function renderCheck() {
+  const c = chapter, q = c.ch.check[c.i];
+  answered = false;
+  checkEl.dataset.title = `Check ${c.i + 1} of ${c.ch.check.length}`;
+  if (menu.screen === 'check') menu.titleEl.textContent = checkEl.dataset.title;
+  checkQ.textContent = q.q;
+  checkAnswers.innerHTML = q.a.map((a, k) => `<button type="button" data-act="answer" data-k="${k}"${k === 0 ? ' data-first' : ''}>${a}</button>`).join('');
+  checkResult.textContent = ''; checkNext.hidden = true;
+}
+function answer(k) {
+  const c = chapter, q = c.ch.check[c.i];
+  if (answered) return;
+  answered = true;
+  checkAnswers.children[q.right].classList.add('right');
+  if (k !== q.right) checkAnswers.children[k].classList.add('wrong');
+  checkResult.textContent = k === q.right ? 'Right.' : `Not quite. It is: ${q.a[q.right]}.`;
+  checkNext.hidden = false;
+  checkNext.textContent = c.i + 1 < c.ch.check.length ? 'Next question' : 'Done';
+  menu.mark(menu.items().indexOf(checkNext));
+}
+// Theory page: every card, grouped by chapter. Choosing one plays it in the sim.
+document.getElementById('theory-list').innerHTML = TH.CHAPTERS.filter((c) => c.cards.length).map((c) => `<p class="menu-note">${LS.LESSONS.findIndex((l) => l.id === c.lesson) + 1}. ${LS.lessonById(c.lesson).title}</p>`
+  + c.cards.map((card, i) => `<button type="button" data-act="card" data-lesson="${c.lesson}" data-i="${i}"><b>${card.title}</b><small>${card.text}</small></button>`).join('')).join('');
 
 // Menus (src/menu.js): start menu, Learn, Settings, pause. The sim stands still while a menu is open.
 let resumeArmed = null; // arm state when the pause menu opened, given back on Resume
 const menu = new Menu({
   root: document.getElementById('menu'), blocked: () => setup.open,
-  onAction(act) {
+  onNav(ev) { if (ev === 'select' || ev === 'right') cardStep(1); else if (ev === 'back' || ev === 'left') cardStep(-1); },
+  onAction(act, el) {
     if (act === 'pause') { if (!menu.isOpen) { resumeArmed = { armed: input.armed, blocked: input.switchBlocked }; input.keys.clear(); renderLessons(); menu.open('pause'); } }
     else if (act === 'resume') closeMenu(true);
-    else if (act === 'restart') { resetFlight(); if (lesson) setLesson(lesson.id); closeMenu(false); }
-    else if (act === 'skip') { // on to the next lesson; after the last one, back to the menu
-      const n = lesson && LS.LESSONS[LS.LESSONS.indexOf(lesson) + 1];
-      if (n) start('learn', n.id); else { resetFlight(); setLesson(null); renderLessons(); menu.open('main'); }
-    } else if (act === 'quit') { resetFlight(); setLesson(null); renderLessons(); menu.open('main'); }
+    else if (act === 'restart') { if (demo) { placeDemo(); closeMenu(false); } else if (watching) startPart('watch'); else { resetFlight(); if (lesson) setLesson(lesson.id); closeMenu(false); } }
+    else if (act === 'skip') { if (chapter) partDone(chapter.part || 'try', true); } // on to the next part; after Try, the next chapter
+    else if (act === 'quit') { stopAuto(); chapter = null; resetFlight(); setLesson(null); renderLessons(); menu.open('main'); }
+    else if (act === 'part') startPart(el.dataset.part);
+    else if (act === 'answer') answer(Number(el.dataset.k));
+    else if (act === 'check-next') { if (chapter.i + 1 < chapter.ch.check.length) { chapter.i++; renderCheck(); menu.refresh(true); } else partDone('check'); }
+    else if (act === 'card') { chapter = { lesson: LS.lessonById(el.dataset.lesson), ch: TH.chapterFor(el.dataset.lesson), part: 'learn', i: 0, fromTheory: true }; playCard(Number(el.dataset.i)); }
     else if (act === 'gates' || act === 'free') start(act);
     else if (act === 'sticks') view.sticks = !view.sticks;
     else if (act === 'view') nextView();
@@ -231,10 +345,12 @@ function closeMenu(resume) {
 }
 // Start flying: a lesson (id, or the next one not passed), the gate course or free flight.
 function start(mode, id) {
+  stopAuto();
   resetFlight();
   const l = mode === 'learn' ? LS.lessonById(id) || LS.nextLesson(progress) : null;
   appMode = mode === 'gates' ? 'gates' : 'free';
   setLesson(l ? l.id : null);
+  chapter = l ? { lesson: l, ch: TH.chapterFor(l.id), part: 'try', i: 0 } : null;
   closeMenu(false);
 }
 // Markers for the lessons: hover boxes, two cones with their circles, the far ring.
@@ -280,6 +396,7 @@ document.getElementById('tune-reset').addEventListener('click', (e) => { e.curre
 applyTuning(tuning, false);
 window.addEventListener('keydown', (e) => {
   if (e.repeat || (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName || ''))) return;
+  if ((e.code === 'Enter' || e.code === 'Backspace') && (demo || watching)) { e.preventDefault(); cardStep(e.code === 'Enter' ? 1 : -1); return; }
   if (e.code === 'KeyC') view.chase = !view.chase;
   if (e.code === 'KeyV') nextView();
   if (e.code === 'KeyO') view.sticks = !view.sticks;
@@ -315,6 +432,8 @@ const shadow = buildShadow();
 scene.add(shadow);
 const gates = buildGates(world.course);
 scene.add(gates.group);
+const arrows = buildArrows();
+scene.add(arrows);
 const camera = new THREE.PerspectiveCamera(80, 1, 0.03, 2500);
 const sky = scene.getObjectByName('sky');
 for (const m of Object.values(lessonMarks)) scene.add(m);
@@ -354,20 +473,26 @@ function frame(now) {
   const inp = input.update(dt);
   // A controller with no standard layout and no saved profile (a USB radio): open the setup screen by itself, once.
   if (input.needsSetup && !setup.open && autoSetupFor !== input.gamepadId) { autoSetupFor = input.gamepadId; setup.start(); }
-  if (!scripted && !menuOpen) {
+  const auto = (demo || watching) && !menuOpen; // a demo or the test pilot flies; the player only steps through
+  if (auto) {
+    if (demo && sim.state.time >= demo.def.loop) placeDemo();
+    const r = demo ? runDemo(demo.def, sim.state, demo.h) : watching.update(sim.state, attempt);
+    Object.assign(sticks, r.sticks);
+    sim.armed = r.arm && !sim.state.crashed;
+  } else if (!scripted && !menuOpen) {
     Object.assign(sticks, inp.sticks);
     for (const ev of inp.events) { if (ev === 'mode') toggleMode(); else if (ev === 'reset') resetFlight(); else if (ev === 'view') nextView(); }
     if (inp.acroSwitch !== null) sim.mode = inp.acroSwitch ? MODES.ACRO : MODES.ANGLE;
     sim.armed = input.armed && !sim.state.crashed;
   }
-  if (!hook.paused && !menuOpen) hook.physicsSteps += simAdvance(sim, sticks, dt); // hook.paused: only the test script, to hold the quad still for a picture
+  if (!hook.paused && !menuOpen) hook.physicsSteps += simAdvance(sim, sticks, dt * (demo && demo.def.slow ? demo.def.slow : 1)); // hook.paused: only the test script, to hold the quad still for a picture
   if (!menuOpen) lessonFrame(dt);
 
   // Crash: freeze, show it for a moment, then put the quad back on the pad, disarmed.
   if (sim.state.crashed && !menuOpen) {
     if (crashTimer === 0) { crashes++; input.disarm(); sim.armed = false; }
     crashTimer += dt;
-    if (crashTimer >= CRASH_PAUSE) resetFlight();
+    if (crashTimer >= CRASH_PAUSE) { if (demo) placeDemo(); else resetFlight(); }
   }
 
   // Gates and lap timer (sim time, so a slow computer does not change lap times).
@@ -390,15 +515,24 @@ function frame(now) {
   qBody.set(s.quat[0], s.quat[1], s.quat[2], s.quat[3]);
   quadModel.quaternion.copy(qBody);
   shadow.update(s.pos, s.quat);
-  quadModel.visible = view.mode !== 'fpv';
-  quadModel.scale.setScalar(view.mode === 'los' ? view.losModelScale : 1);
-  if (view.mode === 'los') {
+  const demoCam = demo ? demo.def.cam : null, standCam = Array.isArray(demoCam);
+  quadModel.visible = demoCam ? standCam : view.mode !== 'fpv';
+  quadModel.scale.setScalar(standCam ? view.demoModelScale : view.mode === 'los' ? view.losModelScale : 1);
+  arrows.visible = !!demo && !!demo.def.arrows && standCam;
+  if (arrows.visible) arrows.update(s, sim.quad, view.demoModelScale);
+  if (standCam) {
+    // Demo: a camera that stands still and watches the quad.
+    camera.position.set(demoCam[0], demoCam[1], demoCam[2]);
+    camera.fov = view.demoFovDeg;
+    camera.up.set(0, 1, 0);
+    camera.lookAt(quadModel.position);
+  } else if (view.mode === 'los' && !demoCam) {
     // Line of sight: the pilot stands still on the ground and turns the head to follow the quad.
     camera.position.set(view.pilot[0], view.pilot[1], view.pilot[2]);
     camera.fov = view.losFovDeg;
     camera.up.set(0, 1, 0);
     camera.lookAt(quadModel.position);
-  } else if (view.chase) {
+  } else if (view.chase && !demoCam) {
     // Behind and above the quad, following its heading only (not its roll/pitch).
     const yaw = attitude(s.quat).yaw;
     tmp.set(s.pos[0] - Math.sin(yaw) * 2.2, s.pos[1] + 0.8, s.pos[2] + Math.cos(yaw) * 2.2);
@@ -425,8 +559,8 @@ function frame(now) {
   setText(hud.mode, sim.mode === MODES.ACRO ? 'ACRO' : 'ANGLE');
   setText(hud.view, VIEW_NAMES[view.mode]);
   // Stick overlay: where the sticks are right now (left: throttle + yaw, right: pitch + roll; Mode 2).
-  sticksEl.hidden = !view.sticks || setup.open;
-  if (view.sticks) {
+  sticksEl.hidden = !(view.sticks || demo || watching) || setup.open;
+  if (!sticksEl.hidden) {
     stickL.style.transform = `translate(${(sticks.yaw * 34).toFixed(1)}px, ${((0.5 - sticks.throttle) * 68).toFixed(1)}px)`;
     stickR.style.transform = `translate(${(sticks.roll * 34).toFixed(1)}px, ${(-sticks.pitch * 34).toFixed(1)}px)`;
   }
@@ -454,6 +588,17 @@ function frame(now) {
     lessonStep.dataset.alarm = String(!!attempt.prompt);
     lessonLine.hidden = running;
   }
+  // The card beside a demo, or the note while the test pilot flies.
+  theoryEl.hidden = !(demo || watching) || menuOpen || setup.open;
+  if (!theoryEl.hidden) {
+    const c = chapter, n = LS.LESSONS.indexOf(c.lesson) + 1, pn = navNames(input.gamepadId), padOn = !!pad && pad.mapping === 'standard';
+    setText(theoryWhere, demo ? `${n}. ${c.lesson.title} · Learn ${c.i + 1} of ${c.ch.cards.length}` : `${n}. ${c.lesson.title} · Watch`);
+    setText(theoryTitle, demo ? demo.card.title : 'Watch the test pilot');
+    setText(theoryText, demo ? demo.card.text : 'It flies the lesson. Watch what the sticks do.');
+    theoryPrev.hidden = !demo;
+    setText(theoryNext, watching ? 'Skip' : c.i + 1 < c.ch.cards.length ? 'Next' : 'Done');
+    setText(theoryKeys, padOn ? `${pn.select} ${watching ? 'skip' : 'next'}${demo ? ` · ${pn.back} back` : ''} · ${pn.pause} menu` : `Enter ${watching ? 'skip' : 'next'}${demo ? ' · Backspace back' : ''} · Esc menu`);
+  }
   if (card) { card.left -= dt; if (card.left <= 0 && !card.passedLesson) card = null; }
   if (card && !lesson && sim.armed) card = null;
   cardEl.hidden = !card || setup.open || menuOpen;
@@ -474,18 +619,19 @@ function frame(now) {
   keysEl.hidden = input.source !== 'keyboard';
   document.body.classList.toggle('flying', sim.armed);
   document.body.classList.toggle('menu-open', menuOpen);
-  document.body.classList.toggle('mode-free', appMode === 'free');
+  document.body.classList.toggle('mode-free', appMode !== 'gates'); // lap timer and gate count only on the gate course
   cornerEl.hidden = menuOpen || setup.open;
   setText(cornerEl, std && !optionsTaken ? `${nav.pause}: menu` : 'Esc: menu');
   if (menuOpen) {
     setText(menuHelp, std ? `D-pad: move · ${nav.select} select · ${nav.back} back` : 'Arrows: move · Enter: select · Esc: back');
     setText(sticksBtn, `Stick overlay: ${view.sticks ? 'on' : 'off'}`);
     setText(viewBtn, `View: ${view.mode === 'los' ? 'line of sight' : view.mode === 'chase' ? 'chase' : 'FPV'}`);
-    skipBtn.hidden = !lesson;
+    skipBtn.hidden = !chapter;
+    setText(skipBtn, 'Skip this part');
   }
   let hint = inp.hint;
   if (s.crashed) hint = `Crashed${s.crashedInto && s.crashedInto !== 'ground' ? ' into a ' + s.crashedInto : ''}. Resetting…`;
-  else if (!sim.armed && !hint && !setup.open && !scripted) {
+  else if (!sim.armed && !hint && !setup.open && !scripted && !demo && !watching) {
     hint = input.source === 'gamepad' ? (usesDefault ? `Pull the left stick down and press ${names.arm} to arm` : 'Throttle down, then arm to fly') : 'Press Space to arm, then hold W to take off';
   }
   hintEl.hidden = !hint || menuOpen;
