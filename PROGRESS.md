@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M8 Menu and freedom** (PLAN.md, Phase 2).
+Next: **M9 Chapters with theory** (PLAN.md, Phase 2). The card texts, check questions and sources are written (`src/theory.js`, `docs/theory.md`); what is left is listed under "Notes for the next leg" (M9).
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -14,7 +14,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M6 Beginner path + line-of-sight view
 - [x] M6b Look
 - [x] M7 Finish  ← Mike notified
-- [ ] M8 Menu and freedom
+- [x] M8 Menu and freedom
 - [ ] M9 Chapters with theory
 - [ ] M10 Helpers (force arrows, coaching, beginner uptilt)
 - [ ] M11 Finish phase 2  ← notify Mike when done
@@ -118,6 +118,8 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - Look: everything is in `src/scene.js` (`SUN_DIR`, `shadowMatrix`, `castStatic`, `buildShadow().update(pos, quat)`, `groundDetail`, sky shader). `__sim.shadowPoint(pos)`, `__sim.quality`, `__sim.fps`, `__sim.paused = true` (holds the quad still for a picture; `view()` in the M6b block of `test/flight.mjs`). Anything added to the gates group must come after the gates (tests read gate i as child i).
 - Software GL is now about 12 fps with `?fast` (was 16): the full browser run takes longer; run it in the background with output to a file.
 
+- **M9, what is left.** (1) Chapter screen: choosing a lesson in Learn opens its chapter with the parts Learn / Watch / Try / Check, each one click, each skippable (pause menu: "Skip this part"). (2) Card player: card text over the live sim plus its demo; build a small demo runner (start pose, sticks as a function of time, camera, slow motion, arrows from the real per-motor thrust in `physics.js`; share the arrows with M10). Start with a few demos done well; a card whose demo is not built yet must not ship silently: list it in PROGRESS. (3) Watch: the test pilots in `test/autopilot.mjs` (`createLessonPilot`) fly the lesson with the stick overlay on; move them to `src/` so the page can load them. (4) Try = today's lesson, unchanged. (5) Check: the questions in `src/theory.js`, optional, no gating. (6) A Theory page in the start menu listing every card. (7) Browser checks for all of it with the controller. Two legs at least.
+
 ## Real flight data: what was found (scouting, 2026-11-16 11:10 UTC, nothing downloaded yet)
 - Best match: TII "Race Against the Machine" dataset, 5-inch, 6S, about 870 g, Betaflight 4.3.1, piloted flights with RC channels (100 Hz) + gyro (500 Hz) + motor thrust in CSV; the repo also has the quad's Betaflight CLI backup (`quadrotor/BTFL_cli_backup.txt`: its real rates and PIDs). Repo https://github.com/tii-racing/drone-racing-dataset . Problem: the CSVs only come inside release zips of 12 GB (piloted), bundled with images. Too big for a leg unless a per-flight CSV link exists; look in the repo for one.
 - Raw blackbox logs, airframe not stated (read the log header first): https://raw.githubusercontent.com/Plasmatree/PID-Analyzer/master/good_tune.BBL (4.8 MB), `.../stock_tune.BFL` (13 MB); https://raw.githubusercontent.com/pichim/bf_controller_tuning/main/logs/example_logs/Gyro_Angle.TXT (27 MB, chirp test, 2026 firmware).
@@ -149,3 +151,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-17 00:03 Zurich · M8: README updated for the menu and the new buttons (Options = pause menu, Share = reset); assumptions and notes written · next: full browser run result, screenshots, tick M8
 - 2026-11-17 00:05 Zurich · M8 full browser run in progress (an old check still looked for the side panel: fixed, also removed a test folder saved by mistake). Meanwhile M9 groundwork: the theory cards (22 cards, 10 concepts, 2 sentences each) and check questions written as data in src/theory.js, sources read and cited in docs/theory.md; 61 unit tests · next: finish the M8 run, tick M8
 - 2026-11-17 00:14 Zurich · M8: second old check fixed (the quad choice is now in Settings); the M5, M6 and M6b blocks pass on their own; final full run started · next: tick M8 when it passes
+- 2026-11-17 00:28 Zurich · M8 ticked: start menu (Learn, Gates, Free fly, Settings), pause menu on Options / Esc (Resume, Restart, Skip, Settings, Back to menu), every lesson open, Free fly with a clean screen, all usable with the PlayStation controller (D-pad, cross, circle), keyboard and mouse; reset moved to Share; 61 unit tests, 116 browser checks, proof/M8/62 to 67 · next: M9 chapters with theory (cards and sources already written)

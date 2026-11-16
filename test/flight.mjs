@@ -600,12 +600,12 @@ if (runs('M6L')) {
   const seed = await page.evaluate(() => { const L = window.__sim.LS, p = L.createProgress(); for (const l of L.LESSONS.slice(0, 7)) for (const k of Object.keys(p[l.id])) p[l.id][k] = { streak: 3, runs: 3, passed: true }; return p; });
   await open('&learn', seed);
   s = await snap();
-  check('M6 with lessons 1 to 7 passed the page opens on the Ready check, no badge yet', s.lesson.id === 'ready' && !(await page.isVisible('#badge')));
+  check('M6 with lessons 1 to 7 passed the page opens on the Ready check, no badge yet', s.lesson.id === 'ready' && await page.$eval('#badge', (b) => b.hidden));
   run = flyLesson();
   await until(() => window.__sim.attempt.step === 4);
   await shot('53-m6-ready-check-figure8-in-wind');
   r = await run;
-  check('M6 Ready check: one good run in light wind gives the real-drone ready badge', /REAL-DRONE READY/.test(r.card.title) && await page.isVisible('#badge') && r.wind && r.wind[0] === 2.6, `("${r.card.title}" · "${r.card.text}")`);
+  check('M6 Ready check: one good run in light wind gives the real-drone ready badge', /REAL-DRONE READY/.test(r.card.title) && await page.$eval('#badge', (b) => !b.hidden) && /real-drone ready/.test(await page.textContent('#main-learn')) && r.wind && r.wind[0] === 2.6, `("${r.card.title}" · "${r.card.text}")`);
   await page.evaluate(() => window.__sim.arm(false)); await simWait(200);
   s = await snap();
   check('M6 after the badge the page goes to free flight; the pass is saved', s.lesson === null && s.app === 'free' && s.progress.ready.any.passed, JSON.stringify(s.lesson));
