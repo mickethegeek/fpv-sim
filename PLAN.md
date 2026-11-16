@@ -6,6 +6,11 @@
 ## Fixed decisions (Mike, 2026-11-16) — never reopen
 - Purpose: learning to fly FPV.
 - Input: a controller (game controller via the browser Gamepad API). Keyboard as backup.
+- **Mike's controller is a PlayStation controller** (DualShock 4 or DualSense) for now (2026-11-16). Make it work perfectly with no setup: standard mapping, Mode 2 (left stick = throttle + yaw, right stick = pitch + roll).
+  - **Throttle on a spring-centred stick:** the left stick snaps back to the middle, unlike a real radio. Default mapping: stick bottom = 0%, top = 100%, and a **throttle mid** setting so the centred stick gives about hover throttle in angle mode. So letting go means "roughly hover", not "climb". Setting: throttle mid (default ≈ hover), throttle expo.
+  - Stick deadzone tuned for PS sticks (small, adjustable). Arm on a shoulder button, mode switch on another, reset on Options; show the button names as PlayStation symbols.
+  - In the beginner path, one line in lesson 1: "On a real radio the throttle stays where you leave it."
+  - Keep the setup screen for other controllers and a future real radio.
 - Drone: a typical 5-inch freestyle FPV quad.
 - World: open field with a few gates.
 - Platform: browser, opens from a link, no install. Public repo, live on GitHub Pages.
