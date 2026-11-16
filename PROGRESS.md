@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: M5 Feel, in progress. Measurement harness and `docs/feel.md` scoreboard are done; do the tuning list in `docs/feel.md` ("Notes for tuning") top to bottom, then the Feel tuning panel.
+Next: M5 Feel, in progress. Done: measurement harness, `docs/feel.md` scoreboard, rate loop + angle mode + motor lag tuned. Left, in this order: (1) hover throttle decision and PlayStation throttle mid (notes 2 in `docs/feel.md`), (2) Feel tuning panel with sliders and Reset to default, (3) input path review (deadzone for PS sticks), (4) update `docs/physics.md` statuses from the new sources in `docs/feel.md`, then tick M5.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -43,8 +43,13 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - Lap times use sim time, so a slow computer does not change them.
 - Added without being asked: a small guide at the top of the screen while armed (arrow toward the next gate + distance), because a beginner loses the next gate easily.
 
+- Feel tuning (M5): rate PID `kp` 120, `kd` 1.5 and angle gain 10, chosen by scanning against the targets in `docs/feel.md` (45 ms to 90 % rate, 200 ms lean, no wobble). The 200 ms lean target is a judgement, not sourced. Change in `defaultFc()`.
+- Motor lag 33 ms, mass, arm, thrust-to-weight, angle limit, linear drag and top speed now all have sources (listed in `docs/feel.md`).
+- Hover throttle is 30 % against a cited 15 to 20 % for a powerful 5-inch: left as is until the thrust-versus-command curve is sourced.
+
 ## Notes for the next leg
-- Run: `npm test` (29 unit tests), `node test/mutations.mjs` (proof each test fails on a broken model, 13 breakages), `node test/flight.mjs Mx` (browser, screenshots to proof/Mx/; add your milestone's steps after the M1 block).
+- After any physics or controller change: `node test/feel.mjs` and update the tables in `docs/feel.md`.
+- Run: `npm test` (38 unit tests), `node test/mutations.mjs` (proof each test fails on a broken model, 13 breakages), `node test/flight.mjs Mx` (browser, screenshots to proof/Mx/; add your milestone's steps after the M1 block).
 - Stick conventions are in the header of `src/flightcontroller.js`: pitch + = stick forward = nose down; throttle 0..1.
 - Input: `src/input.js` (mapping, wizard state machine, `InputManager`), `src/setup.js` (setup screen). `main.js` copies `input.update()` into `sticks` each frame unless the flight script has taken over (`__sim.setSticks`); `__sim.useInput()` hands control back. Crash handling in `main.js` is minimal (hint + R): M3 owns crash → pause → reset.
 - World: `src/world.js` is plain data + `hit()` (unit-tested); `src/scene.js` draws it. Add gates to both. `__sim.place(x, y, z, yawDeg)` puts the quad in the air for tests and lessons.
@@ -66,3 +71,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-16 10:38 UTC · M4 done: 7-gate course, next gate highlighted orange, gate frames solid, lap timer with flying start, best lap saved and shown, guide arrow to the next gate; 29 unit tests incl. autopilot flying two laps on the real physics, 64 browser checks incl. a full lap in Chrome (proof/M4/) · next: M5 learning path
 - 2026-11-16 10:44 UTC · built for the old M5 plan (skill meters), logic only: `src/skills.js` (8 skills, attempts recorded at 50 Hz, scored from drift, height wobble, line, lap time, stick jerk; next skill unlocks after 3 good attempts in a row), test pilots for hover, circles and laps, 38 unit tests · the plan then changed (M5 is now Feel); this logic is kept for the M6 lessons · next: M5 Feel
 - 2026-11-16 10:48 UTC · M5 started: `test/feel-measure.mjs` + `node test/feel.mjs` (step responses on the real sim), same measurement in Chrome with plots (proof/M5/32), `docs/feel.md` with sourced targets against measured values. Findings: rate loop too slow (93 ms to 90 %), hover throttle high (30 % against 15 to 20 %), angle mode soft (411 ms) · next: tune the rate loop
+- 2026-11-16 10:52 UTC · M5 tuning: rate loop 93 → 45 ms to 90 % (5 % overshoot), angle mode lean 411 → 202 ms with no overshoot, motor lag set to the cited 33 ms; 38 unit tests, 68 browser checks, plots in proof/M5/ · next: hover throttle + PS throttle mid, then the Feel tuning panel

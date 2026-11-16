@@ -10,7 +10,7 @@ export function defaultQuad() {
     inertia: [2.1e-3, 4.3e-3, 2.5e-3], // kg m^2, cited [7] (pitch, yaw, roll)
     armLength: 0.11,            // m, motor to centre, uncited
     maxThrustPerMotor: (thrustToWeight * mass * 9.80665) / 4, // N static
-    motorTau: 0.030,            // s, first-order lag on motor speed, uncited
+    motorTau: 0.033,            // s, first-order lag on motor speed, cited (docs/feel.md F8)
     yawTorquePerThrust: 0.0122, // m, derived from [7]
     dragLinear: 0.3,            // N per m/s, cited [7]
     dragQuadratic: 0.006,       // N per (m/s)^2, uncited
@@ -30,10 +30,10 @@ export function defaultFc() {
   return {
     rates: defaultRates(),
     angleLimit: 60,   // deg, Betaflight default, cited [3]
-    angleGain: 5,     // deg/s per deg of error, derived [3][4]
+    angleGain: 10,    // deg/s per deg of error; tuned for a 200 ms lean with no overshoot (docs/feel.md)
     rateLimit: 1998,  // deg/s, cited [2]
     // Rate PID in physical units: output is angular acceleration (rad/s^2) per rad/s of error.
-    kp: 25, ki: 30, kd: 0.3, iLimit: 3,
+    kp: 120, ki: 30, kd: 1.5, iLimit: 3, // tuned to the step-response targets in docs/feel.md
     iRelax: 60,       // deg/s: the I-term only accumulates when the rate error is below this
     idle: 0.05,       // minimum motor speed when armed (assumption)
   };

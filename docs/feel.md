@@ -2,22 +2,22 @@
 
 Mike: "the feel needs to be perfect." This page is the scoreboard. Every sim number below is **measured** by step inputs into the real sim code (`node test/feel.mjs`, and the same measurement inside Chrome in the M5 block of `test/flight.mjs`, plots in `proof/M5/32-m5-feel-step-responses.png`). Re-run after every tuning change and update the tables.
 
-Status on 2026-11-16 (first measurement, **nothing tuned yet**).
+Status on 2026-11-16: rate loop, angle mode and motor lag are tuned (second measurement). Before tuning: roll/pitch 93 ms to 90 %, angle mode 411 ms, motor lag 30 ms.
 
 ## Targets against measurements
 
 | What | Real-world target | Source | Sim today | Verdict |
 |---|---|---|---|---|
-| Rate loop, full-stick step: time to 90 % of the commanded rate | Under 80 ms; above that a freestyle tune counts as "sluggish". Aggressive tunes: under 50 ms | third-party tuner thresholds [F1] (no primary source found for a millisecond figure) | roll/pitch 93 ms, yaw 173 ms | **too slow: tune** |
-| Rate loop overshoot | "A tiny bit of overshoot is acceptable" [F2]; about 10 % ideal, 25 % max [F1] | [F1][F2] | 3 % roll/pitch, 1 % yaw | ok |
-| Time to stop a roll after letting go | Same order as the rise time | follows from [F1] | 104 ms roll/pitch, 202 ms yaw | tune with the rise time |
+| Rate loop, full-stick step: time to 90 % of the commanded rate | Under 80 ms; above that a freestyle tune counts as "sluggish". Aggressive tunes: under 50 ms | third-party tuner thresholds [F1] (no primary source found for a millisecond figure) | roll/pitch 46 / 44 ms, yaw 166 ms | ok for roll and pitch. Yaw is limited by motor torque, not by the gain (unchanged from kp 25 to 160): **check yaw authority against a real quad** |
+| Rate loop overshoot | "A tiny bit of overshoot is acceptable" [F2]; about 10 % ideal, 25 % max [F1] | [F1][F2] | 5 to 6 % roll/pitch (8 % on a 30 % stick step), 1 % yaw | ok |
+| Time to stop a roll after letting go | Same order as the rise time | follows from [F1] | 50 ms roll/pitch, 183 ms yaw | ok for roll and pitch |
 | Hover throttle | "A powerful 5-inch freestyle rig hovers at roughly 15-20 % throttle" | [F3] | 30.1 % | **too high: decide** (see notes) |
 | Thrust-to-weight | 7.5 measured on a load cell for an 870 g 5-inch race quad [F4]. Bench thrust per motor 1.6 to 1.9 kg for a 2207 on 6S [F5][F6], which would give 10 to 11 at 625 to 670 g but overstates installed thrust | [F4][F5][F6] | 9 | ok, inside the range |
 | All-up weight | 625 to 670 g with a 6S 1300 mAh pack, 750 to 800 g with an action camera | [F7] | 680 g | ok |
-| Motor + prop time constant | 33 ms (5-inch three-blade props) | [F8] | 30 ms set; thrust reaches 63 % in 32 ms | ok (could set exactly 33) |
+| Motor + prop time constant | 33 ms (5-inch three-blade props) | [F8] | 33 ms set; thrust reaches 63 % in 35 ms | ok |
 | Motor arm, motor to centre | 107.5 to 112.5 mm (215 mm and 225 mm frames) | [F4][F9] | 110 mm | ok |
 | Angle mode tilt limit | 60 deg (Betaflight 4.5 default; 55 in 4.4) | [F10] | 60 deg | ok |
-| Angle mode: time to reach the tilt, overshoot | No number found. Betaflight 4.5 added angle feedforward "to enhance responsiveness" | [F11] | 411 ms to 90 % of 30 deg, no overshoot, no swing-back | **feels soft: likely too slow** (add feedforward, raise gain; keep zero wobble) |
+| Angle mode: time to reach the tilt, overshoot | No number found. Betaflight 4.5 added angle feedforward "to enhance responsiveness" | [F11] | 202 ms to 90 % of 30 deg, level again 233 ms after letting go, no overshoot, no swing-back | better; the 200 ms target is a judgement, not a sourced number. Mike should say if it feels right |
 | Linear (rotor) drag | 0.24 to 0.54 per second, mass-normalised (610 g quad, 6-inch props, measured at 4 to 5 m/s) = 0.16 to 0.37 N per m/s at 0.68 kg | [F12] | 0.3 N per m/s | ok |
 | Coasting after centring the sticks | Follows from the drag above (time constant m/k = about 2 to 4 s) | [F12] | half speed after 1.7 s, 13 m from 23 km/h | ok, consistent |
 | Top speed, level | 150 km/h (freestyle, reviewer) to 179 km/h (870 g race quad) | [F4][F13] | 148 km/h (unit test), 145 km/h in angle mode | ok |
@@ -31,32 +31,32 @@ Status on 2026-11-16 (first measurement, **nothing tuned yet**).
 | What | Measured |
 |---|---|
 | Hover throttle (stick) | 30.1 % |
-| Acro roll, full stick: time to 50 % / 90 % of 670 deg/s | 49 ms / 93 ms |
-| Acro roll, full stick: overshoot, rate held | 3.2 %, 669 deg/s |
-| Acro roll: time to stop after letting go (below 5 %) | 104 ms |
-| Acro pitch, full stick: time to 50 % / 90 % of 670 deg/s | 48 ms / 93 ms |
-| Acro pitch, full stick: overshoot, rate held | 3.1 %, 669 deg/s |
-| Acro pitch: time to stop after letting go (below 5 %) | 104 ms |
-| Acro yaw, full stick: time to 50 % / 90 % of 670 deg/s | 104 ms / 173 ms |
-| Acro yaw, full stick: overshoot, rate held | 1.0 %, 671 deg/s |
-| Acro yaw: time to stop after letting go (below 5 %) | 202 ms |
-| Acro roll, 30 % stick: rate held, time to 90 %, overshoot | 77 deg/s, 98 ms, 3.2 % |
-| Angle mode, half roll stick: tilt held (target), time to 90 % | 29.2 deg (30), 411 ms |
+| Acro roll, full stick: time to 50 % / 90 % of 670 deg/s | 27 ms / 46 ms |
+| Acro roll, full stick: overshoot, rate held | 5.4 %, 670 deg/s |
+| Acro roll: time to stop after letting go (below 5 %) | 50 ms |
+| Acro pitch, full stick: time to 50 % / 90 % of 670 deg/s | 26 ms / 44 ms |
+| Acro pitch, full stick: overshoot, rate held | 5.9 %, 670 deg/s |
+| Acro pitch: time to stop after letting go (below 5 %) | 48 ms |
+| Acro yaw, full stick: time to 50 % / 90 % of 670 deg/s | 107 ms / 166 ms |
+| Acro yaw, full stick: overshoot, rate held | 0.7 %, 670 deg/s |
+| Acro yaw: time to stop after letting go (below 5 %) | 183 ms |
+| Acro roll, 30 % stick: rate held, time to 90 %, overshoot | 75 deg/s, 40 ms, 7.7 % |
+| Angle mode, half roll stick: tilt held (target), time to 90 % | 29.9 deg (30), 202 ms |
 | Angle mode: overshoot going in, swing past level coming back | 0.0 %, 0.0 deg |
-| Angle mode: time to level (within 2 deg) after letting go | 455 ms |
+| Angle mode: time to level (within 2 deg) after letting go | 233 ms |
 | Throttle punch from hover: peak extra acceleration | 6.7 g |
-| Throttle punch: time to 63 % / 90 % of that (motor lag) | 32 ms / 59 ms |
-| Throttle punch: climb speed after 1 s | 119 km/h |
+| Throttle punch: time to 63 % / 90 % of that (motor lag) | 35 ms / 64 ms |
+| Throttle punch: climb speed after 1 s | 118 km/h |
 | Throttle chop from hover: sink rate and drop after 1 s (free fall: 9.8 m/s, 4.9 m) | 7.5 m/s, 4.1 m |
-| Coasting from 23 km/h after centring the sticks (angle mode): half speed after, below 1 m/s after, distance | 1.7 s, 4.3 s, 13 m |
+| Coasting from 23 km/h after centring the sticks (angle mode): half speed after, below 1 m/s after, distance | 1.6 s, 4.1 s, 12 m |
 | Top speed in angle mode (60 deg tilt limit, full throttle) | 145 km/h |
 | Falling with motors off: terminal speed | 60 km/h |
 
 ## Notes for tuning (next steps of M5)
 
-1. **Rate loop is the first job.** 93 ms to 90 % is slower than even a "smooth" tune. Raise `kp` (and `kd` to keep overshoot under about 10 %) in `defaultFc()` in `src/params.js` until roll and pitch reach 90 % in 40 to 60 ms. Yaw is naturally slower on a real quad (it only has reaction torque), but 173 ms is likely still too slow: check motor saturation first.
+1. **Done: rate loop.** `kp` 25 to 120, `kd` 0.3 to 1.5 in `defaultFc()` (`src/params.js`), picked from a scan: 45 ms to 90 % with about 5 % overshoot. Higher gains only add overshoot. Yaw did not change with gain (about 165 ms): it is limited by how much reaction torque the motors have (`yawTorquePerThrust`), which is realistic in kind; whether the amount is right is unsourced.
 2. **Hover throttle.** The sim maps the stick linearly to motor speed and thrust goes with speed squared, so thrust-to-weight 9 gives sqrt(1/9) = 33 % (30 % measured). Real guides say 15 to 20 %. Betaflight sends the stick linearly to the ESC, and how thrust follows the ESC command is not sourced yet. Options: (a) keep it, (b) make thrust closer to linear in the command at the low end. Source this before changing; it also sets where "throttle mid" goes for the PlayStation stick.
-3. **Angle mode.** Add Betaflight-4.5-style feedforward from the stick to the rate setpoint and raise `angleGain`; target a clearly quicker lean (around 200 ms) with zero overshoot and zero swing-back. The measurement prints both.
+3. **Done: angle mode.** `angleGain` 5 to 10: lean in 202 ms, no overshoot, no swing-back (gain 20 starts to overshoot). No feedforward added; add it only if Mike finds it soft.
 4. **Feel tuning panel** (PLAN M5): sliders for rates, expo, responsiveness (rate-loop gain), floatiness (drag), plus Reset to default. Not started.
 5. **Input path** (PLAN M5): `src/input.js` is read once per frame in `main.js` with no smoothing; the deadzone value and its fit for PlayStation sticks have not been reviewed in this leg.
 6. Numbers still without a source: millisecond rise time from a primary source (PIDtoolbox wiki not opened), thrust versus ESC command, terminal fall speed, speed at a given tilt.
