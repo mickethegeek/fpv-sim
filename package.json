@@ -1,0 +1,11 @@
+{
+  "name": "fpv-sim",
+  "private": true,
+  "type": "module",
+  "description": "Browser FPV drone simulator. No build step, no runtime dependencies.",
+  "scripts": {
+    "test": "node --test \"test/unit/*.test.mjs\"",
+    "fly": "node test/flight.mjs",
+    "serve": "node tools/serve.mjs 8080"
+  }
+}
