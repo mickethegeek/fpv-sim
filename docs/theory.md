@@ -21,5 +21,18 @@ The cards and check questions are in `src/theory.js` (one chapter per lesson). R
 
 Also on the FOCA page, useful for a later safety card: maximum height 120 m above ground in the open category; no flying over assemblies of people.
 
-## Demos (to build in M9)
-Each card names a `demo`. A demo is a short scene the sim plays beside the card: where the quad starts, what the sticks do over time, which camera, slow motion or not, and which arrows show (thrust per motor, gravity, velocity: the real values from `src/physics.js`, shared with M10's force arrows). None are built yet.
+## Demos
+Each card names a `demo` in `src/demos.js`: a short scene the sim plays beside the card. A demo only stages the scene (where the quad starts, what the sticks do and when, where the camera stands, slow motion or not); what the quad then does is the sim's physics. `test/unit/demos.test.mjs` flies every demo and checks that it shows what its card says. Measured in those tests (Trainer quad):
+
+| Card | What the demo shows, measured |
+|---|---|
+| tilt-height | 30 degrees of tilt (half stick) at hover throttle for 1.6 s: the quad sinks more than 0.6 m. The same tilt with throttle added: height stays within 0.5 m. |
+| no-brakes, stop-early | Levelled at 3.3 m/s (12 km/h) it is still moving 4 s later and has glided about 6 m; tilting back stops it in about 1 m. The stopping distances at higher speeds are not shown yet. |
+| relative, nose-in | Nose toward the pilot, roll stick right: the quad moves to the pilot's left. Turned away, the same stick moves it right. |
+| wind-drift, wind-lean | In the 2.6 m/s breeze a level quad drifts more than 3 m in 6 s; holding the spot takes a lean of a few degrees. |
+| angle, acro, acro-level | Angle mode: back under 3 degrees of tilt 1.8 s after release. Acro: the tilt stays within 3 degrees of where the stick left it, until the counter-move. |
+| rates | Full roll stick for 0.54 s: one flip (670 deg/s, Betaflight default). |
+
+The arrows (`src/arrows.js`) are the sim's own numbers each frame: thrust of each motor from `motorThrust()` in `src/physics.js` (0.22 m of arrow per newton), the weight (mass x g, same scale) and the velocity (0.25 m per m/s). The two scales, the demo camera's zoom and the quad drawn at twice its size in demos are display choices (**UNSOURCED**).
+
+Not done: the rates card shows a flip but does not draw the rates curve yet.

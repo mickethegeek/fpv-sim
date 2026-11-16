@@ -39,9 +39,11 @@ Other gamepads with the standard layout work like the PlayStation one (RB arm, L
 
 ## How to play
 
-The page opens on a menu: **Learn**, **Gates**, **Free fly**, **Settings**. Nothing is locked: open any lesson, skip one from the pause menu (Options or Esc), or go straight to the gates.
+The page opens on a menu: **Learn**, **Gates**, **Free fly**, **Theory**, **Settings**. Nothing is locked: open any chapter, skip any part from the pause menu (Options or Esc), or go straight to the gates.
 
-- **Learn.** Eight lessons take you from the first take-off to a "real-drone ready" badge: hover, hover facing all four ways, turns and a figure 8, fly out and come back, the same in wind, emergencies, a first taste of acro, and a final check. A lesson is passed after 3 good runs in a row. Lessons 1 to 4 are flown twice: through the camera (FPV) and standing on the ground watching the drone (line of sight).
+- **Learn.** Eight chapters. Each has up to four parts, all optional: **Learn** (short cards, each shown live in the sim with the real forces drawn as arrows), **Watch** (a test pilot flies the lesson, sticks on screen), **Check** (two or three quick questions) and **Try** (you fly it). ✕ or Enter goes to the next card, ◯ or Backspace back.
+- **Theory** lists every card, to look one up again at any time.
+- **Try.** The eight lessons take you from the first take-off to a "real-drone ready" badge: hover, hover facing all four ways, turns and a figure 8, fly out and come back, the same in wind, emergencies, a first taste of acro, and a final check. A lesson is passed after 3 good runs in a row. Lessons 1 to 4 are flown twice: through the camera (FPV) and standing on the ground watching the drone (line of sight).
 - **Gates:** a 7-gate course with a lap timer. The orange gate is the next one. Your best lap is saved.
 - **Free fly:** the same field with nothing extra on screen (no gate guide, no lap timer).
 - **Angle mode** levels the quad when you let go. **Acro mode** does not: it holds the angle you leave it at, like a real FPV quad.
@@ -73,4 +75,4 @@ npm test                       # unit tests (physics, controller, course, lesson
 node test/flight.mjs out       # flies the sim in Chrome, screenshots to proof/out/
 ```
 
-Layout: `src/` (physics, flight controller, input, lessons, scene), `test/`, `docs/`, `proof/` (screenshots from the automated flights, one folder per milestone; `proof/final/` is the last full run), `vendor/` (three.js r170, the only library).
+Layout: `src/` (physics, flight controller, input, lessons, theory cards and their demos, scene), `test/`, `docs/`, `proof/` (screenshots from the automated flights, one folder per milestone; `proof/final/` is the last full run), `vendor/` (three.js r170, the only library).
