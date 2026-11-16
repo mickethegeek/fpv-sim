@@ -9,7 +9,7 @@ You are one leg of a relay building Mike's FPV simulator. A scheduled task start
 
 ## 2. Work
 - Do the milestone named in `Next:`. Budget: **about 45 minutes of work or 2 milestones, whichever comes first**, then hand over. Short legs mean a usage-limit cut-off loses little.
-- **Save after every working step:** commit + push with a clear message, and append one line to the Log in `PROGRESS.md` (`UTC time · what changed · what's next`). Never leave more than ~15 minutes of work unpushed.
+- **Save after every working step:** commit + push with a clear message, and append one line to the Log in `PROGRESS.md` **on every push, not only at milestone ends** (`HH:MM Zurich time · what changed · what's next`; Mike reads it in Zurich time). Never leave more than ~15 minutes of work unpushed.
 - **Verify before ticking a milestone:** run the unit tests and the browser flight script; save screenshots to `proof/Mx/`; look at them yourself. A milestone is ticked only when it works in the browser, not when the code looks right.
 - **Never ask Mike questions mid-relay.** Take the most sensible default, write it under "Assumptions" in `PROGRESS.md`, keep going. Stop only for something that can't be undone.
 - Don't reopen anything under "Fixed decisions" in `PLAN.md`.
