@@ -16,6 +16,12 @@
 - Platform: browser, opens from a link, no install. Public repo, live on GitHub Pages.
 - Tech: vanilla JS + ES modules, **no build step**. three.js vendored into `vendor/` (no CDN).
 - Physics feel matters more than graphics.
+- **Everything comes from real-life data** (Mike, 2026-11-16: "everything should be real life data. the angle flip, the speed, the pace, the throttling"). No number is tuned by feel or picked because it looks right.
+  - Every physical and flight-controller parameter has a row in `docs/feel.md` or `docs/physics.md`: value, real-world source (link), and the sim's measured value. A parameter with no source is marked **UNSOURCED** in red and listed in the M7 report.
+  - Where sources disagree, give the range and use the middle, unless a source measured the exact kind of quad (5-inch freestyle, 6S) — then use that.
+  - Preferred sources, best first: (1) **real flight logs** (Betaflight blackbox logs of 5-inch quads, or research datasets of real FPV flights with stick inputs and gyro data), (2) published bench measurements (motor/prop thrust tables, load-cell tests), (3) Betaflight defaults and docs, (4) reviews and guides.
+  - **Validate against a real flight** if any log with stick inputs + gyro can be obtained (GitHub-hosted blackbox logs, or datasets reachable from the sandbox): replay the logged sticks through the sim and compare roll/pitch/yaw rates and throttle response with the logged ones; put the overlay plots in `proof/validation/`. If no log is reachable, say so in M7 and list where Mike could get one.
+  - The Trainer preset follows the same rule: model it on a real beginner-class quad with published specs.
 
 ## Physics model (research and cite the real numbers in `docs/physics.md`)
 Look up typical values with sources; the numbers below are starting points, not facts.
