@@ -222,7 +222,7 @@ if (runs('M3')) {
   await page.evaluate(() => { window.__sim.place(0, 3, 6, 0); window.__sim.arm(true); });
   s = await fly({ ...neutral, throttle: thr(0.3) }, 600);
   const hudText = (await page.textContent('#hud')).replace(/\s+/g, ' ');
-  check('M3 HUD shows armed, mode, throttle, speed', /ARMED/.test(hudText) && /ANGLE/.test(hudText) && /1[5-9]%/.test(hudText) && /km\/h/.test(hudText), `("${hudText.trim()}")`);
+  check('M3 HUD shows armed, mode, throttle, speed', /ARMED/.test(hudText) && /ANGLE/.test(hudText) && /1[0-9]%/.test(hudText) && /km\/h/.test(hudText), `("${hudText.trim()}")`);
   check('M3 side panel hides while armed', await page.evaluate(() => getComputedStyle(document.getElementById('panel')).opacity === '0' || document.body.classList.contains('flying')));
   await shot('15-m3-hover-3m');
   s = await fly({ ...neutral, throttle: thr(0.42), pitch: 0.45 }, 3500);
@@ -379,7 +379,7 @@ if (runs('M5')) {
   }, url);
   for (const [k, v] of feel.rows) console.log(`     ${k}: ${v}`);
   const m = feel.m;
-  check('M5 feel measured in Chrome: hover throttle 12 to 22 %', m.hoverThrottle > 0.12 && m.hoverThrottle < 0.22, `(${(m.hoverThrottle * 100).toFixed(1)} %)`);
+  check('M5 feel measured in Chrome: hover throttle 10 to 20 %', m.hoverThrottle > 0.10 && m.hoverThrottle < 0.20, `(${(m.hoverThrottle * 100).toFixed(1)} %)`);
   check('M5 acro full-stick roll reaches the configured rate without big overshoot', Math.abs(m.acro.roll.heldRate - m.acro.roll.target) < 15 && m.acro.roll.overshootPct < 10, `(held ${m.acro.roll.heldRate.toFixed(0)} deg/s, overshoot ${m.acro.roll.overshootPct.toFixed(1)} %)`);
   check('M5 angle mode holds its tilt and levels without swinging past', Math.abs(m.angle.held - m.angle.target) < 2 && m.angle.undershootDeg < 1 && m.angle.overshootPct < 5, `(held ${m.angle.held.toFixed(1)} of ${m.angle.target} deg, swing-back ${m.angle.undershootDeg.toFixed(2)} deg)`);
   // Plots: one page with every step response, rendered by Chrome and saved as proof.

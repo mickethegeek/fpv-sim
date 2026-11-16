@@ -14,7 +14,7 @@ export function defaultQuad() {
     yawTorquePerThrust: 0.0122, // m, derived from [7]
     dragLinear: 0.3,            // N per m/s, cited [7]
     dragQuadratic: 0.006,       // N per (m/s)^2, uncited
-    thrustExponent: 1.4,        // static thrust = max * command^1.4, fitted to bench thrust tables (docs/feel.md, note 2)
+    thrustExponent: 1.25,       // static thrust = max * command^1.25, fitted to a 2207 6S bench thrust table (docs/feel.md, note 2)
     pitchSpeed: 65,             // m/s at full throttle, tuned for ~150 km/h level top speed [8]
     crashSpeed: 6,              // m/s impact speed that counts as a crash (assumption)
     groundHeight: 0.05,         // m, height of the centre of mass when sitting on the ground
@@ -50,11 +50,11 @@ export function stickForThrust(ratio, quad = defaultQuad(), fc = defaultFc()) {
 }
 
 // Presets: the same 5-inch quad, set up two ways. Sources: docs/feel.md.
-//   freestyle: full power, Betaflight default rates.
-//   trainer:   what pilots do to tame a 5-inch for a beginner: Betaflight throttle limit (SCALE) at 60 %,
-//              which leaves a thrust-to-weight of about 4.4, plus slower rates and a gentler angle-mode tilt.
+//   freestyle: full power.
+//   trainer:   what pilots do to tame a 5-inch for a beginner: Betaflight throttle limit (SCALE) at 70 %.
+// Rates and angle limit stay at the Betaflight defaults in both (no sourced beginner values found yet).
 export const PRESETS = {
-  trainer: { label: 'Trainer', throttleLimit: 0.6, rateMax: 400, rateCenter: 70, expo: 0, angleLimit: 40 },
-  freestyle: { label: '5-inch freestyle', throttleLimit: 1, rateMax: 670, rateCenter: 70, expo: 0, angleLimit: 60 },
+  trainer: { label: 'Trainer (throttle limit 70 %)', throttleLimit: 0.7 },
+  freestyle: { label: '5-inch freestyle (full power)', throttleLimit: 1 },
 };
 export const DEFAULT_PRESET = 'trainer';
