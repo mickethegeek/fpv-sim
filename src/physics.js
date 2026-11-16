@@ -51,7 +51,8 @@ export function motorThrust(u, vAxial, p) {
 const _up = [0, 0, 0];
 
 // Advance the state by dt seconds. cmd = commanded motor speeds [4], each 0..1. Mutates and returns state.
-export function stepPhysics(s, cmd, dt, p) {
+// world (optional): { hit(pos) -> truthy when the quad touches an obstacle } (see world.js). Any obstacle hit is a crash.
+export function stepPhysics(s, cmd, dt, p, world) {
   if (s.crashed) return s;
   // Motor lag.
   const a = 1 - Math.exp(-dt / p.motorTau);
@@ -105,7 +106,7 @@ export function stepPhysics(s, cmd, dt, p) {
     const impact = Math.hypot(s.vel[0], s.vel[1], s.vel[2]);
     bodyUp(s.quat, _up);
     if (s.vel[1] < 0 && (impact > p.crashSpeed || _up[1] < 0.5)) {
-      s.crashed = true;
+      s.crashed = true; s.crashedInto = 'ground';
       s.vel[0] = s.vel[1] = s.vel[2] = 0;
       s.omega[0] = s.omega[1] = s.omega[2] = 0;
     } else {
@@ -117,6 +118,14 @@ export function stepPhysics(s, cmd, dt, p) {
       s.omega[0] *= k; s.omega[1] *= k; s.omega[2] *= k;
     }
     s.pos[1] = p.groundHeight;
+  }
+  if (world && !s.crashed) {
+    const what = world.hit(s.pos);
+    if (what) {
+      s.crashed = true; s.crashedInto = what;
+      s.vel[0] = s.vel[1] = s.vel[2] = 0;
+      s.omega[0] = s.omega[1] = s.omega[2] = 0;
+    }
   }
   s.time += dt;
   return s;

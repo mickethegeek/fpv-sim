@@ -147,7 +147,7 @@ export function mappingValid(m) {
 export const KEY_HELP = [
   ['W / S', 'throttle up / down'], ['A / D', 'yaw left / right'],
   ['↑ / ↓', 'pitch forward / back'], ['← / →', 'roll left / right'],
-  ['Space', 'arm / disarm'], ['M', 'angle / acro'], ['R', 'reset'],
+  ['Space', 'arm / disarm'], ['M', 'angle / acro'], ['R', 'reset'], ['C', 'outside view on / off'],
 ];
 const KEY_RAMP = 5;       // 1/s: how fast a held key moves a virtual stick to full deflection
 const KEY_THROTTLE = 0.7; // 1/s: throttle change while W or S is held

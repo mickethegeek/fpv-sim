@@ -31,7 +31,7 @@ let failed = false;
 const check = (name, ok, detail = '') => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${name} ${detail}`); if (!ok) failed = true; };
 const shot = (name) => page.screenshot({ path: `${outDir}${name}.png` });
 
-await page.goto(url);
+await page.goto(url + '?fast'); // ?fast: no antialiasing or anisotropic filtering, 3x quicker in software GL; same sim and UI
 await page.waitForFunction(() => window.__sim && window.__sim.ready, null, { timeout: 20000 });
 const f0 = await page.evaluate(() => window.__sim.frames);
 await page.waitForTimeout(1000);
@@ -42,7 +42,12 @@ await shot('01-loaded');
 
 // Helpers to fly the sim from the script.
 const snap = () => page.evaluate(() => window.__sim.snapshot());
-const fly = async (sticks, ms) => { await page.evaluate((s) => window.__sim.setSticks(s), sticks); await page.waitForTimeout(ms); return snap(); };
+// Wait in SIM time, not wall-clock: software GL in the sandbox renders slowly and the sim then runs slower than real time.
+const simWait = async (ms) => {
+  const target = (await page.evaluate(() => window.__sim.physicsSteps)) + ms;
+  await page.waitForFunction((t) => window.__sim.physicsSteps >= t, target, { timeout: 120000, polling: 20 });
+};
+const fly = async (sticks, ms) => { await page.evaluate((s) => window.__sim.setSticks(s), sticks); await simWait(ms); return snap(); };
 const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
 
 // --- M1: the physics core runs in the browser (same modules as the unit tests) ---
@@ -83,24 +88,24 @@ const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
 
 // --- M2: controller input (keyboard, then a simulated USB radio through the real Gamepad API path) ---
 {
-  const hold = async (code, ms) => { await page.keyboard.down(code); await page.waitForTimeout(ms); await page.keyboard.up(code); };
+  const hold = async (code, ms) => { await page.keyboard.down(code); await simWait(ms); await page.keyboard.up(code); };
   await page.evaluate(() => { try { localStorage.clear(); } catch {} window.__sim.input.clear(); window.__sim.setMode('angle'); window.__sim.useInput(); });
   let s = await snap();
   check('M2 keyboard is the fallback and its keys are shown', s.source === 'keyboard' && await page.isVisible('#keys') && (await page.textContent('#keys')).includes('Space'));
   await shot('07-m2-keyboard-help');
   await hold('KeyW', 500);
   await page.keyboard.press('Space');
-  await page.waitForTimeout(150);
+  await simWait(150);
   s = await snap();
   check('M2 arming refused while throttle is up, with a hint', !s.armed && /throttle/i.test(s.hint) && await page.isVisible('#hint'), `(throttle ${(s.sticks.throttle * 100).toFixed(0)} %, hint "${s.hint}")`);
   await shot('08-m2-arm-refused');
   await hold('KeyS', 900);
   await page.keyboard.press('Space');
-  await page.waitForTimeout(150);
+  await simWait(150);
   s = await snap();
   check('M2 Space arms with throttle low', s.armed && s.sticks.throttle === 0);
   await hold('KeyW', 800);
-  await page.waitForTimeout(800);
+  await simWait(800);
   s = await snap();
   check('M2 W raises throttle and the quad takes off', s.sticks.throttle > 0.4 && s.pos[1] > 0.5, `(throttle ${(s.sticks.throttle * 100).toFixed(0)} %, alt ${s.pos[1].toFixed(1)} m)`);
   const z0 = s.pos[2];
@@ -108,11 +113,11 @@ const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
   s = await snap();
   check('M2 arrow up flies forward', s.pos[2] < z0 - 0.5, `(moved ${(z0 - s.pos[2]).toFixed(1)} m)`);
   await page.keyboard.press('KeyM');
-  await page.waitForTimeout(100);
+  await simWait(100);
   check('M2 M switches to acro', (await snap()).mode === 'acro');
   await page.keyboard.press('KeyM');
   await page.keyboard.press('KeyR');
-  await page.waitForTimeout(200);
+  await simWait(200);
   s = await snap();
   check('M2 R resets to the start, disarmed', !s.armed && s.onGround && Math.hypot(s.pos[0], s.pos[2]) < 0.01);
 
@@ -126,28 +131,28 @@ const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
   });
   const axes = (a) => page.evaluate((v) => { window.__pad.axes = v; }, a);
   const button = (i, on) => page.evaluate(([j, v]) => { window.__pad.buttons[j] = { pressed: v, value: v ? 1 : 0 }; }, [i, on]);
-  await page.waitForTimeout(200);
+  await simWait(200);
   check('M2 unknown controller is detected and asks for setup', (await page.textContent('#controller')).includes('needs setup'), `("${await page.textContent('#controller')}")`);
   await page.click('#btn-setup');
-  await page.waitForTimeout(900);
+  await simWait(900);
   check('M2 setup screen asks for throttle first', (await page.textContent('#setup .prompt')).includes('THROTTLE'));
   await shot('09-m2-setup-throttle');
   const wizardStep = () => page.evaluate(() => (window.__sim.setup.wizard ? window.__sim.setup.wizard.step : -1));
   const waitStep = (n) => page.waitForFunction((k) => { const w = window.__sim.setup.wizard; return !w || w.step >= k; }, n, { timeout: 15000 });
   await axes([0, 0, -1, 0, -1, 0]); await waitStep(1);                         // throttle up, left up like a radio
-  await page.waitForTimeout(800);
+  await simWait(800);
   await axes([0, 0, -1, -1, -1, 0]); await waitStep(2); await axes([0, 0, -1, 0, -1, 0]);   // yaw right
-  await page.waitForTimeout(800);
+  await simWait(800);
   await shot('10-m2-setup-pitch');
   check('M2 setup screen reaches the pitch step', (await page.textContent('#setup .prompt')).includes('PITCH'));
   await axes([0, 1, -1, 0, -1, 0]); await waitStep(3); await axes([0, 0, -1, 0, -1, 0]);    // pitch forward
-  await page.waitForTimeout(800);
+  await simWait(800);
   await axes([1, 0, -1, 0, -1, 0]); await waitStep(4); await axes([0, 0, -1, 0, -1, 0]);    // roll right
-  await page.waitForTimeout(800);
+  await simWait(800);
   await axes([0, 0, -1, 0, 1, 0]); await waitStep(5);                          // arm switch (an axis)
-  await page.waitForTimeout(800);
+  await simWait(800);
   await shot('11-m2-setup-mode');
-  await button(0, true); await page.waitForTimeout(150); await button(0, false);          // mode = push button
+  await button(0, true); await simWait(150); await button(0, false);          // mode = push button
   await page.waitForFunction(() => !window.__sim.setup.open, null, { timeout: 15000 });
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fpvsim.controller.v1')));
   const want = { throttle: { index: 2, sign: -1 }, yaw: { index: 3, sign: -1 }, pitch: { index: 1, sign: 1 }, roll: { index: 0, sign: 1 } };
@@ -155,26 +160,26 @@ const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
   check('M2 setup saved arm switch and mode button', saved && saved.arm.type === 'axis' && saved.arm.index === 4 && saved.mode.type === 'button' && saved.mode.kind === 'toggle', JSON.stringify(saved && [saved.arm, saved.mode]));
 
   // Fly with the mapped radio. The arm switch is still on with throttle up: must not arm until both are safe.
-  await page.waitForTimeout(300);
+  await simWait(300);
   s = await snap();
   check('M2 radio: no arming with throttle up', !s.armed && s.source === 'gamepad' && s.sticks.throttle > 0.9, `(hint "${s.hint}")`);
-  await axes([0, 0, 1, 0, -1, 0]); await page.waitForTimeout(200);            // throttle down, switch off
-  await axes([0, 0, 1, 0, 1, 0]); await page.waitForTimeout(200);             // switch on
+  await axes([0, 0, 1, 0, -1, 0]); await simWait(200);            // throttle down, switch off
+  await axes([0, 0, 1, 0, 1, 0]); await simWait(200);             // switch on
   s = await snap();
   check('M2 radio: arm switch arms with throttle low', s.armed);
-  await axes([0, 0, -0.1, 0, 1, 0]); await page.waitForTimeout(1200);         // 55 % throttle
+  await axes([0, 0, -0.1, 0, 1, 0]); await simWait(1200);         // 55 % throttle
   s = await snap();
   check('M2 radio: throttle stick lifts the quad', s.pos[1] > 1 && Math.abs(s.sticks.throttle - 0.55) < 0.01, `(alt ${s.pos[1].toFixed(1)} m)`);
-  await axes([0.5, 0, -0.1, 0, 1, 0]); await page.waitForTimeout(700);
+  await axes([0.5, 0, -0.1, 0, 1, 0]); await simWait(700);
   s = await snap();
   check('M2 radio: roll stick right rolls right (angle mode)', s.rollDeg > 15 && s.rollDeg < 35, `(roll ${s.rollDeg.toFixed(0)} deg)`);
-  await axes([0.03, -0.03, -0.1, 0.03, 1, 0]); await page.waitForTimeout(100);
+  await axes([0.03, -0.03, -0.1, 0.03, 1, 0]); await simWait(100);
   s = await snap();
   check('M2 radio: deadzone swallows stick noise', s.sticks.roll === 0 && s.sticks.pitch === 0 && s.sticks.yaw === 0);
-  await button(0, true); await page.waitForTimeout(120); await button(0, false); await page.waitForTimeout(100);
+  await button(0, true); await simWait(120); await button(0, false); await simWait(100);
   check('M2 radio: mode button switches to acro', (await snap()).mode === 'acro');
   await shot('12-m2-flying-with-radio');
-  await axes([0, 0, 1, 0, -1, 0]); await page.waitForTimeout(150);
+  await axes([0, 0, 1, 0, -1, 0]); await simWait(150);
   check('M2 radio: arm switch off disarms', !(await snap()).armed);
 
   // The mapping survives a reload.
@@ -184,12 +189,85 @@ const neutral = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
     const pad = { id: 'Test Radio (USB Joystick)', index: 0, connected: true, mapping: '', timestamp: 0, axes: [0, 1, -1, 0, -1, 0], buttons: [{ pressed: false, value: 0 }] };
     Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [pad] });
   });
-  await page.waitForTimeout(300);
+  await simWait(300);
   s = await snap();
   const label = await page.textContent('#controller');
   check('M2 mapping survives a page reload', s.source === 'gamepad' && s.sticks.throttle === 1 && s.sticks.pitch === 1 && !label.includes('needs setup'), `("${label}")`);
   await shot('13-m2-after-reload');
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+}
+
+// --- M3: FPV view, world, crash and reset, HUD ---
+{
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [] });
+    window.__sim.view.chase = false; window.__sim.setMode('angle'); window.__sim.useInput();
+  });
+  await simWait(200);
+  let s = await snap();
+  const tilt = Math.asin(s.camera.dir[1]) * 180 / Math.PI;
+  check('M3 FPV camera sits on the quad, tilted up 25 deg', Math.abs(tilt - 25) < 0.5 && Math.hypot(s.camera.pos[0] - s.pos[0], s.camera.pos[1] - s.pos[1], s.camera.pos[2] - s.pos[2]) < 0.1 && s.camera.dir[2] < 0, `(tilt ${tilt.toFixed(1)} deg)`);
+  const hfov = 2 * Math.atan(Math.tan(s.camera.fov * Math.PI / 360) * 1280 / 720) * 180 / Math.PI;
+  check('M3 horizontal field of view is 115 deg', Math.abs(hfov - 115) < 0.5, `(${hfov.toFixed(1)} deg, vertical ${s.camera.fov.toFixed(1)})`);
+  check('M3 on the pad: hint tells how to start, panel visible', /arm/i.test(await page.textContent('#hint')) && await page.isVisible('#btn-reset'));
+  await shot('14-m3-on-the-pad');
+
+  // Fly it from the script: hover, cruise, look around.
+  await page.evaluate(() => { window.__sim.place(0, 3, 6, 0); window.__sim.arm(true); });
+  s = await fly({ ...neutral, throttle: 0.3 }, 600);
+  const hudText = (await page.textContent('#hud')).replace(/\s+/g, ' ');
+  check('M3 HUD shows armed, mode, throttle, speed', /ARMED/.test(hudText) && /ANGLE/.test(hudText) && /30%/.test(hudText) && /km\/h/.test(hudText), `("${hudText.trim()}")`);
+  check('M3 side panel hides while armed', await page.evaluate(() => getComputedStyle(document.getElementById('panel')).opacity === '0' || document.body.classList.contains('flying')));
+  await shot('15-m3-hover-3m');
+  s = await fly({ ...neutral, throttle: 0.42, pitch: 0.45 }, 3500);
+  check('M3 cruising forward over the field', s.pos[2] < -10 && !s.crashed, `(${(Math.hypot(...s.vel) * 3.6).toFixed(0)} km/h, alt ${s.pos[1].toFixed(1)} m)`);
+  await shot('16-m3-cruise');
+  await page.evaluate(() => { window.__sim.place(40, 6, -30, 90); window.__sim.arm(true); });   // facing the barn
+  await fly({ ...neutral, throttle: 0.3 }, 500);
+  await shot('17-m3-barn-and-poles');
+  await page.evaluate(() => { window.__sim.place(0, 25, 40, 0); window.__sim.setMode('acro'); window.__sim.arm(true); });
+  await fly({ ...neutral, throttle: 0.3 }, 300);
+  s = await fly({ ...neutral, throttle: 0.3, roll: 0.25 }, 250);
+  s = await fly({ ...neutral, throttle: 0.3 }, 100);
+  check('M3 acro: banked view stays banked', Math.abs(s.rollDeg) > 12, `(roll ${s.rollDeg.toFixed(0)} deg)`);
+  await shot('18-m3-acro-banked-25m');
+  await page.evaluate(() => { window.__sim.view.chase = true; });
+  await fly({ ...neutral, throttle: 0.3 }, 300);
+  await shot('19-m3-outside-view');
+  await page.evaluate(() => { window.__sim.view.chase = false; window.__sim.setMode('angle'); });
+
+  // Crash into a pole: crash shown, short pause, automatic reset to the pad, disarmed.
+  const before = (await snap()).crashes;
+  await page.evaluate(() => { window.__sim.place(-10, 2.5, -4, 0); window.__sim.arm(true); });   // pole at (-10, -12) dead ahead
+  await page.evaluate((st) => window.__sim.setSticks(st), { ...neutral, throttle: 0.33, pitch: 0.3 });
+  await page.waitForFunction(() => window.__sim.snapshot().crashed, null, { timeout: 60000, polling: 20 });
+  s = await snap();
+  check('M3 hitting a pole is a crash', s.crashed && s.crashedInto === 'pole' && Math.abs(s.pos[2] + 12) < 0.6, `(into ${s.crashedInto} at z ${s.pos[2].toFixed(1)})`);
+  check('M3 crash is announced', /Crashed into a pole/.test(await page.textContent('#hint')) && /CRASHED/.test(await page.textContent('#hud')));
+  await shot('20-m3-crashed-into-pole');
+  await page.evaluate((st) => window.__sim.setSticks(st), neutral);
+  await page.waitForFunction(() => !window.__sim.snapshot().crashed, null, { timeout: 30000, polling: 20 });
+  s = await snap();
+  check('M3 after a short pause: back on the pad, disarmed', !s.armed && Math.hypot(s.pos[0], s.pos[2]) < 0.01 && s.pos[1] < 0.1 && s.crashes === before + 1, `(crashes ${before} -> ${s.crashes})`);
+
+  // Reset button.
+  await page.evaluate(() => { window.__sim.place(20, 10, -20, 0); });
+  await page.click('#btn-reset');
+  await simWait(50);
+  s = await snap();
+  check('M3 reset button puts the quad back on the pad', Math.hypot(s.pos[0], s.pos[2]) < 0.01 && !s.armed);
+
+  // The whole thing by keyboard, as Mike would without a controller: arm, climb, fly forward.
+  await page.evaluate(() => window.__sim.useInput());
+  await page.keyboard.press('Space');
+  await page.keyboard.down('KeyW'); await simWait(650); await page.keyboard.up('KeyW');
+  await simWait(700);
+  await page.keyboard.down('ArrowUp'); await simWait(1500); await page.keyboard.up('ArrowUp');
+  s = await snap();
+  check('M3 keyboard flight in FPV: took off and flew forward', s.armed && s.pos[1] > 1 && s.pos[2] < -1 && !s.crashed, `(alt ${s.pos[1].toFixed(1)} m, ${(-s.pos[2]).toFixed(1)} m down the field)`);
+  await shot('21-m3-keyboard-flight');
+  await page.keyboard.press('Space');
+  await page.evaluate(() => window.__sim.reset());
 }
 
 const simErrors = await page.evaluate(() => window.__sim.errors);

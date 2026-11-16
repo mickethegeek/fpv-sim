@@ -9,7 +9,13 @@
 </head>
 <body>
 <canvas id="view"></canvas>
-<div id="hud"></div>
+<div id="hud" aria-live="off">
+  <span id="hud-state"></span>
+  <span id="hud-mode"></span>
+  <span><small>THR</small> <b id="hud-thr"></b></span>
+  <span><small>SPEED</small> <b id="hud-speed"></b></span>
+  <span><small>ALT</small> <b id="hud-alt"></b></span>
+</div>
 <div id="hint" hidden></div>
 <div id="panel">
   <div id="controller"></div>

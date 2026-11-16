@@ -1,14 +1,14 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: M3
+Next: M4
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
 - [x] M0 Scaffold
 - [x] M1 Physics core
 - [x] M2 Controller input
-- [ ] M3 FPV view + world  ← notify Mike when done
+- [x] M3 FPV view + world  ← Mike notified
 - [ ] M4 Gates + timer
 - [ ] M5 Learning path
 - [ ] M6 Settings + feel
@@ -31,14 +31,22 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - A "standard"-layout gamepad works without setup (Mode 2: left stick throttle/yaw, right stick pitch/roll, A arm, Y angle/acro, B reset). Anything else (USB radios) goes through the setup screen. Arm and mode can each be a push button, a held switch or a switch on an axis.
 - Keyboard: W/S move the throttle and it stays put; arrows and A/D spring back. First connected controller wins over the keyboard.
 - M2 was verified with a simulated controller (the page's `navigator.getGamepads` replaced in Chrome), not real hardware: the sandbox has no USB. Mike's real controller is the first true test.
+- FOV setting is the horizontal field of view, 115° (82.9° vertical at 16:9). Uptilt 25°. Both are PLAN.md values, not sourced; in `view` in `src/main.js` until M6 adds settings.
+- Any touch of a tree, pole or building is a crash. Crash → 1.5 s pause → back on the pad, disarmed (`CRASH_PAUSE` in `src/main.js`).
+- Extra key C toggles an outside (chase) view: useful for a beginner to see what the quad is doing. The side panel fades out while armed.
+- The area around (0, -70), radius 62 m, is kept free of trees for the M4 gate course (`CLEAR` in `src/world.js`).
 
 ## Notes for the next leg
 - Run: `npm test` (11 unit tests), `node test/mutations.mjs` (proof each test fails on a broken model, 13 breakages), `node test/flight.mjs Mx` (browser, screenshots to proof/Mx/; add your milestone's steps after the M1 block).
 - Stick conventions are in the header of `src/flightcontroller.js`: pitch + = stick forward = nose down; throttle 0..1.
 - Input: `src/input.js` (mapping, wizard state machine, `InputManager`), `src/setup.js` (setup screen). `main.js` copies `input.update()` into `sticks` each frame unless the flight script has taken over (`__sim.setSticks`); `__sim.useInput()` hands control back. Crash handling in `main.js` is minimal (hint + R): M3 owns crash → pause → reset.
-- Software GL in the sandbox renders about 25 fps; the sim caps catch-up at 50 ms per frame, so browser tests assert on state, not on wall-clock timing.
+- World: `src/world.js` is plain data + `hit()` (unit-tested); `src/scene.js` draws it. Add gates to both. `__sim.place(x, y, z, yawDeg)` puts the quad in the air for tests and lessons.
+- Software GL in the sandbox is slow (6 fps with anisotropic filtering, 18 fps with `?fast`, which the flight script uses). The sim then runs slower than real time, so the flight script waits in sim time (`simWait`, `fly`), never wall-clock. Full script takes about 70 s. Real frame rate on a GPU is unmeasured: M7's 60 fps check has to be done by Mike or stated as unverified.
+- Gotcha found in M3: fog renders wrong on giant two-triangle planes when the camera is near the ground; ground planes are subdivided for that reason. Look at the on-the-pad screenshot after touching the ground.
+- M3 message to Mike was sent at the end of this leg, including what to do if the live link 404s.
 
 ## Log
 - 2026-11-16 09:46 UTC · M0 done: scaffold, vendored three.js r170, `npm test` (node unit tests), `node test/flight.mjs Mx` (Chrome flight script → proof/Mx/), static server in tools/ · next: M1 physics core
 - 2026-11-16 09:55 UTC · M1 done: physics.js, flightcontroller.js (Actual rates, angle + acro, rate PID, mixer), sim.js, params.js; 11 unit tests pass and each fails on at least one deliberate breakage (test/mutations.mjs: thrust x0 fails 7 of 11); flown in Chrome (proof/M1/) · next: M2 controller input
 - 2026-11-16 10:00 UTC · M2 done: Gamepad API input, setup screen (axes, inversions, arm/mode button or switch), deadzone, Mode 2 default, localStorage in try/catch, keyboard fallback with on-screen keys, arm rules; 20 unit tests, browser proof with keyboard and a simulated USB radio (proof/M2/) · next: M3 FPV view + world
+- 2026-11-16 10:18 UTC · M3 done: FPV camera (25° uptilt, 115° horizontal FOV), field with grass grid, trees, banded poles, buildings, sky and fog, obstacle collisions, crash → pause → reset, reset button, HUD; 23 unit tests, 44 browser checks (proof/M3/) · next: M4 gates + timer

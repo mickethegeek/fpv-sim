@@ -13,6 +13,7 @@ export function createSim(opts = {}) {
     mode: opts.mode || MODES.ANGLE,
     armed: false,
     acc: 0,
+    world: opts.world || null,
   };
 }
 
@@ -28,13 +29,13 @@ export function simSteps(sim, sticks, n) {
   const dt = 1 / PHYSICS_HZ;
   for (let i = 0; i < n; i++) {
     const cmd = fcUpdate(sim.fc, sticks, sim.mode, sim.armed, sim.state, dt, sim.fcCfg, sim.quad);
-    stepPhysics(sim.state, cmd, dt, sim.quad);
+    stepPhysics(sim.state, cmd, dt, sim.quad, sim.world);
   }
 }
 
-// Advance by a frame's real time (seconds); runs as many fixed steps as fit. Caps catch-up at 50 ms.
+// Advance by a frame's real time (seconds); runs as many fixed steps as fit. Caps catch-up at 100 ms (below 10 fps the sim slows down instead of falling behind).
 export function simAdvance(sim, sticks, frameDt) {
-  sim.acc += Math.min(frameDt, 0.05);
+  sim.acc += Math.min(frameDt, 0.1);
   const dt = 1 / PHYSICS_HZ;
   const n = Math.floor(sim.acc / dt);
   sim.acc -= n * dt;
