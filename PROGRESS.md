@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: M5 Feel (new plan, see PLAN.md). Nothing of M5 is started yet.
+Next: M5 Feel, in progress. Measurement harness and `docs/feel.md` scoreboard are done; do the tuning list in `docs/feel.md` ("Notes for tuning") top to bottom, then the Feel tuning panel.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -65,3 +65,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-16 10:18 UTC · M3 done: FPV camera (25° uptilt, 115° horizontal FOV), field with grass grid, trees, banded poles, buildings, sky and fog, obstacle collisions, crash → pause → reset, reset button, HUD; 23 unit tests, 44 browser checks (proof/M3/) · next: M4 gates + timer
 - 2026-11-16 10:38 UTC · M4 done: 7-gate course, next gate highlighted orange, gate frames solid, lap timer with flying start, best lap saved and shown, guide arrow to the next gate; 29 unit tests incl. autopilot flying two laps on the real physics, 64 browser checks incl. a full lap in Chrome (proof/M4/) · next: M5 learning path
 - 2026-11-16 10:44 UTC · built for the old M5 plan (skill meters), logic only: `src/skills.js` (8 skills, attempts recorded at 50 Hz, scored from drift, height wobble, line, lap time, stick jerk; next skill unlocks after 3 good attempts in a row), test pilots for hover, circles and laps, 38 unit tests · the plan then changed (M5 is now Feel); this logic is kept for the M6 lessons · next: M5 Feel
+- 2026-11-16 10:48 UTC · M5 started: `test/feel-measure.mjs` + `node test/feel.mjs` (step responses on the real sim), same measurement in Chrome with plots (proof/M5/32), `docs/feel.md` with sourced targets against measured values. Findings: rate loop too slow (93 ms to 90 %), hover throttle high (30 % against 15 to 20 %), angle mode soft (411 ms) · next: tune the rate loop

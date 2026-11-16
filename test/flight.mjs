@@ -1,4 +1,4 @@
-// Browser flight script: node test/flight.mjs <Mx> [only]   (only = M1..M4 runs just that block, for quick reruns)
+// Browser flight script: node test/flight.mjs <Mx> [only]   (only = M1..M5 runs just that block, for quick reruns)
 // Opens the sim in real Chrome (software GL), checks it runs, saves screenshots to proof/<Mx>/.
 // Later milestones add steps to STEPS below (drive the sim through window.__sim).
 import { createRequire } from 'node:module';
@@ -363,6 +363,27 @@ if (runs('M4')) {
   check('M4 best lap survives a page reload', Math.abs(s.race.best - best) < 1e-9 && hudText.includes(`BEST ${shown}`), `("${hudText.trim()}")`);
   await shot('31-m4-best-after-reload');
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+}
+
+// --- M5: feel. Step inputs into the sim running in Chrome (same 1 kHz physics), responses plotted to proof/M5-style images ---
+if (runs('M5')) {
+  const feel = await page.evaluate(async (base) => {
+    const [{ createSim, simSteps }, { attitude }, { measureFeel, traceSvg, feelRows }] = await Promise.all([
+      import(base + 'src/sim.js'), import(base + 'src/physics.js'), import(base + 'test/feel-measure.mjs')]);
+    const m = measureFeel({ createSim, simSteps, attitude });
+    return { rows: feelRows(m), svgs: Object.entries(m.traces).map(([name, tr]) => [name, traceSvg(name, tr)]), m: { ...m, traces: undefined } };
+  }, url);
+  for (const [k, v] of feel.rows) console.log(`     ${k}: ${v}`);
+  const m = feel.m;
+  check('M5 feel measured in Chrome: hover throttle 20 to 35 %', m.hoverThrottle > 0.2 && m.hoverThrottle < 0.35, `(${(m.hoverThrottle * 100).toFixed(1)} %)`);
+  check('M5 acro full-stick roll reaches the configured rate without big overshoot', Math.abs(m.acro.roll.heldRate - m.acro.roll.target) < 15 && m.acro.roll.overshootPct < 10, `(held ${m.acro.roll.heldRate.toFixed(0)} deg/s, overshoot ${m.acro.roll.overshootPct.toFixed(1)} %)`);
+  check('M5 angle mode holds its tilt and levels without swinging past', Math.abs(m.angle.held - m.angle.target) < 2 && m.angle.undershootDeg < 1 && m.angle.overshootPct < 5, `(held ${m.angle.held.toFixed(1)} of ${m.angle.target} deg, swing-back ${m.angle.undershootDeg.toFixed(2)} deg)`);
+  // Plots: one page with every step response, rendered by Chrome and saved as proof.
+  const plots = await browser.newPage({ viewport: { width: 1180, height: 1130 } });
+  await plots.setContent(`<body style="margin:0;background:#fff;font-family:system-ui,sans-serif"><h1 style="font-size:18px;margin:12px 16px 4px">Feel: step responses measured in the browser sim (1 kHz physics)</h1><div style="display:grid;grid-template-columns:repeat(2,560px);gap:10px 20px;padding:8px 16px">${feel.svgs.map(([, svg]) => svg).join('')}</div></body>`);
+  await plots.screenshot({ path: `${outDir}32-m5-feel-step-responses.png`, fullPage: true });
+  await plots.close();
+  check('M5 step-response plots saved', feel.svgs.length >= 8, `(${feel.svgs.length} plots)`);
 }
 
 const simErrors = await page.evaluate(() => window.__sim.errors);
