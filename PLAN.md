@@ -10,7 +10,7 @@
   - **Throttle on a spring-centred stick:** the left stick snaps back to the middle, unlike a real radio. Default mapping: stick bottom = 0%, top = 100%, and a **throttle mid** setting so the centred stick gives about hover throttle in angle mode. So letting go means "roughly hover", not "climb". Setting: throttle mid (default ≈ hover), throttle expo.
   - Stick deadzone tuned for PS sticks (small, adjustable). Arm on a shoulder button, mode switch on another, reset on Options; show the button names as PlayStation symbols.
   - In the beginner path, one line in lesson 1: "On a real radio the throttle stays where you leave it."
-  - Keep the setup screen for other controllers and a future real radio.
+  - Keep the setup screen for other controllers. **Mike will soon get a BetaFPV LiteRadio** (a real radio that shows up as a USB joystick, not a standard gamepad). When a non-standard controller connects, open the setup screen automatically. Radios have a non-centring throttle: for them, map throttle linearly (no "throttle mid = hover" default) and save a separate profile per controller, so the PS controller and the radio each keep their own settings.
 - Drone: a typical 5-inch freestyle FPV quad.
 - World: open field with a few gates.
 - Platform: browser, opens from a link, no install. Public repo, live on GitHub Pages.
