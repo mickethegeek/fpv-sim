@@ -11,7 +11,8 @@ const PUSHED = 0.15;           // stick further out than this counts as "held" (
 export function createRecorder() { return { samples: [], last: -1, peak: null }; }
 const _up = [0, 0, 0];
 // sm: { t, pos, vel, quat, onGround }, sticks: { roll, pitch, yaw, throttle }, step: number of the lesson step being flown.
-export function record(rec, sm, sticks, step) {
+// force: take the sample whatever the time since the last one (the last frame of a run).
+export function record(rec, sm, sticks, step, force = false) {
   const speed = Math.hypot(sm.vel[0], sm.vel[1], sm.vel[2]);
   // The sticks at the fastest moment of the whole run (the last 10 s may not hold it).
   // Speed comes after the stick, so it is the largest stick in the 1.5 s before that moment.
@@ -23,7 +24,7 @@ export function record(rec, sm, sticks, step) {
       if (Math.abs(p.pitch) > Math.abs(pk.pitch)) pk.pitch = p.pitch;
     }
   }
-  if (sm.t - rec.last < EVERY) return rec;
+  if (sm.t - rec.last < EVERY && !force) return rec;
   rec.last = sm.t;
   rotate(sm.quat, [0, 1, 0], _up);
   rec.samples.push({ t: sm.t, pos: [sm.pos[0], sm.pos[1], sm.pos[2]], vel: [sm.vel[0], sm.vel[1], sm.vel[2]], head: headingDeg(sm.quat),

@@ -988,6 +988,132 @@ if (runs('M9')) {
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
+// --- M10: helpers: force arrows anywhere, coaching after a failed run, beginner camera tilt in Learn ---
+if (runs('M10')) {
+  const fresh = async (query) => { await page.goto(url + '?fast' + query); await page.waitForFunction(() => window.__sim && window.__sim.ready); await frames(3); };
+  const tiltOf = (s) => Math.asin(s.camera.dir[1]) * 180 / Math.PI;
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+
+  // Force arrows: off until asked for; F switches them on; seen in line of sight and chase view, in any flight.
+  await fresh('&free');
+  await page.evaluate(() => { const m = window.__sim; m.place(0, 2, -3); m.arm(true); m.setSticks({ roll: 0.3, pitch: 0, yaw: 0, throttle: m.config.hover }); });
+  await simWait(700);
+  let s = await snap();
+  const offFpv = !s.arrows && !s.arrowsOn;
+  await page.keyboard.press('KeyF'); await frames(3);
+  s = await snap();
+  const toastText = await page.textContent('#toast');
+  check('M10 force arrows are off until asked for; F switches them on in free flight and says what the colours are', offFpv && s.arrowsOn && !s.arrows && /yellow thrust, red weight, blue speed · seen in line of sight and chase view/.test(toastText) && await page.isVisible('#toast'), `("${toastText}")`);
+  await page.evaluate(() => { window.__sim.paused = true; });
+  await page.keyboard.press('KeyV'); await frames(3);
+  s = await snap();
+  // On screen, not only "visible": every arrow starts inside the picture, and the picture changes when they are switched off.
+  const onScreen = () => page.evaluate(() => { const m = window.__sim, g = m.scene.children.find((c) => c.update && c.children.length === 6); m.camera.updateMatrixWorld();
+    return g.children.filter((a) => a.visible).map((a) => { const v = a.position.clone().project(m.camera); return Math.abs(v.x) < 1 && Math.abs(v.y) < 1 && v.z < 1; }); });
+  let vis = await onScreen();
+  const withArrows = await page.screenshot({ path: `${outDir}80-m10-force-arrows-line-of-sight.png` });
+  const losOk = s.view === 'los' && s.arrows && vis.length === 6 && vis.every(Boolean);
+  await page.keyboard.press('KeyF'); await frames(3);
+  const without = await page.screenshot();
+  await page.keyboard.press('KeyF'); await frames(3);
+  check('M10 in line of sight the six arrows (4 thrusts, weight, velocity) are drawn on the flying quad; without them the picture is different', losOk && !withArrows.equals(without), `(${vis.length} arrows on screen)`);
+  await page.evaluate(() => { window.__sim.paused = false; });
+  await page.keyboard.press('KeyC'); await simWait(600);
+  await page.evaluate(() => { window.__sim.paused = true; }); await frames(3);
+  s = await snap(); vis = await onScreen();
+  await shot('81-m10-force-arrows-chase-view');
+  check('M10 the arrows also show in chase view', s.view === 'chase' && s.arrows && vis.length >= 5 && vis.filter(Boolean).length >= 5, `(${vis.filter(Boolean).length} of ${vis.length} on screen)`);
+  await page.evaluate(() => { window.__sim.paused = false; });
+  // The arrows are the real forces: at a steady hover the four thrusts add up to the weight.
+  await page.evaluate(() => { const m = window.__sim; m.setSticks({ roll: 0, pitch: 0, yaw: 0, throttle: m.config.hover }); });
+  await simWait(1500);
+  const f = await page.evaluate(async (u) => { const { forces } = await import(u + 'src/arrows.js'); const m = window.__sim; return forces(m.sim.state, m.sim.quad); }, url);
+  const lift = f.thrust.reduce((a, b) => a + b, 0);
+  check('M10 hovering, the four thrust arrows add up to the weight arrow (the numbers come from physics.js)', Math.abs(lift - f.weight) / f.weight < 0.05, `(thrust ${lift.toFixed(2)} N, weight ${f.weight.toFixed(2)} N)`);
+  // The choice is kept, and it is a button in Settings too (reachable from the pause menu while flying).
+  await fresh('&gates');
+  s = await snap();
+  const kept = s.arrowsOn;
+  await menuTo('pause', 'settings'); await frames(3);
+  const label = await page.textContent('#btn-arrows');
+  await shot('82-m10-settings-arrows-and-camera-tilt');
+  await page.click('#btn-arrows'); await frames(3);
+  s = await snap();
+  check('M10 the arrows setting is saved in the browser and is a button in Settings', kept && label === 'Force arrows: on' && !s.arrowsOn && await page.textContent('#btn-arrows') === 'Force arrows: off' && await page.isVisible('#btn-arrows'), `("${label}")`);
+
+  // Beginner camera tilt: 12 deg in Learn until the player sets their own; Gates and Free fly keep 25.
+  const tiltLabel = await page.textContent('#uptilt-out');
+  await menuClose(); await frames(3);
+  const gatesTilt = tiltOf(await snap());
+  await page.evaluate(() => window.__sim.start('learn', 'takeoff')); await frames(3);
+  s = await snap();
+  const learnTilt = tiltOf(s);
+  await shot('83-m10-learn-camera-tilt-12');
+  check('M10 the camera is tilted up 12 deg in Learn (beginner value, sourced) and 25 deg in Gates', Math.abs(learnTilt - 12) < 0.5 && Math.abs(gatesTilt - 25) < 0.5 && s.view === 'fpv' && /12° in Learn, 25° in Gates and Free fly/.test(tiltLabel), `(Learn ${learnTilt.toFixed(1)}, Gates ${gatesTilt.toFixed(1)}, "${tiltLabel}")`);
+  await menuTo('pause', 'settings'); await frames(3);
+  await page.fill('#uptilt', '30'); await frames(3);
+  const mine = await page.textContent('#uptilt-out'), backShown = await page.isVisible('#btn-uptilt-auto');
+  await menuClose(); await frames(3);
+  const learnMine = tiltOf(await snap());
+  await fresh('&free');
+  const freeMine = tiltOf(await snap());
+  check('M10 the setting stays the player\'s: set to 30 deg it is 30 everywhere, also after a reload', /30° \(yours\)/.test(mine) && backShown && Math.abs(learnMine - 30) < 0.5 && Math.abs(freeMine - 30) < 0.5, `(Learn ${learnMine.toFixed(1)}, Free fly after reload ${freeMine.toFixed(1)}, "${mine}")`);
+  await menuTo('pause', 'settings'); await frames(3);
+  await page.click('#btn-uptilt-auto'); await frames(3);
+  const backLabel = await page.textContent('#uptilt-out');
+  await menuClose(); await frames(3);
+  check('M10 "Camera tilt back to default" gives 12 in Learn / 25 elsewhere again', /12° in Learn/.test(backLabel) && Math.abs(tiltOf(await snap()) - 25) < 0.5 && !(await snap()).uptiltSet, `("${backLabel}")`);
+
+  // Coaching: fly lesson 1 badly on purpose, three ways; the result card says why, with the numbers of that run.
+  await fresh('&learn=takeoff');
+  await page.evaluate(async (u) => {
+    const { createLessonPilot, setPilotQuad } = await import(u + 'src/pilot.js');
+    window.__badRun = (how) => new Promise((res) => {
+      const m = window.__sim, pilot = createLessonPilot(how === 'hard' ? { descend: 5 } : {});
+      setPilotQuad(m.sim.quad, m.sim.fcCfg);
+      let started = false, t0 = null, cut = false;
+      const tick = () => {
+        const a = m.attempt, st = m.sim.state, snap = m.snapshot(), h = m.config.hover;
+        if (a.state === 'running') started = true;
+        if (started && snap.card) { m.arm(false); m.setSticks({ roll: 0, pitch: 0, yaw: 0, throttle: 0 }); return res(snap); }
+        let out = pilot.update(st, a);
+        if (how === 'offpad' && a.state === 'running' && a.step === 1) {
+          t0 ??= st.time;
+          out = st.time - t0 < 1.6 ? { arm: true, sticks: { roll: 0.5, pitch: 0, yaw: 0, throttle: h } } : { arm: !st.onGround, sticks: { roll: 0, pitch: 0, yaw: 0, throttle: h * 0.75 } };
+        }
+        if (how === 'crash' && a.state === 'running') { cut ||= st.pos[1] > 7; out = { arm: true, sticks: { roll: 0, pitch: 0, yaw: 0, throttle: cut ? 0 : 0.6 } }; }
+        m.setSticks(out.sticks); m.arm(out.arm && !st.crashed);
+        requestAnimationFrame(tick);
+      };
+      tick();
+    });
+  }, url);
+  const bad = (how) => page.evaluate((h) => window.__badRun(h), how);
+  const onCard = async (r) => (await page.isVisible('#card')) && (await page.textContent('#card-text')) === r.card.text;
+  let r = await bad('offpad');
+  await frames(2);
+  let shown = await onCard(r);
+  await shot('84-m10-coaching-landed-off-the-pad');
+  check('M10 coaching, landed beside the pad: how far, which way, which stick was held and what to do', !r.card.good && /^Run failed · streak back to 0$/.test(r.card.title) && shown
+    && /^You landed \d+\.\d m to the right of the pad: (you held roll right for \d\.\d s and never stopped the drift\. There are no brakes: roll left briefly, then level\.|you were still holding roll right \(\d\.\d s\)\. Release earlier\.)$/.test(r.card.text)
+    && Math.abs(Number(r.card.text.match(/landed (\d+\.\d)/)[1]) - Math.hypot(r.pos[0], r.pos[2])) < 0.3, `("${r.card.text}", landed at x ${r.pos[0].toFixed(1)} m)`);
+  await page.waitForFunction(() => window.__sim.attempt.state === 'ready', null, { timeout: 60000 });
+  r = await bad('hard');
+  await frames(2); shown = await onCard(r);
+  await shot('85-m10-coaching-hard-landing');
+  check('M10 coaching, hard landing: touchdown speed, the throttle in the last second against hover', !r.card.good && shown && /^Touchdown \d\.\d m\/s \(limit 1\.5 m\/s\): throttle was at \d+ % in the last second, hover is 22 %\. Come down just under hover throttle\.$/.test(r.card.text), `("${r.card.title}" · "${r.card.text}")`);
+  await page.waitForFunction(() => window.__sim.attempt.state === 'ready', null, { timeout: 60000 });
+  r = await bad('crash');
+  await frames(2); shown = await onCard(r);
+  await shot('86-m10-coaching-crash');
+  check('M10 coaching, throttle cut high up: the sink rate at the ground and the throttle', !r.card.good && shown && /^You hit the ground at \d+\.\d m\/s: throttle was at 0 %, hover is 22 %\. Add throttle earlier to slow the fall\.$/.test(r.card.text), `("${r.card.text}")`);
+  // A good run still shows its numbers, no coaching.
+  await page.waitForFunction(() => window.__sim.attempt.state === 'ready' && !window.__sim.sim.state.crashed, null, { timeout: 60000 });
+  r = await bad('good');
+  check('M10 a good run gets its numbers, not coaching', r.card.good && /^Touchdown \d\.\d m\/s$/.test(r.card.text), `("${r.card.title}" · "${r.card.text}")`);
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+}
+
 const simErrors = await page.evaluate(() => window.__sim.errors);
 check('no page errors', problems.length === 0 && simErrors.length === 0, JSON.stringify([...problems, ...simErrors]));
 

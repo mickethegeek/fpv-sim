@@ -119,3 +119,7 @@ button.lesson .next { color: #ffd23f; font-weight: 600; }
 #check-answers button.right { background: #1f7a3a; }
 #check-answers button.wrong { background: #a3342c; }
 #chapter-parts .done::after { content: ' ✓'; color: #6fe38a; }
+
+#uptilt-row input { flex: 1; min-width: 80px; }
+#uptilt-row output { color: #ffd23f; font-variant-numeric: tabular-nums; font-size: 13px; }
+#btn-uptilt-auto[hidden] { display: none; }

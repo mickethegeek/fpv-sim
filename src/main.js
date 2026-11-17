@@ -18,6 +18,7 @@ import * as TH from './theory.js';
 import { DEMOS, demoHelpers, runDemo } from './demos.js';
 import { createLessonPilot, setPilotQuad } from './pilot.js';
 import { buildArrows } from './arrows.js';
+import { createRecorder, record, coachLine } from './coach.js';
 
 // View settings (M6 puts these in the settings panel).
 const view = {
@@ -29,16 +30,33 @@ const view = {
   losModelScale: 1.5, // the quad is drawn this much bigger in line-of-sight view: a screen shows far less detail than the eye
   demoFovDeg: 36, demoModelScale: 2, // theory demos: a slightly zoomed camera and a quad drawn twice its size, so tilt and arrows read at 10 m (UNSOURCED look choices)
   sticks: true,    // live stick overlay
+  arrows: false,   // force arrows on the quad while flying (F, or Settings): thrust per motor, weight, velocity. Seen in line of sight and chase view.
+  uptiltSet: false, // true once the player has chosen a camera tilt: it is then used everywhere
   get chase() { return this.mode === 'chase'; },
   set chase(on) { this.mode = on ? 'chase' : 'fpv'; },
 };
 const VIEW_NAMES = { fpv: 'FPV', los: 'LINE OF SIGHT', chase: 'CHASE' };
 function nextView() { view.mode = view.mode === 'fpv' ? 'los' : 'fpv'; }
+// Camera tilt in Learn until the player chooses one: beginners start at 10 to 15 degrees (Oscar Liang, docs/theory.md, camera row); the middle.
+const LEARN_UPTILT = 12;
+const uptiltNow = () => (!view.uptiltSet && appMode === 'learn' ? LEARN_UPTILT : view.uptiltDeg);
 const CRASH_PAUSE = 1.5; // s shown "crashed" before the automatic reset
 
 let storage = null;
 try { storage = window.localStorage; } catch { /* blocked: settings and best lap last until the page closes */ }
 const params = new URLSearchParams(location.search);
+// The player's own view choices (force arrows, camera tilt), kept in the browser.
+const VIEW_KEY = 'fpvsim.view.v1';
+try {
+  const v = (storage && JSON.parse(storage.getItem(VIEW_KEY))) || {};
+  view.arrows = v.arrows === true;
+  if (Number.isFinite(v.uptilt) && v.uptilt >= 0 && v.uptilt <= 60) { view.uptiltDeg = v.uptilt; view.uptiltSet = true; }
+} catch { /* blocked or damaged */ }
+function saveView() { try { if (storage) storage.setItem(VIEW_KEY, JSON.stringify({ arrows: view.arrows, uptilt: view.uptiltSet ? view.uptiltDeg : null })); } catch { /* blocked */ } }
+function toggleArrows() {
+  view.arrows = !view.arrows; saveView();
+  toast = { text: view.arrows ? `Force arrows on: yellow thrust, red weight, blue speed${view.mode === 'fpv' ? ' · seen in line of sight and chase view' : ''}` : 'Force arrows off', best: false, left: 3 };
+}
 const world = createWorld();
 const sim = createSim({ mode: MODES.ANGLE, world });
 // Sticks the sim flies on: copied from the controller/keyboard each frame, unless a test script has taken over.
@@ -99,6 +117,8 @@ function lessonFrame(dt) {
   }
   LS.attemptUpdate(attempt, { t: s.time, pos: s.pos, vel: s.vel, quat: s.quat, armed: sim.armed, crashed: s.crashed, onGround: s.onGround, mode: sim.mode, view: view.mode });
   if (attempt.state === 'running' && card) card = null;
+  // Coaching: keep the last seconds of the player's own run (position, speed, sticks), to say why it failed.
+  if (attempt.state !== 'ready' && !watching) record((attempt.rec ||= createRecorder()), { t: s.time, pos: s.pos, vel: s.vel, quat: s.quat, onGround: s.onGround }, sticks, attempt.step, attempt.state !== 'running');
   if (attempt.action) {
     if (attempt.action.type === 'spin') { // a gust turns the quad to a heading the pilot did not choose
       const h = (-attempt.action.yawDeg * DEG) / 2, [x, y, z, w] = s.quat, sy = Math.sin(h), cy = Math.cos(h);
@@ -112,8 +132,9 @@ function lessonFrame(dt) {
     if (storage) LS.saveProgress(storage, progress);
     const where = VIEW_SHORT[attempt.key] ? ` in ${VIEW_SHORT[attempt.key]}` : '';
     const nums = r.metrics.map((m) => `${m.label} ${m.value.toFixed(1)} ${m.unit}`).join(' · ');
-    let title = r.good ? `Good run · ${rec.streak} of ${rec.needed} in a row${where}` : r.completed ? 'Finished, but not a good run' : 'Run failed';
-    let text = r.good ? nums : `${r.reason}${rec.needed > 1 ? ' · streak back to 0' : ''}`;
+    let title = r.good ? `Good run · ${rec.streak} of ${rec.needed} in a row${where}` : (r.completed ? 'Finished, but not a good run' : 'Run failed') + (rec.needed > 1 ? ' · streak back to 0' : '');
+    // A run that failed gets one line of coaching: why, from the flight data (src/coach.js).
+    let text = r.good ? nums : coachLine(attempt, r, attempt.rec || createRecorder(), { view: attempt.view, hover: config.hover, wind: sim.quad.wind, crashedInto: s.crashedInto, crashSpeed: sim.quad.crashSpeed, armName: names().arm });
     if (rec.passedLesson) {
       const next = LS.nextLesson(progress);
       title = lesson.id === 'ready' ? 'REAL-DRONE READY' : `Lesson passed: ${lesson.title}`;
@@ -123,7 +144,7 @@ function lessonFrame(dt) {
       title = `Passed${where}`;
       text = `Now the same in ${VIEW_SHORT[other]}: ${names().view} switches view`;
     }
-    card = { title, text, good: r.good, left: 8, result: r, passedLesson: rec.passedLesson };
+    card = { title, text, good: r.good, left: r.good ? 8 : 14, result: r, passedLesson: rec.passedLesson };
     renderLessons();
   }
 }
@@ -168,7 +189,7 @@ const hook = (window.__sim = {
       race: { next: race.next, running: race.running, lapTime: race.lapTime, lastLap: race.lastLap, best: race.best, laps: race.laps, passed: race.passed },
       chapter: chapter ? { lesson: chapter.lesson.id, part: chapter.part, i: chapter.i } : null, demo: demo ? demo.card.demo : null, watching: !!watching,
       theory: theoryEl.hidden ? null : { where: theoryWhere.textContent, title: theoryTitle.textContent, text: theoryText.textContent, next: theoryNext.textContent },
-      arrows: arrows.visible, curve: curveEl.hidden ? null : { d: (curveLine.getAttribute('d') || '').length, dot: Number(curveDot.getAttribute('cx')), label: curveMax.textContent }, seen: JSON.parse(JSON.stringify(seen)),
+      arrows: arrows.visible, arrowsOn: view.arrows, uptilt: uptiltNow(), uptiltSet: view.uptiltSet, toast: toast ? toast.text : null, curve: curveEl.hidden ? null : { d: (curveLine.getAttribute('d') || '').length, dot: Number(curveDot.getAttribute('cx')), label: curveMax.textContent }, seen: JSON.parse(JSON.stringify(seen)),
       app: appMode, menu: { open: menu.isOpen, screen: menu.screen, item: menu.current ? menu.current.textContent.trim() : null },
       view: view.mode, sticksShown: !sticksEl.hidden, sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open,
       camera: { fov: camera.fov, pos: camera.position.toArray(), dir: camera.getWorldDirection(new THREE.Vector3()).toArray() } };
@@ -334,6 +355,8 @@ const menu = new Menu({
     else if (act === 'gates' || act === 'free') start(act);
     else if (act === 'sticks') view.sticks = !view.sticks;
     else if (act === 'view') nextView();
+    else if (act === 'arrows') toggleArrows();
+    else if (act === 'uptilt-auto') { view.uptiltSet = false; view.uptiltDeg = 25; saveView(); }
   },
   onBack(root) { if (root === 'pause') closeMenu(true); },
 });
@@ -395,12 +418,17 @@ for (const s of SLIDERS) document.getElementById('tune-' + s.key).addEventListen
 for (const el of [presetEl, ...slidersEl.querySelectorAll('input')]) el.addEventListener('change', () => el.blur()); // give the keys back to flying
 document.getElementById('tune-reset').addEventListener('click', (e) => { e.currentTarget.blur(); applyTuning(defaultTuning(tuning.preset)); });
 applyTuning(tuning, false);
+// Camera tilt: the player's own setting. Until it is touched, Learn uses the beginner tilt and Gates / Free fly the usual 25 degrees.
+const uptiltEl = document.getElementById('uptilt'), uptiltOut = document.getElementById('uptilt-out'), uptiltAuto = document.getElementById('btn-uptilt-auto'), arrowsBtn = document.getElementById('btn-arrows');
+uptiltEl.addEventListener('input', () => { view.uptiltDeg = Number(uptiltEl.value); view.uptiltSet = true; saveView(); });
+uptiltEl.addEventListener('change', () => uptiltEl.blur());
 window.addEventListener('keydown', (e) => {
   if (e.repeat || (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName || ''))) return;
   if ((e.code === 'Enter' || e.code === 'Backspace') && (demo || watching)) { e.preventDefault(); cardStep(e.code === 'Enter' ? 1 : -1); return; }
   if (e.code === 'KeyC') view.chase = !view.chase;
   if (e.code === 'KeyV') nextView();
   if (e.code === 'KeyO') view.sticks = !view.sticks;
+  if (e.code === 'KeyF' && !menu.isOpen && !setup.open) toggleArrows();
 });
 
 // Graphics quality, saved in the browser. High: smooth edges, sharp ground at a distance, full screen resolution (up to 2x).
@@ -519,8 +547,9 @@ function frame(now) {
   const demoCam = demo ? demo.def.cam : null, standCam = Array.isArray(demoCam);
   quadModel.visible = demoCam ? standCam : view.mode !== 'fpv';
   quadModel.scale.setScalar(standCam ? view.demoModelScale : view.mode === 'los' ? view.losModelScale : 1);
-  arrows.visible = !!demo && !!demo.def.arrows && standCam;
-  if (arrows.visible) arrows.update(s, sim.quad, view.demoModelScale);
+  // Force arrows: in the demos that ask for them, and anywhere the player switched them on (in FPV the camera sits inside the quad: nothing to draw them on).
+  arrows.visible = demo ? !!demo.def.arrows && standCam : view.arrows && view.mode !== 'fpv';
+  if (arrows.visible) arrows.update(s, sim.quad, standCam ? view.demoModelScale : view.mode === 'los' ? view.losModelScale : 1);
   if (standCam) {
     // Demo: a camera that stands still and watches the quad.
     camera.position.set(demoCam[0], demoCam[1], demoCam[2]);
@@ -545,7 +574,7 @@ function frame(now) {
     // FPV: camera bolted to the frame, a little ahead of centre, tilted up by the uptilt angle.
     camOffset.set(0, 0.03, -0.06).applyQuaternion(qBody);
     camera.position.copy(quadModel.position).add(camOffset);
-    qTilt.setFromAxisAngle(X_AXIS, view.uptiltDeg * DEG);
+    qTilt.setFromAxisAngle(X_AXIS, uptiltNow() * DEG);
     camera.quaternion.copy(qBody).multiply(qTilt);
     camera.fov = verticalFov(view.fovDeg, camera.aspect);
   }
@@ -636,6 +665,10 @@ function frame(now) {
     setText(menuHelp, std ? `D-pad: move · ${nav.select} select · ${nav.back} back` : 'Arrows: move · Enter: select · Esc: back');
     setText(sticksBtn, `Stick overlay: ${view.sticks ? 'on' : 'off'}`);
     setText(viewBtn, `View: ${view.mode === 'los' ? 'line of sight' : view.mode === 'chase' ? 'chase' : 'FPV'}`);
+    setText(arrowsBtn, `Force arrows: ${view.arrows ? 'on' : 'off'}`);
+    if (document.activeElement !== uptiltEl) uptiltEl.value = String(uptiltNow());
+    setText(uptiltOut, view.uptiltSet ? `${view.uptiltDeg}° (yours)` : `${LEARN_UPTILT}° in Learn, ${view.uptiltDeg}° in Gates and Free fly`);
+    uptiltAuto.hidden = !view.uptiltSet;
     skipBtn.hidden = !chapter;
     setText(skipBtn, 'Skip this part');
   }
