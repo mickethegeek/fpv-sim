@@ -489,39 +489,39 @@ scene.add(demoMarks);
 const tagsEl = document.getElementById('tags'), holdEl = document.getElementById('hold');
 const tagPool = [], _tv = new THREE.Vector3(), _tq = new THREE.Quaternion();
 let tagsShown = [];
-// Demo trail (def.trail): the ground track of the quad as a line, plus a short nose line every 0.4 s, so a still picture
+// Demo trail (def.trail): the ground track of the quad as a dotted line, plus a short nose line every 0.4 s, so a still picture
 // shows where it went and where it pointed (a banked turn carves; yaw without roll turns the nose while the track runs on).
-const TRAIL_N = 1500, NOSE_N = 60, NOSE_LEN = 1.6;
-const trailGeo = new THREE.BufferGeometry(), noseGeo = new THREE.BufferGeometry();
-trailGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_N * 3), 3));
-noseGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NOSE_N * 6), 3));
-const trailMat = new THREE.LineBasicMaterial({ color: 0x5ee07a }), noseMat = new THREE.LineBasicMaterial({ color: 0xffffff });
-const trailLine = new THREE.Line(trailGeo, trailMat), noseLines = new THREE.LineSegments(noseGeo, noseMat);
+// Drawn as flat ground meshes (WebGL lines are 1 px wide whatever the setting, too thin to read).
+const TRAIL_N = 800, NOSE_N = 60, NOSE_LEN = 1.6, TRAIL_STEP = 0.25;
+const dotGeo = new THREE.CircleGeometry(0.13, 10).rotateX(-Math.PI / 2);
+const tickGeo = new THREE.BoxGeometry(0.1, 0.01, NOSE_LEN).translate(0, 0, -NOSE_LEN / 2);
+const trailMat = new THREE.MeshBasicMaterial({ color: 0x5ee07a }), noseMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const trailLine = new THREE.InstancedMesh(dotGeo, trailMat, TRAIL_N), noseLines = new THREE.InstancedMesh(tickGeo, noseMat, NOSE_N);
 trailLine.frustumCulled = noseLines.frustumCulled = false; trailLine.visible = noseLines.visible = false;
+trailLine.count = noseLines.count = 0;
 scene.add(trailLine, noseLines);
-const trail = { n: 0, ticks: 0, lastT: -1 };
+const trail = { n: 0, ticks: 0, lastT: -1, last: null };
+const _tm = new THREE.Matrix4(), _ty = new THREE.Quaternion(), _tpos = new THREE.Vector3(), _one = new THREE.Vector3(1, 1, 1), _up = new THREE.Vector3(0, 1, 0);
 function resetTrail(run) {
-  trail.n = 0; trail.ticks = 0; trail.lastT = -1;
-  trailGeo.setDrawRange(0, 0); noseGeo.setDrawRange(0, 0);
+  trail.n = 0; trail.ticks = 0; trail.lastT = -1; trail.last = null;
+  trailLine.count = noseLines.count = 0;
   trailMat.color.setHex(run ? 0xff8a3d : 0x5ee07a);
 }
 function drawTrail(on) {
   trailLine.visible = noseLines.visible = !!on;
   if (!on) return;
-  const s = sim.state, y = 0.05;
-  const tp = trailGeo.attributes.position, np = noseGeo.attributes.position;
-  if (trail.n < TRAIL_N) {
-    const k = trail.n - 1;
-    if (k < 0 || Math.hypot(tp.getX(k) - s.pos[0], tp.getZ(k) - s.pos[2]) > 0.08) {
-      tp.setXYZ(trail.n++, s.pos[0], y, s.pos[2]); tp.needsUpdate = true; trailGeo.setDrawRange(0, trail.n);
-    }
+  const s = sim.state, y = 0.04;
+  if (trail.n < TRAIL_N && (!trail.last || Math.hypot(trail.last[0] - s.pos[0], trail.last[1] - s.pos[2]) > TRAIL_STEP)) {
+    trail.last = [s.pos[0], s.pos[2]];
+    _tm.makeTranslation(s.pos[0], y, s.pos[2]); trailLine.setMatrixAt(trail.n++, _tm);
+    trailLine.count = trail.n; trailLine.instanceMatrix.needsUpdate = true;
   }
   if (trail.ticks < NOSE_N && (trail.lastT < 0 || s.time - trail.lastT >= 0.4)) {
     trail.lastT = s.time;
-    const f = rotate(s.quat, [0, 0, -1]), l = Math.hypot(f[0], f[2]) || 1;
-    np.setXYZ(trail.ticks * 2, s.pos[0], y, s.pos[2]);
-    np.setXYZ(trail.ticks * 2 + 1, s.pos[0] + (f[0] / l) * NOSE_LEN, y, s.pos[2] + (f[2] / l) * NOSE_LEN);
-    trail.ticks++; np.needsUpdate = true; noseGeo.setDrawRange(0, trail.ticks * 2);
+    const f = rotate(s.quat, [0, 0, -1]);
+    _ty.setFromAxisAngle(_up, Math.atan2(-f[0], -f[2]));
+    _tm.compose(_tpos.set(s.pos[0], y + 0.01, s.pos[2]), _ty, _one); noseLines.setMatrixAt(trail.ticks++, _tm);
+    noseLines.count = trail.ticks; noseLines.instanceMatrix.needsUpdate = true;
   }
 }
 function drawDemoMarks(scale) {

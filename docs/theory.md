@@ -52,7 +52,7 @@ The rates card also draws the rates curve: rotation speed against stick position
 | Banked turn | roll + yaw + forward: velocity within 9 deg of the nose on average | yaw without roll: velocity 60 deg off the nose on average (it slides) |
 | Up and down, Nose toward you, Orbit | one run each; same moves as the hover, nose-in and orbit cards | |
 
-The Banked turn and Orbit demos draw the ground track (green for the whole pattern, orange for the forgotten part) and a white nose line every 0.4 s, so a still picture shows the nose turning while the track runs straight. The stick overlay under the demo shows the demo's real sticks and the throttle value.
+The Banked turn and Orbit demos draw the ground track as dots (green for the whole pattern, orange for the forgotten part) and a white nose line every 0.4 s, so a still picture shows the nose turning while the track runs straight. The stick overlay under the demo shows the demo's real sticks and the throttle value.
 
 ## Helpers (M10)
 
