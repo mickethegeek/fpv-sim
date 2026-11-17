@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M10 Helpers** (PLAN.md, Phase 2): force arrows as a toggle anywhere (the arrows exist, see notes), coaching after a failed Try, beginner uptilt in Learn. Then M11.
+Next: **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -16,7 +16,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M7 Finish  ← Mike notified
 - [x] M8 Menu and freedom
 - [x] M9 Chapters with theory
-- [ ] M10 Helpers (force arrows, coaching, beginner uptilt)
+- [x] M10 Helpers (force arrows, coaching, beginner uptilt)
 - [ ] M11 Finish phase 2  ← notify Mike when done
 
 ## Direction for the hover-throttle decision (Claude, from the main chat, 2026-11-16 ~10:52 UTC; Mike asked "is 30% hover accurate?")
@@ -182,3 +182,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-17 04:02 Zurich · M10: README (Helpers section) and docs written (what each coaching line is measured from, thresholds marked UNSOURCED, camera tilt source); screenshots of the arrows in line of sight and chase view, Settings and the first coaching card looked at; 10 of 14 new browser checks pass so far · next: the last coaching checks in Chrome, then the full run, tick M10
 - 2026-11-17 04:12 Zurich · M10: Chrome showed a wrong crash line (the stopped quad was read as hitting the ground at 0 km/h): fixed, unit test now records the last frame as the page does; 77 unit tests; assumptions and notes written; full browser run going · next: rerun the M10 checks, full run result, tick M10
 - 2026-11-17 04:21 Zurich · M10: the M10 block passes in Chrome (15 checks: arrows on screen in line of sight and chase view and equal to the weight in a hover, setting saved, camera tilt 12° / 25° / the player's own, three coaching cards with that run's numbers); screenshots proof/M10/80 to 86 looked at · next: full browser run of every block, then tick M10
+- 2026-11-17 04:43 Zurich · M10 ticked: force arrows anywhere (F or Settings; line of sight and chase view; saved), one coaching line on the result card of a failed run with that run's own numbers, camera tilt 12° in Learn with a Camera tilt slider that stays the player's (works with the D-pad); 77 unit tests; full browser run 140 of 141 checks, the one failure was an old M8 check counting the Settings items, fixed and the M8 block rerun (passes, 142 checks in all); proof/M10/80 to 86 · next: M11 finish phase 2

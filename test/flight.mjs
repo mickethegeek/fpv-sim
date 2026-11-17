@@ -765,7 +765,13 @@ if (runs('M8')) {
   const before = (await snap()).menu.item;
   await press('cross');
   const after = (await snap()).menu.item;
-  await press('down', 2);                         // View, then Feel tuning
+  await press('down', 3);                         // View, Force arrows, then Camera tilt (M10)
+  const tiltItem = await page.evaluate(() => document.activeElement && document.activeElement.id || (window.__sim.menu.current && window.__sim.menu.current.id));
+  await press('right', 2);
+  const tiltPad = await snap();
+  check('M10 controller in Settings: left / right on Camera tilt changes the tilt', tiltItem === 'uptilt' && tiltPad.uptiltSet && tiltPad.uptilt === 27, `(item "${tiltItem}", tilt ${tiltPad.uptilt} deg)`);
+  await page.evaluate(() => { const v = window.__sim.view; v.uptiltSet = false; v.uptiltDeg = 25; try { localStorage.removeItem('fpvsim.view.v1'); } catch {} });
+  await press('down');                            // Feel tuning
   await press('cross');                           // opens the Feel tuning section
   await press('down', 2);                         // Quad, then the first slider
   const rate0 = await page.evaluate(() => window.__sim.tuning.rateMax);
