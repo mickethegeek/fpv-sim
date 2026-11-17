@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
-Status: **IN PROGRESS**
-Next: **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
+Status: **DONE**
+Next: **nothing** (phase 2 finished 2026-11-17; Mike notified; both relay tasks off)
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -22,7 +22,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M10e Curriculum: levels 1-4, motors layer, going down
 - [x] M10f Independent physics review
 - [x] M10c Replay (last feature)
-- [ ] M11 Finish phase 2  ← notify Mike when done
+- [x] M11 Finish phase 2  ← notify Mike when done
 
 ## Direction for the hover-throttle decision (Claude, from the main chat, 2026-11-16 ~10:52 UTC; Mike asked "is 30% hover accurate?")
 - Real motors sit between linear and square: thrust tables for 2207-class motors typically give roughly a third of max thrust at half throttle, i.e. thrust ≈ throttle^1.4–1.6, not throttle². **Source it** (published thrust tables for a 2207 on 6S), then fit the exponent. With thrust-to-weight 8–9 that lands hover near **20–25 %**, matching guides (15–20 % for powerful rigs).
@@ -232,3 +232,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-17 12:47 Zurich · M11: block M11 passes in Chrome: all 8 chapters walked with the simulated PlayStation controller only (every card's demo, each ≤2 sentences; Watch; every Check question; Try; Options > Skip to the next chapter; the last returns to the menu), proof/M11/m11-*; full run still going · next: full run result, live-site check, notify Mike
 - 2026-11-17 12:48 Zurich · M11: live site checked from the sandbox (https://mickethegeek.github.io/fpv-sim/): serves the latest push (Replay item and the narrow-window CSS present), loads in Chrome at 800x1273 and 390x844, menu and a Level 1 card work, no console errors (`node test/narrow.mjs <live url>`), proof/M11/live-*; full run still going · next: full run result, notify Mike, DONE
 - 2026-11-17 12:54 Zurich · M11: full browser run in progress, 125 checks pass so far, none failed · next: finish the run, notify Mike, DONE
+- 2026-11-17 13:02 Zurich · M11 ticked, relay DONE: full browser run 184 checks, 0 failures (proof/M11/), 88 unit tests; every chapter walked with the controller; HUD fits narrow windows; live site checked; README and REPORT.md updated for phase 2; Mike notified; both relay tasks confirmed off · next: nothing

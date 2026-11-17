@@ -31,8 +31,9 @@
 
 ## How it was checked
 
-- 54 unit tests on the physics, controller logic, course and lessons. Each physics test was shown to fail on a deliberately broken model (`node test/mutations.mjs`).
-- 103 checks in real Chrome, flown by a script: take-off, crashes, a full lap, the setup screen with a simulated USB radio, a simulated PlayStation controller, and all 8 lessons flown to the badge by a test pilot. Screenshots of the last full run are in `proof/final/`.
+- 88 unit tests on the physics, controller logic, course, lessons, demos, coaching, curriculum and replay. Each physics test was shown to fail on a deliberately broken model (`node test/mutations.mjs`).
+- 184 checks in real Chrome, flown by a script (final run 2026-11-17, phase 2): take-off, crashes, a full lap, the setup screen with a simulated USB radio, a simulated PlayStation controller, all 8 lessons flown to the badge by a test pilot, every menu with controller / keyboard / mouse, every theory card's demo, every chapter walked through with the controller only (Learn, Watch, Check, Try, Skip), stick patterns, Why? (motors), replay. Screenshots of that run: `proof/M11/` (phase 1: `proof/final/`).
+- Narrow windows (800x1273 as on your MacBook, and phone width) and the live site: `node test/narrow.mjs`, screenshots `proof/M11/narrow-*` and `proof/M11/live-*`.
 
 ## What was not checked: please try these
 
