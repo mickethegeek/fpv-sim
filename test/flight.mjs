@@ -1351,6 +1351,85 @@ if (runs('M10c')) {
   await page.evaluate(() => document.getElementById('rp-exit').click()); await frames(2);
 }
 
+// --- M11: every chapter walked through with the PlayStation controller only: Learn (every card), Watch, Check, Try, Skip ---
+if (runs('M11')) {
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+  await page.goto(url + '?fast');
+  await page.waitForFunction(() => window.__sim && window.__sim.ready);
+  await page.evaluate(() => {
+    const pad = { id: 'DualSense Wireless Controller (test)', index: 0, connected: true, mapping: 'standard', timestamp: 0,
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    window.__pad = pad;
+    Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [pad, null, null, null] });
+  });
+  const BTN = { cross: 0, circle: 1, options: 9, up: 12, down: 13 };
+  const press = async (name, times = 1) => {
+    for (let i = 0; i < times; i++) {
+      await page.evaluate((b) => { window.__pad.buttons[b] = { pressed: true, value: 1 }; }, BTN[name]); await frames(2);
+      await page.evaluate((b) => { window.__pad.buttons[b] = { pressed: false, value: 0 }; }, BTN[name]); await frames(2);
+    }
+  };
+  const simAfter = (dt) => page.evaluate(() => window.__sim.sim.state.time).then((t0) => page.waitForFunction((x) => window.__sim.sim.state.time >= x, t0 + dt, { timeout: 120000, polling: 20 }));
+  const two = (text) => text.split(/[.?!](?:\s|$)/).filter((x) => x.trim()).length <= 2;
+  const chapters = await page.evaluate(async (u) => { const T = await import(u + 'src/theory.js'); return T.CHAPTERS.map((c) => ({ id: c.lesson, cards: c.cards.map((k) => k.demo), q: c.check.length })); }, url);
+  await frames(3);
+  await page.evaluate(() => window.__sim.showChapter('takeoff')); await frames(3);
+  for (const [n, c] of chapters.entries()) {
+    let s = await snap();
+    const parts = await page.$$eval('#chapter-parts button b', (bs) => bs.map((b) => b.textContent));
+    const want = c.cards.length ? (c.q ? 'Learn,Watch,Check,Try' : 'Learn,Watch,Try') : (c.q ? 'Watch,Check,Try' : 'Watch,Try');
+    const onScreen = s.menu.screen === 'chapter' && s.chapter && s.chapter.lesson === c.id && parts.join() === want;
+    const notes = [];
+    // Learn: every card with the controller (cross = next); each card <= 2 sentences and its own demo flying.
+    let cardsOk = true;
+    if (c.cards.length) {
+      await press('cross');
+      for (const [i, d] of c.cards.entries()) {
+        await simAfter(0.6);
+        s = await snap();
+        if (!(s.demo === d && s.theory && two(s.theory.text) && !s.menu.open)) { cardsOk = false; notes.push(`card ${i}: ${s.demo}`); }
+        if (i === 0) await shot(`m11-${n + 1}-${c.id}-learn`);
+        await press('cross');
+      }
+      s = await snap();
+      if (!(s.menu.open && s.menu.screen === 'chapter' && /^Watch/.test(s.menu.item || ''))) { cardsOk = false; notes.push(`after Learn: ${s.menu.screen} ${s.menu.item}`); }
+    }
+    // Watch: the test pilot flies, sticks shown; cross skips it.
+    await press('cross');
+    await simAfter(1.5);
+    s = await snap();
+    const watchOk = s.watching && s.lesson && s.lesson.id === c.id && s.stickThr !== null;
+    if (n === 0) await shot('m11-watch');
+    await press('cross');
+    s = await snap();
+    const afterWatch = s.menu.open && s.menu.screen === 'chapter' && (c.q ? /^Check/ : /^Try/).test(s.menu.item || '');
+    // Check: answer each question (first answer), then Next.
+    let checkOk = true;
+    if (c.q) {
+      await press('cross');
+      for (let k = 0; k < c.q; k++) {
+        s = await snap();
+        if (s.menu.screen !== 'check') { checkOk = false; notes.push(`check ${k}: ${s.menu.screen}`); break; }
+        await press('cross');                     // answer
+        await press('cross');                     // Next (the pointer moves to it after answering)
+      }
+      s = await snap();
+      if (!(s.menu.screen === 'chapter' && /^Try/.test(s.menu.item || ''))) { checkOk = false; notes.push(`after Check: ${s.menu.screen} ${s.menu.item}`); }
+    }
+    // Try: the lesson itself, then Options > Skip this part goes to the next chapter.
+    await press('cross');
+    s = await snap();
+    const tryOk = !s.menu.open && s.lesson && s.lesson.id === c.id && !s.watching && !s.demo;
+    await press('options'); await press('down', 3); await press('cross');
+    s = await snap();
+    const next = chapters[n + 1];
+    const skipOk = next ? s.menu.screen === 'chapter' && s.chapter && s.chapter.lesson === next.id : s.menu.open && s.menu.screen === 'main';
+    check(`M11 chapter ${n + 1} (${c.id}) with the controller: parts ${want}; ${c.cards.length} cards with demos; Watch; ${c.q} questions; Try; Skip`, onScreen && cardsOk && watchOk && afterWatch && checkOk && tryOk && skipOk,
+      `(${[onScreen, cardsOk, watchOk, afterWatch, checkOk, tryOk, skipOk].map((x) => (x ? 1 : 0)).join('')} ${notes.join('; ')})`);
+  }
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+}
+
 const simErrors = await page.evaluate(() => window.__sim.errors);
 check('no page errors', problems.length === 0 && simErrors.length === 0, JSON.stringify([...problems, ...simErrors]));
 

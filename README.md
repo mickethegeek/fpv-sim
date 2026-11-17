@@ -22,7 +22,7 @@ A browser simulator for learning to fly an FPV drone before you own one. A 5-inc
 | R1 | arm / disarm |
 | L1 | angle mode / acro mode |
 | △ | FPV view / line-of-sight view |
-| Options | pause menu (Resume, Restart, Skip, Settings, Back to menu) |
+| Options | pause menu (Resume, Restart, Replay last run, Skip, Settings, Back to menu) |
 | Share / Create | reset to the pad, straight away |
 | D-pad, ✕, ◯ | in menus: move, select, back |
 
@@ -86,7 +86,7 @@ Link options: `?learn` (or `?learn=wind`), `?gates` and `?free` skip the menu an
 
 ## How real is it
 
-Every flight number comes from a published source or is marked UNSOURCED: Betaflight's default rates and tilt limit, bench thrust tables for 2207 motors on 6S, a measured motor time constant, measured rotor drag. The list, with links and the sim's measured values, is in [`docs/feel.md`](docs/feel.md) and [`docs/physics.md`](docs/physics.md). What is still open is in [`REPORT.md`](REPORT.md).
+Every flight number comes from a published source or is marked UNSOURCED: Betaflight's default rates and tilt limit, bench thrust tables for 2207 motors on 6S, a measured motor time constant, measured rotor drag. The list, with links and the sim's measured values, is in [`docs/feel.md`](docs/feel.md) and [`docs/physics.md`](docs/physics.md). An independent review rechecked every number and every card against its source on 2026-11-17: [`docs/review.md`](docs/review.md). What is still open is in [`REPORT.md`](REPORT.md).
 
 Physics runs at 1000 steps per second, whatever the frame rate.
 
