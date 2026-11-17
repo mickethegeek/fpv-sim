@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M10b Demo fixes** (PLAN.md), then **M10c Replay**, then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
+Next: **M10b Demo fixes** (PLAN.md), then **M10d Yaw climb + stick patterns**, then **M10c Replay**, then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -18,6 +18,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M9 Chapters with theory
 - [x] M10 Helpers (force arrows, coaching, beginner uptilt)
 - [ ] M10b Demo fixes (nose, motor arrows, stop early)
+- [ ] M10d Yaw climb check + stick patterns
 - [ ] M10c Replay (last feature)
 - [ ] M11 Finish phase 2  ← notify Mike when done
 
