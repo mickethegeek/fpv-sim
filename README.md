@@ -51,9 +51,19 @@ The page opens on a menu: **Learn**, **Gates**, **Free fly**, **Theory**, **Sett
 - **Crash:** the quad goes back to the pad after a moment. R (or Share / Create on the controller) does the same at any time.
 - Other keys: V view, C chase view, O stick overlay, M mode.
 
+## Helpers
+
+All off unless you ask for them, except the coaching line, which only appears after a failed lesson run.
+
+- **Force arrows** (F, or Settings): the real forces drawn on the quad in any flight. Yellow: the thrust of each motor. Red: the weight. Blue: the velocity. They show in line-of-sight view (V) and chase view (C); in FPV the camera sits on the quad, so there is nothing to draw them on.
+- **Coaching:** when a lesson run fails, the result card says why in one line, from that run's own data. For example: "You landed 2.3 m to the right of the pad: you held roll right for 1.6 s and never stopped the drift. There are no brakes: roll left briefly, then level."
+- **Camera tilt** (Settings): in Learn the camera is tilted up 12°, a beginner value, and 25° in Gates and Free fly. Move the slider and your value is used everywhere; "Camera tilt back to default" undoes it.
+- **Stick overlay** (O, or Settings): where the sticks are right now.
+
 ## Settings
 
 - **Graphics:** High or Low. The frame rate is shown next to it. If it is under 60, choose Low.
+- **Stick overlay, View, Force arrows, Camera tilt:** see Helpers above.
 - **Feel tuning:** rates, expo, responsiveness, floatiness, throttle at stick centre, deadzone. "Reset to default" goes back to the sourced values.
 - Everything is saved in the browser, per computer.
 
@@ -71,7 +81,7 @@ No build step. Any static file server works:
 
 ```
 node tools/serve.mjs 8080      # then open http://localhost:8080
-npm test                       # unit tests (physics, controller, course, lessons)
+npm test                       # unit tests (physics, controller, course, lessons, theory, coaching)
 node test/flight.mjs out       # flies the sim in Chrome, screenshots to proof/out/
 ```
 

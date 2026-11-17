@@ -36,3 +36,24 @@ Each card names a `demo` in `src/demos.js`: a short scene the sim plays beside t
 The arrows (`src/arrows.js`) are the sim's own numbers each frame: thrust of each motor from `motorThrust()` in `src/physics.js` (0.22 m of arrow per newton), the weight (mass x g, same scale) and the velocity (0.25 m per m/s). The two scales, the demo camera's zoom and the quad drawn at twice its size in demos are display choices (**UNSOURCED**).
 
 The rates card also draws the rates curve: rotation speed against stick position from `actualRate()` with the quad's current rates, and a dot at the stick's position during the flip.
+
+## Helpers (M10)
+
+**Force arrows while flying.** The same arrows as in the demos (`src/arrows.js`, same scales), switched on with F or in Settings, drawn in line-of-sight and chase view. In FPV the camera is on the quad, so they are not drawn. Checked in Chrome: hovering, the four thrusts add up to the weight (6.67 N against 6.67 N).
+
+**Camera tilt in Learn.** 12 degrees, the middle of the 10 to 15 degrees the camera row above cites for beginners (`LEARN_UPTILT` in `src/main.js`). Gates and Free fly keep 25 degrees (inside the cited 20 to 35 for freestyle). Once the player moves the Camera tilt slider, their value is used everywhere.
+
+**Coaching** (`src/coach.js`). After a failed lesson run the result card carries one line. Every number in it is measured from that run: the sim records position, velocity, heading, tilt and the four sticks 20 times a second and keeps the last 10 s. What each line is built from:
+
+| Failure | The line says | Measured from |
+|---|---|---|
+| Hard landing | touchdown speed, throttle in the last second, hover throttle | sink rate in the last frame in the air; mean throttle over the last 1 s in the air; hover throttle of the quad being flown (`hoverStick`) |
+| Landed off the pad | distance and direction from the pad, which stick was held and for how long | landing spot; the right stick over the 4 s before, along the direction the quad was moving |
+| Crash | sink rate or speed at impact, throttle or stick before it | velocity in the last frame in the air; what was hit (`crashedInto`) |
+| Out of time | share of the last seconds inside the box and which way out (too high, too low, to a side, nose off), or how far round the cone, or how far from the spot | the samples of the step that was open |
+| Too fast | top speed and the stick held just before it | the largest roll or pitch stick in the 1.5 s before the fastest moment |
+| Disarmed in the air, before the call, too late, or not at all | height at disarm, or the reaction time | the last sample; time from the call |
+
+Directions are the pilot's: in FPV from the quad's seat (left, right, forward, backward), in line of sight as seen from the ground (to the left, to the right, away from you, toward you). The stick named is always the quad's own (roll left / right, pitch forward / back).
+
+The physics behind the wording is the sim's and the cards': no brakes (card "No brakes"), the wind carries the quad (cards "The drone lives in the air" and "Lean into it"), throttle against hover. The thresholds that pick a line are judgements (**UNSOURCED**): a stick counts as held beyond 15 % (three times the 5 % deadzone) for at least 0.3 s; "still holding" means within 0.4 s of the end; a ground crash counts as "came down too fast" when it was sinking faster than it moved sideways. The advice itself ("come down just under hover throttle", "rest a finger on the arm button") is teaching advice, **UNSOURCED**.

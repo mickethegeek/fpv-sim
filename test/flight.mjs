@@ -1088,7 +1088,7 @@ if (runs('M10')) {
       tick();
     });
   }, url);
-  const bad = (how) => page.evaluate((h) => window.__badRun(h), how);
+  const bad = (how) => page.evaluate((h) => { window.__sim.reset(); return window.__badRun(h); }, how); // every run starts on the pad
   const onCard = async (r) => (await page.isVisible('#card')) && (await page.textContent('#card-text')) === r.card.text;
   let r = await bad('offpad');
   await frames(2);
