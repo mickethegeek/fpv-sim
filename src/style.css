@@ -156,3 +156,20 @@ button.lesson .next { color: #ffd23f; font-weight: 600; }
 #replay input[type=range] { flex: 1; min-width: 120px; accent-color: #ffd23f; }
 #replay small { color: #a9b4c4; }
 #rp-time { font-variant-numeric: tabular-nums; min-width: 92px; text-align: right; }
+
+/* Narrow windows (M11: at 800 px wide the HUD bar was cut off on both sides). The HUD wraps instead of overflowing. */
+#hud { max-width: calc(100vw - 16px); box-sizing: border-box; flex-wrap: wrap; justify-content: center; row-gap: 2px; }
+@media (max-width: 900px) {
+  #hud { gap: 10px; font-size: 14px; padding: 6px 10px; }
+  #hud b { min-width: 2.6em; }
+  #hud-lap, #hud-best { min-width: 3.8em; }
+  #theory { width: min(290px, calc(100vw - 24px)); }
+  #sticks { bottom: 96px; }
+  #replay { bottom: 188px; }
+}
+@media (max-width: 520px) {
+  #theory { left: 8px; top: 8px; max-height: 52vh; overflow-y: auto; }
+  #lesson { width: calc(100vw - 24px); }
+  #sticks { bottom: 122px; }
+  #replay { bottom: 214px; }
+}
