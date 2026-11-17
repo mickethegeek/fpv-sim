@@ -62,6 +62,12 @@ Look up typical values with sources; the numbers below are starting points, not 
 - **M6b Look** (only if M5 and M6 are done): sun with real shadows, sky lighting, tone mapping, haze, ground detail at every scale for speed and height cues, procedural textures. Quality setting low/high; keep 60 fps on a MacBook Air.
 - **M7 Finish:** 60 fps check, README (how to play, controls, how to connect a controller), final screenshot set in `proof/`, final report to Mike.
 
+## Decided by Mike on 2026-11-17 (do not build)
+- No real-life consequences (crash wallet, battery, video breakup/failsafe in flight, live wind, 120 m ceiling).
+- No Betaflight rates import.
+- Trainer modelled on a real beginner quad: maybe later, not now.
+- Real flight-log validation: not a priority.
+
 ## Phase 2: learn, then fly (Mike, 2026-11-16 evening)
 Mike: the lessons test him but never teach him. "I need a bit more theory, less practice. What makes what what." But **not** a wall of text: "more like skip tutorial to access the gates, or just skip chapter, not to overlay everything but to allow the player to control where and what as a complete sim for beginner to advanced." English.
 
@@ -86,6 +92,7 @@ Rules for every M8–M11 change:
   A **Theory** page in the menu lists every card, so the player can revise any time.
 - **M10 Helpers.** Toggleable **force arrows** (thrust per motor, gravity, velocity) usable anywhere, including free flight. **Coaching**: after a failed Try, one line saying why, computed from the flight data ("you drifted left: you held roll too long, release earlier"). In the Learn camera, uptilt starts at a beginner value (guides: 10–15°; cite) and the setting stays the player's.
 - **M10b Demo fixes** (orchestrator, 2026-11-17; flagged by the M9 leg, never done because that leg died): (1) nose-toward-you demos: make the nose unmistakable (bigger quad in demos, bright nose marker, camera placed so the direction is obvious); (2) per-motor arrows during a tilt: hold the moment (freeze or much slower) and label which motors speed up; (3) "stop early": show two speeds so the longer stopping distance at speed is visible.
+- **M10c Replay** (Mike, 2026-11-17: "replay keep for the end"): after any run (lesson Try, gates lap, free flight), watch it back with the stick overlay, from FPV, line of sight or chase view, with play/pause/scrub and slow motion. Optional ghost of your best gates lap. The last feature before the finish.
 - **M11 Finish phase 2.** Every chapter checked in Chrome (cards, demo, watch, try, check, skip at each step, controller navigation), README and REPORT updated, notify Mike.
 
 ## Definition of done
