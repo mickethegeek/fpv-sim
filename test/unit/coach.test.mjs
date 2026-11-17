@@ -17,8 +17,8 @@ function fly(id, { view = 'fpv', pilotOpts = {}, spoil = null } = {}) {
   simSteps(sim, sticks, 5);
   for (let i = 0; i < (L.limit + 20) * 50 && a.state !== 'done' && a.state !== 'failed'; i++) {
     const s = sim.state;
-    if (a.state === 'running') record(rec, { t: s.time, pos: s.pos, vel: s.vel, quat: s.quat, onGround: s.onGround }, sticks, a.step);
     attemptUpdate(a, { t: s.time, pos: s.pos, vel: s.vel, quat: s.quat, armed: sim.armed, crashed: s.crashed, onGround: s.onGround, mode: sim.mode, view });
+    if (a.state !== 'ready') record(rec, { t: s.time, pos: s.pos, vel: s.vel, quat: s.quat, onGround: s.onGround, crashed: s.crashed }, sticks, a.step, a.state !== 'running'); // as main.js: the last frame too
     let out = pilot.update(s, a);
     if (spoil) out = spoil(out, sim, a) || out;
     sim.armed = out.arm && !s.crashed;

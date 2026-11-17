@@ -118,7 +118,7 @@ function lessonFrame(dt) {
   LS.attemptUpdate(attempt, { t: s.time, pos: s.pos, vel: s.vel, quat: s.quat, armed: sim.armed, crashed: s.crashed, onGround: s.onGround, mode: sim.mode, view: view.mode });
   if (attempt.state === 'running' && card) card = null;
   // Coaching: keep the last seconds of the player's own run (position, speed, sticks), to say why it failed.
-  if (attempt.state !== 'ready' && !watching) record((attempt.rec ||= createRecorder()), { t: s.time, pos: s.pos, vel: s.vel, quat: s.quat, onGround: s.onGround }, sticks, attempt.step, attempt.state !== 'running');
+  if (attempt.state !== 'ready' && !watching) record((attempt.rec ||= createRecorder()), { t: s.time, pos: s.pos, vel: s.vel, quat: s.quat, onGround: s.onGround, crashed: s.crashed }, sticks, attempt.step, attempt.state !== 'running');
   if (attempt.action) {
     if (attempt.action.type === 'spin') { // a gust turns the quad to a heading the pilot did not choose
       const h = (-attempt.action.yawDeg * DEG) / 2, [x, y, z, w] = s.quat, sy = Math.sin(h), cy = Math.cos(h);

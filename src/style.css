@@ -123,3 +123,5 @@ button.lesson .next { color: #ffd23f; font-weight: 600; }
 #uptilt-row input { flex: 1; min-width: 80px; }
 #uptilt-row output { color: #ffd23f; font-variant-numeric: tabular-nums; font-size: 13px; }
 #btn-uptilt-auto[hidden] { display: none; }
+#menu section > #uptilt-row { flex-wrap: wrap; }
+#uptilt-row span { white-space: nowrap; }

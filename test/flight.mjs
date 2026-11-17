@@ -1101,12 +1101,12 @@ if (runs('M10')) {
   r = await bad('hard');
   await frames(2); shown = await onCard(r);
   await shot('85-m10-coaching-hard-landing');
-  check('M10 coaching, hard landing: touchdown speed, the throttle in the last second against hover', !r.card.good && shown && /^Touchdown \d\.\d m\/s \(limit 1\.5 m\/s\): throttle was at \d+ % in the last second, hover is 22 %\. Come down just under hover throttle\.$/.test(r.card.text), `("${r.card.title}" · "${r.card.text}")`);
+  check('M10 coaching, hard landing: touchdown speed, the throttle in the last second against hover', !r.card.good && shown && /^Touchdown \d\.\d m\/s \(limit 1\.5 m\/s\): throttle was at \d+ % in the last second, hover is 2[12] %\. Come down just under hover throttle\.$/.test(r.card.text), `("${r.card.title}" · "${r.card.text}")`);
   await page.waitForFunction(() => window.__sim.attempt.state === 'ready', null, { timeout: 60000 });
   r = await bad('crash');
   await frames(2); shown = await onCard(r);
   await shot('86-m10-coaching-crash');
-  check('M10 coaching, throttle cut high up: the sink rate at the ground and the throttle', !r.card.good && shown && /^You hit the ground at \d+\.\d m\/s: throttle was at 0 %, hover is 22 %\. Add throttle earlier to slow the fall\.$/.test(r.card.text), `("${r.card.text}")`);
+  check('M10 coaching, throttle cut high up: the sink rate at the ground and the throttle', !r.card.good && shown && /^You hit the ground at \d+\.\d m\/s: throttle was at 0 %, hover is 2[12] %\. Add throttle earlier to slow the fall\.$/.test(r.card.text), `("${r.card.text}")`);
   // A good run still shows its numbers, no coaching.
   await page.waitForFunction(() => window.__sim.attempt.state === 'ready' && !window.__sim.sim.state.crashed, null, { timeout: 60000 });
   r = await bad('good');

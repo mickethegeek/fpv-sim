@@ -10,7 +10,7 @@ const PUSHED = 0.15;           // stick further out than this counts as "held" (
 
 export function createRecorder() { return { samples: [], last: -1, peak: null }; }
 const _up = [0, 0, 0];
-// sm: { t, pos, vel, quat, onGround }, sticks: { roll, pitch, yaw, throttle }, step: number of the lesson step being flown.
+// sm: { t, pos, vel, quat, onGround, crashed }, sticks: { roll, pitch, yaw, throttle }, step: number of the lesson step being flown.
 // force: take the sample whatever the time since the last one (the last frame of a run).
 export function record(rec, sm, sticks, step, force = false) {
   const speed = Math.hypot(sm.vel[0], sm.vel[1], sm.vel[2]);
@@ -28,7 +28,7 @@ export function record(rec, sm, sticks, step, force = false) {
   rec.last = sm.t;
   rotate(sm.quat, [0, 1, 0], _up);
   rec.samples.push({ t: sm.t, pos: [sm.pos[0], sm.pos[1], sm.pos[2]], vel: [sm.vel[0], sm.vel[1], sm.vel[2]], head: headingDeg(sm.quat),
-    tilt: Math.acos(Math.max(-1, Math.min(1, _up[1]))) * 180 / Math.PI, onGround: sm.onGround, step,
+    tilt: Math.acos(Math.max(-1, Math.min(1, _up[1]))) * 180 / Math.PI, onGround: sm.onGround, crashed: !!sm.crashed, step,
     roll: sticks.roll, pitch: sticks.pitch, yaw: sticks.yaw, throttle: sticks.throttle });
   while (rec.samples.length && sm.t - rec.samples[0].t > KEEP) rec.samples.shift();
   return rec;
@@ -80,7 +80,8 @@ export function coachLine(a, r, rec, ctx = {}) {
   const S = rec.samples, end = S[S.length - 1];
   if (!end) return r.reason;
   const view = ctx.view || 'fpv', hover = ctx.hover ?? 0.2;
-  const air = S.filter((p) => !p.onGround), lastAir = air[air.length - 1] || end;
+  const air = S.filter((p) => !p.onGround && !p.crashed), lastAir = air[air.length - 1] || end;
+  // (a crashed quad has stopped: its last flying sample is the one before the crash)
   const recent = (sec, from = end) => S.filter((p) => from.t - p.t <= sec && p.t <= from.t);
   const mean = (list, k) => (list.length ? list.reduce((n, p) => n + p[k], 0) / list.length : 0);
   const step = a.lesson.steps[Math.min(a.step, a.lesson.steps.length - 1)];
