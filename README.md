@@ -56,6 +56,16 @@ The page opens on a menu: **Learn**, **Gates**, **Free fly**, **Theory**, **Stic
 
 In the menu, next to Theory. Eight moves (hover, up and down, turn on the spot, fly forward, stop, nose toward you, banked turn, orbit), each with both sticks written out and flown live with the sticks on screen. Most are flown twice: once right, once with one part forgotten, so you see what goes wrong (snap the yaw and it jumps up; forget the throttle when you go forward and it sinks). In Try, the lesson's pattern shows as a small reminder; switch it off in Settings ("Pattern reminder"). Under the left stick the overlay shows the throttle value live: on a PlayStation stick a sideways push for yaw often moves the throttle too.
 
+## Replay
+
+After any run (a lesson, a gates lap, free flight, or a crash), open the pause menu (Options or Esc) and choose **Replay last run**. The run plays back with the stick overlay, so you see what your thumbs did at each moment.
+
+- Play / pause: ✕ or Space. Jump 2 s: D-pad ◀ ▶ or ← →. Speed 1x, 0.5x, 0.25x, 0.1x: D-pad ▲ ▼ or ↑ ↓, or the speed button. The slider scrubs to any moment.
+- View: △ or V switches FPV / line of sight, C chase; the View button cycles all three.
+- Exit: ◯, Backspace or Exit replay. The quad goes back on the pad.
+
+The last 3 minutes of a run are kept. Nothing is saved after you close the page.
+
 ## Helpers
 
 All off unless you ask for them, except the coaching line, which only appears after a failed lesson run.

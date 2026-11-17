@@ -801,8 +801,8 @@ if (runs('M8')) {
   s = await snap();
   const pauseItems = await page.$$eval('#menu [data-screen=pause] button', (bs) => bs.filter((b) => b.offsetParent).map((b) => b.textContent));
   await shot('65-m8-pause-menu-in-a-lesson');
-  check('M8 Options opens the pause menu: Resume, Restart, Skip, Settings, Back to menu', s.menu.screen === 'pause' && pauseItems.join() === 'Resume,Restart,Skip this part,Settings,Back to menu' && s.menu.item === 'Resume', `(${pauseItems.join(', ')})`);
-  await press('down', 2); await press('cross');
+  check('M8 Options opens the pause menu: Resume, Restart, Replay last run (M10c), Skip, Settings, Back to menu', s.menu.screen === 'pause' && pauseItems.join() === 'Resume,Restart,Replay last run,Skip this part,Settings,Back to menu' && s.menu.item === 'Resume', `(${pauseItems.join(', ')})`);
+  await press('down', 3); await press('cross');
   s = await snap();
   const skipped = s.menu.screen === 'chapter' && s.chapter.lesson === 'wind';   // Try was the last part: on to chapter 5
   await press('down', 3); await press('cross');
@@ -810,7 +810,7 @@ if (runs('M8')) {
   check('M8 Skip moves on to chapter 5 without flying lesson 4', skipped && !s.menu.open && s.lesson && s.lesson.id === 'wind' && !s.progress.outback.fpv.passed, JSON.stringify(s.lesson));
 
   // Pause in the air: everything stops, Resume carries on where it was, still armed.
-  await press('options'); await press('down', 4); await press('cross');   // Back to menu
+  await press('options'); await press('down', 5); await press('cross');   // Back to menu
   s = await snap();
   const backMain = s.menu.screen === 'main' && s.app === 'free' && s.lesson === null;
   await press('down'); await press('cross');                               // Gates

@@ -147,7 +147,7 @@ button.lesson .next { color: #ffd23f; font-weight: 600; }
 #pattern-list button b { font-size: 15px; }
 
 /* Replay bar (M10c) */
-#replay { position: fixed; left: 50%; bottom: 62px; transform: translateX(-50%); width: min(640px, calc(100vw - 32px)); box-sizing: border-box; padding: 8px 12px; background: rgba(10,14,22,.82); border-radius: 10px; color: #fff; font: 14px system-ui, sans-serif; z-index: 6; }
+#replay { position: fixed; left: 50%; bottom: 168px; transform: translateX(-50%); width: min(640px, calc(100vw - 32px)); box-sizing: border-box; padding: 8px 12px; background: rgba(10,14,22,.82); border-radius: 10px; color: #fff; font: 14px system-ui, sans-serif; z-index: 6; }
 #replay[hidden] { display: none; }
 #replay .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 #replay .row + .row { margin-top: 6px; }
