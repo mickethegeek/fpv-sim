@@ -39,7 +39,7 @@ Other gamepads with the standard layout work like the PlayStation one (RB arm, L
 
 ## How to play
 
-The page opens on a menu: **Learn**, **Gates**, **Free fly**, **Theory**, **Settings**. Nothing is locked: open any chapter, skip any part from the pause menu (Options or Esc), or go straight to the gates.
+The page opens on a menu: **Learn**, **Gates**, **Free fly**, **Theory**, **Stick patterns**, **Settings**. Nothing is locked: open any chapter, skip any part from the pause menu (Options or Esc), or go straight to the gates.
 
 - **Learn.** Eight chapters. Each has up to four parts, all optional: **Learn** (short cards, each shown live in the sim with the real forces drawn as arrows), **Watch** (a test pilot flies the lesson, sticks on screen), **Check** (two or three quick questions) and **Try** (you fly it). ✕ or Enter goes to the next card, ◯ or Backspace back.
 - **Theory** lists every card, to look one up again at any time.
@@ -50,6 +50,10 @@ The page opens on a menu: **Learn**, **Gates**, **Free fly**, **Theory**, **Sett
 - **Quad** (Settings, under "Feel tuning"): *Trainer* is the same quad limited to 70 % power, the default. *5-inch freestyle* is full power.
 - **Crash:** the quad goes back to the pad after a moment. R (or Share / Create on the controller) does the same at any time.
 - Other keys: V view, C chase view, O stick overlay, M mode.
+
+## Stick patterns
+
+In the menu, next to Theory. Eight moves (hover, up and down, turn on the spot, fly forward, stop, nose toward you, banked turn, orbit), each with both sticks written out and flown live with the sticks on screen. Most are flown twice: once right, once with one part forgotten, so you see what goes wrong (snap the yaw and it jumps up; forget the throttle when you go forward and it sinks). In Try, the lesson's pattern shows as a small reminder; switch it off in Settings ("Pattern reminder"). Under the left stick the overlay shows the throttle value live: on a PlayStation stick a sideways push for yaw often moves the throttle too.
 
 ## Helpers
 

@@ -192,7 +192,7 @@ const hook = (window.__sim = {
       race: { next: race.next, running: race.running, lapTime: race.lapTime, lastLap: race.lastLap, best: race.best, laps: race.laps, passed: race.passed },
       chapter: chapter ? { lesson: chapter.lesson.id, part: chapter.part, i: chapter.i } : null, demo: demo ? demo.card.demo : null, watching: !!watching,
       theory: theoryEl.hidden ? null : { where: theoryWhere.textContent, title: theoryTitle.textContent, text: theoryText.textContent, next: theoryNext.textContent },
-      hold: holdEl.hidden ? null : holdEl.textContent, held: !!(demo && demo.hold > 0), tags: [...tagsShown], marks: demo && demo.marks ? demo.marks.map((m) => m.text) : [], run: demo ? demo.run : null,
+      hold: holdEl.hidden ? null : holdEl.textContent, held: !!(demo && demo.hold > 0), tags: [...tagsShown], marks: demo && demo.marks ? demo.marks.map((m) => m.text) : [], run: demo ? demo.run : null, trail: trailLine.visible ? { points: trail.n, ticks: trail.ticks } : null,
       modelScale: quadModel.scale.x, theorySticks: theorySticks.hidden ? null : theorySticks.textContent, lessonPattern: lessonPattern.hidden || lessonEl.hidden ? null : lessonPattern.textContent, stickThr: sticksEl.hidden ? null : stickThr.textContent, patternHint: view.patternHint, nose: quadModel.userData.nose.visible,
       arrows: arrows.visible, arrowsOn: view.arrows, uptilt: uptiltNow(), uptiltSet: view.uptiltSet, toast: toast ? toast.text : null, curve: curveEl.hidden ? null : { d: (curveLine.getAttribute('d') || '').length, dot: Number(curveDot.getAttribute('cx')), label: curveMax.textContent }, seen: JSON.parse(JSON.stringify(seen)),
       app: appMode, menu: { open: menu.isOpen, screen: menu.screen, item: menu.current ? menu.current.textContent.trim() : null },
@@ -307,6 +307,7 @@ function placeDemo() {
   demo.run = demo.run === undefined ? 0 : (demo.run + 1) % (def.runs || 1);
   if (demo.run === 0) demo.marks = (def.marks || []).map((m) => ({ ...m }));
   demo.watch = {}; demo.hold = 0; demo.holdN = 0; demo.holdText = ''; demo.tags = null;
+  resetTrail(demo.run);
   const [x, y, z, yaw = 0] = demoStart(def, demo.run), h = (-yaw * DEG) / 2;
   resetFlight();
   sim.state.pos = [x, y, z]; sim.state.quat = [0, Math.sin(h), 0, Math.cos(h)];
@@ -488,7 +489,43 @@ scene.add(demoMarks);
 const tagsEl = document.getElementById('tags'), holdEl = document.getElementById('hold');
 const tagPool = [], _tv = new THREE.Vector3(), _tq = new THREE.Quaternion();
 let tagsShown = [];
+// Demo trail (def.trail): the ground track of the quad as a line, plus a short nose line every 0.4 s, so a still picture
+// shows where it went and where it pointed (a banked turn carves; yaw without roll turns the nose while the track runs on).
+const TRAIL_N = 1500, NOSE_N = 60, NOSE_LEN = 1.6;
+const trailGeo = new THREE.BufferGeometry(), noseGeo = new THREE.BufferGeometry();
+trailGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_N * 3), 3));
+noseGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NOSE_N * 6), 3));
+const trailMat = new THREE.LineBasicMaterial({ color: 0x5ee07a }), noseMat = new THREE.LineBasicMaterial({ color: 0xffffff });
+const trailLine = new THREE.Line(trailGeo, trailMat), noseLines = new THREE.LineSegments(noseGeo, noseMat);
+trailLine.frustumCulled = noseLines.frustumCulled = false; trailLine.visible = noseLines.visible = false;
+scene.add(trailLine, noseLines);
+const trail = { n: 0, ticks: 0, lastT: -1 };
+function resetTrail(run) {
+  trail.n = 0; trail.ticks = 0; trail.lastT = -1;
+  trailGeo.setDrawRange(0, 0); noseGeo.setDrawRange(0, 0);
+  trailMat.color.setHex(run ? 0xff8a3d : 0x5ee07a);
+}
+function drawTrail(on) {
+  trailLine.visible = noseLines.visible = !!on;
+  if (!on) return;
+  const s = sim.state, y = 0.05;
+  const tp = trailGeo.attributes.position, np = noseGeo.attributes.position;
+  if (trail.n < TRAIL_N) {
+    const k = trail.n - 1;
+    if (k < 0 || Math.hypot(tp.getX(k) - s.pos[0], tp.getZ(k) - s.pos[2]) > 0.08) {
+      tp.setXYZ(trail.n++, s.pos[0], y, s.pos[2]); tp.needsUpdate = true; trailGeo.setDrawRange(0, trail.n);
+    }
+  }
+  if (trail.ticks < NOSE_N && (trail.lastT < 0 || s.time - trail.lastT >= 0.4)) {
+    trail.lastT = s.time;
+    const f = rotate(s.quat, [0, 0, -1]), l = Math.hypot(f[0], f[2]) || 1;
+    np.setXYZ(trail.ticks * 2, s.pos[0], y, s.pos[2]);
+    np.setXYZ(trail.ticks * 2 + 1, s.pos[0] + (f[0] / l) * NOSE_LEN, y, s.pos[2] + (f[2] / l) * NOSE_LEN);
+    trail.ticks++; np.needsUpdate = true; noseGeo.setDrawRange(0, trail.ticks * 2);
+  }
+}
 function drawDemoMarks(scale) {
+  drawTrail(demo && scale && demo.def.trail);
   const marks = demo && scale ? demo.marks || [] : [];
   if (demoMarks.children.length !== marks.length || demoMarks.userData.of !== marks) {
     for (const c of demoMarks.children) { c.geometry.dispose(); c.material.dispose(); }

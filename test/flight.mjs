@@ -1200,7 +1200,13 @@ if (runs('M10d')) {
   check('M10d Next goes to the next pattern', s.demo === 'pat-forward' && /4 of 8/.test(s.theory.where));
   await page.evaluate(() => { const m = window.__sim; m.showChapter('turns'); m.startPart('learn', 0); }); await frames(3); // a normal card in between
   await page.evaluate(() => [...document.querySelectorAll('#pattern-list button')].find((b) => b.querySelector('b').textContent === 'Banked turn').click()); await frames(3);
+  await until(() => { const x = window.__sim.snapshot(); return x.run === 0 && x.time > 6; });
+  s = await snap();
+  check('M10d Banked turn draws its ground track and nose lines (whole pattern: it carves round)', s.trail && s.trail.points > 20 && s.trail.ticks > 10, JSON.stringify(s.trail));
+  await shot('102-pattern-turn-whole-trail');
   await until(() => { const x = window.__sim.snapshot(); return x.run === 1 && x.time > 6; });
+  s = await snap();
+  check('M10d the trail restarts for the forgotten-roll run', s.trail && s.trail.ticks <= Math.ceil(s.time / 0.4) + 1, JSON.stringify(s.trail));
   await shot('100-pattern-turn-forgot');
   // Last pattern: Done goes back to the patterns page.
   await pick('Orbit'); await page.keyboard.press('Enter'); await frames(3);

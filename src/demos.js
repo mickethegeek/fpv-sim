@@ -146,10 +146,10 @@ export const DEMOS = {
     fly: (t, s, h) => level(s, h, 2.5, { pitch: between(t, 0.8, 2.3) ? 0.3 : !h.run && t >= 2.3 && s.vel[0] > 0.4 ? -0.5 : 0 }) },
   'pat-nose-in': { start: [...SPOT, 180], cam: NOSE_CAM, nose: true, scale: 3, loop: 6.5, captions: ['Nose toward you: roll right moves it to YOUR left'],
     fly: (t, s, h) => (between(t, 1.5, 2.5) ? level(s, h, 2.5, { roll: 0.3 }) : between(t, 2.5, 4) ? level(s, h, 2.5) : h.hold(s, ...SPOT)) },
-  'pat-turn': { runs: 2, start: [-8, 2.5, 1], cam: [0.8, 15, 9], look: [0.8, 0, -3], fov: 62, scale: 5, loop: 10,
+  'pat-turn': { runs: 2, trail: true, start: [-8, 2.5, 1], cam: [0.8, 15, 9], look: [0.8, 0, -3], fov: 62, scale: 5, loop: 10,
     captions: ['Roll and yaw the same way, with forward: it carves round', 'Forgot the roll: the nose turns, the drone slides sideways'],
     fly: (t, s, h) => level(s, h, 2.5, t < 1.5 ? { pitch: 0.35 } : { pitch: 0.35, yaw: 0.2, roll: h.run ? 0 : 0.4 }) },
-  'pat-orbit': { start: [-6, 3, -12, 90], cam: [0, 6, 4], loop: 12, captions: ['Orbit: roll toward the centre, yaw the same way, a little forward'],
+  'pat-orbit': { trail: true, start: [-6, 3, -12, 90], cam: [0, 6, 4], loop: 12, captions: ['Orbit: roll toward the centre, yaw the same way, a little forward'],
     fly: (t, s) => { const a = t * 0.5 + Math.PI; return steer(s, 6 * Math.cos(a) - s.pos[0], -12 + 6 * Math.sin(a) - s.pos[2], 4, 3); } },
 };
 

@@ -39,6 +39,21 @@ The arrows (`src/arrows.js`) are the sim's own numbers each frame: thrust of eac
 
 The rates card also draws the rates curve: rotation speed against stick position from `actualRate()` with the quad's current rates, and a dot at the stick's position during the flip.
 
+## Stick patterns (M10d)
+
+`src/patterns.js` lists 8 patterns; each plays a demo in `src/demos.js` (`pat-*`). Most fly twice: run 1 the whole pattern, run 2 with one part forgotten. Measured on the Trainer quad (`test/unit/demos.test.mjs` checks both quads):
+
+| Pattern | Whole | One part forgotten |
+|---|---|---|
+| Hover | holds 2.50 m after 5.5 s | throttle 4 points under hover: down to the ground (0.05 m) by 5.5 s |
+| Turn on the spot | eased yaw (0.6, in over 1.5 s) with height hold: highest 2.49 m | snapped yaw 0.7, throttle kept: up to 6.0 m within 3.5 s (the yaw jump, docs/physics.md) |
+| Fly forward | forward 0.35 plus throttle: lowest 2.29 m | throttle kept at hover: sinks to 0.91 m in 2.5 s |
+| Stop | back stick early: stops 3.4 m after the release point | only centred: still gliding, 5.5 m further by 6 s |
+| Banked turn | roll + yaw + forward: velocity within 9 deg of the nose on average | yaw without roll: velocity 60 deg off the nose on average (it slides) |
+| Up and down, Nose toward you, Orbit | one run each; same moves as the hover, nose-in and orbit cards | |
+
+The Banked turn and Orbit demos draw the ground track (green for the whole pattern, orange for the forgotten part) and a white nose line every 0.4 s, so a still picture shows the nose turning while the track runs straight. The stick overlay under the demo shows the demo's real sticks and the throttle value.
+
 ## Helpers (M10)
 
 **Force arrows while flying.** The same arrows as in the demos (`src/arrows.js`, same scales), switched on with F or in Settings, drawn in line-of-sight and chase view. In FPV the camera is on the quad, so they are not drawn. Checked in Chrome: hovering, the four thrusts add up to the weight (6.67 N against 6.67 N).
