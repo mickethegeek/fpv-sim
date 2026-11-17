@@ -85,6 +85,7 @@ Rules for every M8–M11 change:
   10. Safety on a real field: arm only when ready, disarm the moment you crash, props, failsafe, the observer rule.
   A **Theory** page in the menu lists every card, so the player can revise any time.
 - **M10 Helpers.** Toggleable **force arrows** (thrust per motor, gravity, velocity) usable anywhere, including free flight. **Coaching**: after a failed Try, one line saying why, computed from the flight data ("you drifted left: you held roll too long, release earlier"). In the Learn camera, uptilt starts at a beginner value (guides: 10–15°; cite) and the setting stays the player's.
+- **M10b Demo fixes** (orchestrator, 2026-11-17; flagged by the M9 leg, never done because that leg died): (1) nose-toward-you demos: make the nose unmistakable (bigger quad in demos, bright nose marker, camera placed so the direction is obvious); (2) per-motor arrows during a tilt: hold the moment (freeze or much slower) and label which motors speed up; (3) "stop early": show two speeds so the longer stopping distance at speed is visible.
 - **M11 Finish phase 2.** Every chapter checked in Chrome (cards, demo, watch, try, check, skip at each step, controller navigation), README and REPORT updated, notify Mike.
 
 ## Definition of done

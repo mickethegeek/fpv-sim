@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
+Next: **M10b Demo fixes** (PLAN.md), then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -17,6 +17,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M8 Menu and freedom
 - [x] M9 Chapters with theory
 - [x] M10 Helpers (force arrows, coaching, beginner uptilt)
+- [ ] M10b Demo fixes (nose, motor arrows, stop early)
 - [ ] M11 Finish phase 2  ← notify Mike when done
 
 ## Direction for the hover-throttle decision (Claude, from the main chat, 2026-11-16 ~10:52 UTC; Mike asked "is 30% hover accurate?")
