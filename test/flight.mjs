@@ -894,7 +894,7 @@ if (runs('M9')) {
   s = await snap();
   await shot('69-m9-card-with-live-demo-and-arrows');
   check('M9 Learn: card 1 of 4, at most 2 sentences, with a live demo and force arrows; the sticks move by themselves', !s.menu.open && s.demo === 'hover-arrows' && /Learn 1 of 4/.test(s.theory.where) && two(s.theory.text) && s.arrows && s.armed && s.pos[1] > 2 && s.sticksShown
-    && /✕ next · ◯ back · Options menu/.test(await page.textContent('#theory-keys')), `("${s.theory.title}: ${s.theory.text}", alt ${s.pos[1].toFixed(1)} m)`);
+    && /✕ next · ◯ back · □ why · Options menu/.test(await page.textContent('#theory-keys')), `("${s.theory.title}: ${s.theory.text}", alt ${s.pos[1].toFixed(1)} m)`);
   await simTime(6.5);                                       // level again after the climb
   const f = await page.evaluate(async (u) => { const { forces } = await import(u + 'src/arrows.js'); const sim = window.__sim, r = forces(sim.sim.state, sim.sim.quad); return { thrust: r.thrust, weight: r.weight }; }, url);
   const total = f.thrust.reduce((x, y) => x + y, 0);
@@ -981,7 +981,7 @@ if (runs('M9')) {
   await press('options'); await press('down', 4); await press('cross');    // Back to menu
   await press('down', 3); await press('cross');                             // Theory
   s = await snap();
-  const listed = await page.$$eval('#theory-list button', (bs) => bs.length);
+  const listed = await page.$$eval('#theory-list button[data-act=card]', (bs) => bs.length); // (the level cards, M10e, come after them)
   await shot('79-m9-theory-page');
   const onTheory = s.menu.screen === 'theory' && listed === cards.length;
   await press('down', 4); await press('cross');                             // the fifth card: chapter 2, card 1

@@ -371,9 +371,10 @@ function playLevel(id, i) {
 // Stick patterns (M10d): played like theory cards, from their own menu page.
 const PATTERN_CHAPTER = { id: 'patterns', title: 'Stick patterns' };
 document.getElementById('pattern-list').innerHTML = PATTERNS.map((p, i) => `<button type="button" data-act="pattern" data-i="${i}"><b>${p.title}</b><small>${p.sticks}</small></button>`).join('');
-document.getElementById('theory-list').innerHTML = LEVELS.filter((lv) => lv.id !== 'acro').map((lv) => `<p class="menu-note">Level ${lv.n} · ${lv.title}</p>`
-  + lv.cards.map((card, i) => `<button type="button" data-act="level-card" data-level="${lv.id}" data-i="${i}"><b>${card.title}</b><small>${card.text}</small></button>`).join('')).join('') + TH.CHAPTERS.filter((c) => c.cards.length).map((c) => `<p class="menu-note">${LS.LESSONS.findIndex((l) => l.id === c.lesson) + 1}. ${LS.lessonById(c.lesson).title}</p>`
-  + c.cards.map((card, i) => `<button type="button" data-act="card" data-lesson="${c.lesson}" data-i="${i}"><b>${card.title}</b><small>${card.text}</small></button>`).join('')).join('');
+document.getElementById('theory-list').innerHTML = TH.CHAPTERS.filter((c) => c.cards.length).map((c) => `<p class="menu-note">${LS.LESSONS.findIndex((l) => l.id === c.lesson) + 1}. ${LS.lessonById(c.lesson).title}</p>`
+  + c.cards.map((card, i) => `<button type="button" data-act="card" data-lesson="${c.lesson}" data-i="${i}"><b>${card.title}</b><small>${card.text}</small></button>`).join('')).join('')
+  + LEVELS.filter((lv) => lv.id !== 'acro').map((lv) => `<p class="menu-note">Level ${lv.n} · ${lv.title}</p>`
+  + lv.cards.map((card, i) => `<button type="button" data-act="level-card" data-level="${lv.id}" data-i="${i}"><b>${card.title}</b><small>${card.text}</small></button>`).join('')).join('');
 
 // Menus (src/menu.js): start menu, Learn, Settings, pause. The sim stands still while a menu is open.
 let resumeArmed = null; // arm state when the pause menu opened, given back on Resume
