@@ -2,13 +2,13 @@
 export const DEG = Math.PI / 180;
 
 export function defaultQuad() {
-  const mass = 0.68;            // kg, uncited (PLAN range)
-  const thrustToWeight = 9;     // uncited (PLAN range)
+  const mass = 0.68;            // kg, cited range 625 to 670 g (docs/feel.md F7); 0.68 is 10 g above it (docs/review.md R5)
+  const thrustToWeight = 9;     // middle of the cited 7.5 to 11 (docs/feel.md F4 to F6)
   return {
     mass,
     // Body axes: X right (pitch axis), Y up (yaw axis), Z back (roll axis).
     inertia: [2.1e-3, 4.3e-3, 2.5e-3], // kg m^2, cited [7] (pitch, yaw, roll)
-    armLength: 0.11,            // m, motor to centre, uncited
+    armLength: 0.11,            // m, motor to centre, cited 107.5 to 112.5 mm (docs/feel.md F4, F9)
     maxThrustPerMotor: (thrustToWeight * mass * 9.80665) / 4, // N static
     motorTau: 0.033,            // s, first-order lag on motor speed, cited (docs/feel.md F8)
     yawTorquePerThrust: 0.0122, // m, derived from [7]
@@ -31,13 +31,13 @@ export function defaultFc() {
   return {
     rates: defaultRates(),
     angleLimit: 60,   // deg, Betaflight default, cited [3]
-    angleGain: 10,    // deg/s per deg of error; tuned for a 200 ms lean with no overshoot (docs/feel.md)
+    angleGain: 10,    // deg/s per deg of error; Betaflight 4.5 is P/10 = 5 plus angle feedforward and a filter (docs/review.md R1); tuned for a 200 ms lean with no overshoot (docs/feel.md)
     rateLimit: 1998,  // deg/s, cited [2]
     // Rate PID in physical units: output is angular acceleration (rad/s^2) per rad/s of error.
     kp: 120, ki: 30, kd: 1.5, iLimit: 3, // tuned to the step-response targets in docs/feel.md
     iRelax: 60,       // deg/s: the I-term only accumulates when the rate error is below this
     pidsumLimit: 0.5, pidsumLimitYaw: 0.4, // Betaflight pidsum_limit 500 / pidsum_limit_yaw 400 (of 1000 = the whole motor range): the most one axis may move a motor's command (docs/physics.md)
-    idle: 0.055,      // minimum motor command when armed: Betaflight default motor idle 5.5 % (docs/feel.md F25)
+    idle: 0.055,      // minimum motor command when armed: Betaflight default digitalIdleOffsetValue 550 of 10000 = 5.5 % (DShot) (docs/feel.md F25)
     throttleLimit: 1, // Betaflight throttle limit, SCALE type: full stick gives this fraction of full command
   };
 }

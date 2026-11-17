@@ -17,7 +17,7 @@ Looked up 2026-11-16.
 | Actual rates formula | see below | cited | `applyActualRates` in `rc.c` [2] |
 | Setpoint hard limit | ±1998 deg/s | cited | `SETPOINT_RATE_LIMIT_MAX 1998.0f` [2] |
 | Angle mode max tilt | 60° | cited | `.angle_limit = 60` in `resetPidProfile` [3] |
-| Angle mode gain | 5 (deg/s of rate per degree of error) | derived | `angleGain = pid[PID_LEVEL].P / 10`, default P = 50 [3][4] |
+| Angle mode gain | Betaflight: 5 (deg/s of rate per degree of error) plus angle feedforward and a pt3 filter. **Sim: 10, tuned** (no feedforward modelled) | derived / tuned | `pidRuntime.angleGain = pidProfile->pid[PID_LEVEL].P / 10.0f`, default P = 50 [3][4]; see `docs/review.md` R1 |
 | Typical freestyle Actual rates | center 100 to 200, max 800 to 1000, expo 0.5 to 0.7 | cited | Oscar Liang rates guide [5]. Not used as the default; offered for the M6 preset. |
 
 Actual rates, from the Betaflight source [2] (stick `x` in −1..1, result in deg/s):
@@ -40,7 +40,7 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 | Motor arm length | 0.11 m | cited | 107.5 to 112.5 mm (`docs/feel.md` F4, F9) |
 | Motor time constant | 33 ms | cited | NeuroBEM paper (`docs/feel.md` F8) |
 | Thrust against command | max x command^1.35 | cited (fit) | middle of two 2207 6S bench tables, 1.24 and 1.45 (`docs/feel.md` F5, F26, note 2) |
-| Idle command | 5.5 % | cited | Betaflight default `motorIdle = 550` (`docs/feel.md` F25) |
+| Idle command | 5.5 % | cited | Betaflight default `digitalIdleOffsetValue = 550` (of 10000 = full output; DShot) (`docs/feel.md` F25) |
 | Quadratic body drag | 0.006 N per (m/s)² | **UNSOURCED** | placeholder, equal to a drag area of about 0.01 m² |
 | Prop pitch speed at full throttle | tuned | tuned | Chosen so level top speed lands on the cited 150 km/h. See below. |
 
@@ -100,7 +100,7 @@ These are not flight parameters; they are listed so every number on screen has a
 13. Betaflight 4.0 CLI command reference: https://betaflight.com/docs/wiki/guides/archive/Betaflight-4.0-CLI-commands
 14. Betaflight CLI reference (current): https://betaflight.com/docs/wiki/guides/current/Cli
 15. Betaflight 4.2 Tuning Notes (yaw): https://betaflight.com/docs/wiki/tuning/4-2-Tuning-Notes
-16. Betaflight Mixer Types (default `mixer_type = LEGACY`): https://betaflight.com/docs/wiki/guides/current/Mixer-Types
+16. Betaflight Mixer guide, "Mixer Algorithm (`mixer_type`)": LEGACY "enabled by default" (the old Mixer-Types page has moved): https://betaflight.com/docs/wiki/guides/current/Mixer ; source `mixer_init.c`: `mixerConfig->mixer_type = MIXER_LEGACY;`
 17. IntoFPV, "Drone throttling upwards aggressively when yawing" (5-inch, Betaflight 4.4/4.5, pilot report): https://intofpv.com/t-drone-throttling-upwards-aggressively-when-yawing
 
 ## Yaw jump (M10d)

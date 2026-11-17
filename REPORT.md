@@ -44,6 +44,13 @@ PLAN rule: every number from real-life data. These are the ones still without a 
 | Line-of-sight view | pilot 5 m behind the pad, 50° view, quad drawn 1.5x | Choices |
 | Camera | 25° uptilt, 115° field of view | PLAN values; guides say 10 to 15° uptilt for beginners |
 | Look | sun 46° up, haze strength, shadow darkness | Choices (the sun's width is sourced) |
+| Angle-mode gain (M10f review) | 10 deg/s per degree | Betaflight 4.5 uses 5 plus angle feedforward and a filter; the sim has no feedforward, so 10 is tuned to a similar lean (docs/review.md R1) |
+| Thrust when sinking (M10f review) | up to +25 % over static | The model gives extra thrust in a descent, capped at +25 % with no source; real quads lose up to 20 % in a fast vertical descent (vortex ring state, not modelled; docs/review.md R7) |
+| Mass (M10f review) | 680 g | 10 g above the cited 625 to 670 g (docs/review.md R5) |
+| Prop pitch speed | 65 m/s | Tuned so level top speed lands on the cited 150 km/h |
+| Yaw-jump height | 1.2 m (half yaw) / 4.2 m (full yaw) in 2 s | Real yaw jump is cited, its size is not |
+
+Independent physics review (M10f, 2026-11-17): every parameter and card claim rechecked against primary sources; findings and fixes in `docs/review.md`.
 
 ## Other open points
 

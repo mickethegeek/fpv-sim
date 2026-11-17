@@ -46,7 +46,7 @@ export function motorThrust(u, vAxial, p) {
   // u is the ESC command. Prop speed n = u^(e/2), so static thrust (~ n^2) = max * u^e (e from bench tables, docs/feel.md).
   const n = u ** (p.thrustExponent / 2);
   const t = p.maxThrustPerMotor * n * (n - vAxial / p.pitchSpeed);
-  const cap = 1.25 * p.maxThrustPerMotor * n * n; // descending into own wash: limited gain
+  const cap = 1.25 * p.maxThrustPerMotor * n * n; // descending: momentum theory gives more thrust; capped at +25 %, UNSOURCED (docs/review.md R7). Real quads lose thrust here (vortex ring state).
   return t < 0 ? 0 : (t > cap ? cap : t);
 }
 
