@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M10b Demo fixes** (PLAN.md), then **M10d Yaw climb + stick patterns**, then **M10e Curriculum**, then **M10f Independent physics review**, then **M10c Replay**, then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
+Next: **M10d Yaw climb + stick patterns**, then **M10e Curriculum**, then **M10f Independent physics review**, then **M10c Replay**, then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -17,7 +17,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M8 Menu and freedom
 - [x] M9 Chapters with theory
 - [x] M10 Helpers (force arrows, coaching, beginner uptilt)
-- [ ] M10b Demo fixes (nose, motor arrows, stop early)
+- [x] M10b Demo fixes (nose, motor arrows, stop early)
 - [ ] M10d Yaw climb check + stick patterns
 - [ ] M10e Curriculum: levels 1-4, motors layer, going down
 - [ ] M10f Independent physics review
@@ -191,3 +191,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-17 10:16 Zurich · M10b started: nose demos draw the quad 3x with a big orange nose arrow, camera raised a little; the tilt demo runs 20x slower through the motor push and stops twice (push, then catch) with faster / slower tags on the motors and one line; Stop early flies a slow run then a fast run, both braking at one white line, both stops marked with speed and distance; 78 unit tests · next: check all three in Chrome with screenshots
 - 2026-11-17 10:24 Zurich · M10b: all three fixes pass in Chrome (15 checks in the new M10b block) and screenshots proof/M10b/90 to 96 looked at: nose arrow + label reads at a glance, tilt held at push and catch with four motor tags, both stops marked (14 km/h 1.6 m, 33 km/h 6.4 m) · next: full browser run, tick M10b, then M10d
 - 2026-11-17 10:38 Zurich · M10b: full browser run 152 of 153; the one failure was the M6 check finding the quad model by its child count (the nose arrow added one): test now finds it by the nose arrow, M6 block rerunning · next: tick M10b
+- 2026-11-17 10:42 Zurich · M10b ticked: nose demos (quad 3x, orange nose arrow + label, raised camera), tilt demo held at the motor push and the catch with faster / slower tags from the real thrusts, Stop early with a slow and a fast run marked from one brake line; 78 unit tests; full browser run 153 of 153 after the test fix (M6 block rerun passes) · next: M10d
