@@ -54,6 +54,22 @@ The rates card also draws the rates curve: rotation speed against stick position
 
 The Banked turn and Orbit demos draw the ground track as dots (green for the whole pattern, orange for the forgotten part) and a white nose line every 0.4 s, so a still picture shows the nose turning while the track runs straight. The stick overlay under the demo shows the demo's real sticks and the throttle value.
 
+## Curriculum (M10e)
+
+Learn is ordered in four levels (`src/curriculum.js`): **1 The basics** (hover, up, down, turn, forward, backward, sideways, stop; lessons 1-2), **2 Combinations** (forward + throttle, banked turn, orbit, nose toward you, wind; lessons 3-6), **3 The physics** (thrust and throttle, tilt, prop torque and the yaw jump, momentum and drag, coming down), **4 Acro** (the four acro cards; lessons 7-8). Each level has a deck of cards; each card has the pattern (sticks) and a **Why? (motors)** line. With Why? on (button, Y, or square on a PlayStation pad) the demo also draws the force arrows and tags the motors that are faster or slower than the average (more than 10 % off) from the sim's own thrusts; because those differences last only about 0.1 s in the physics, the demo runs at a quarter of its speed while they last and the tags stay up 1.2 s.
+
+| Card claim | Source / measured |
+|---|---|
+| Hover takes about a ninth of full push; that sits near 15 % of the stick (21 % on the Trainer) | Thrust-to-weight 9 (docs/physics.md, PLAN range, uncited) and the thrust curve thrust ∝ command^1.35 (docs/feel.md note 2, two 2207 6S bench tables); `hoverStick()` gives 15.0 % (freestyle) and 21.4 % (Trainer) |
+| Tilted 30°, half the push points sideways; upward part = push × cos(tilt) | Geometry: sin 30° = 0.5, cos 30° = 0.87, cos 60° = 0.5 |
+| A prop's twist is its push times about 1.2 cm, against the 11 cm arm | `yawTorquePerThrust` 0.0122 m (derived from [7] in docs/physics.md) and `armLength` 0.11 m (uncited) |
+| Hard yaw makes the drone jump up, on real Betaflight quads too | docs/physics.md "Yaw jump" (Betaflight 4.2 tuning notes) |
+| Drag sets the top speed, about 150 km/h | docs/feel.md: 145 km/h measured in angle mode, 148 km/h level |
+| Coming down: up to 20 % less mean push when sinking into its own wash; the sim does not model it | Veismann et al. 2021, NASA Ames, https://rotorcraft.arc.nasa.gov/Publications/files/77-2021-0193_Veismann.pdf (abstract: "mean thrust losses of up to 20% compared to hover conditions"); a 1.68 kg variable-pitch quad in a vertical wind tunnel, so for a 5-inch it is an indication, not a measurement. Not modelled: see PROGRESS.md "For M10e" for a possible model |
+| Rates 70°/s near centre, 670°/s at full stick | Betaflight defaults (docs/physics.md [1][2]) |
+
+Demos measured (Trainer and 5-inch, `test/unit/demos.test.mjs`): Up climbs more than 2 m and then holds within 0.1 m; Down sinks more than 2 m at under 3 m/s; Turn turns the nose more than 60° while the drone stays within 0.3 m; Backward and Sideways move more than 4 m with the nose unchanged (within 3°); Coming down sinks gently (under 3.5 m/s) straight down, then a second time while moving forward.
+
 ## Helpers (M10)
 
 **Force arrows while flying.** The same arrows as in the demos (`src/arrows.js`, same scales), switched on with F or in Settings, drawn in line-of-sight and chase view. In FPV the camera is on the quad, so they are not drawn. Checked in Chrome: hovering, the four thrusts add up to the weight (6.67 N against 6.67 N).

@@ -526,7 +526,7 @@ if (runs('M6L')) {
   // Learn from the link (?learn): lesson 1 is up; nothing is locked (M8), lesson 1 is marked as the next one.
   await open('&learn', null);
   let s = await snap();
-  const list = await page.$$eval('#lesson-list button', (bs) => bs.map((b) => [b.textContent, b.disabled, b.classList.contains('on')]));
+  const list = await page.$$eval('#lesson-list button.lesson', (bs) => bs.map((b) => [b.textContent, b.disabled, b.classList.contains('on')]));
   const banner = await page.textContent('#lesson');
   const nextTag = () => page.$eval('#lesson-list .next', (n) => n.closest('button').dataset.id);
   check('M6 ?learn opens lesson 1 with the real-radio line; all 8 lessons can be opened, lesson 1 marked Next', s.lesson && s.lesson.id === 'takeoff' && s.lesson.state === 'ready' && /On a real radio the throttle stays where you leave it/.test(banner)
@@ -788,10 +788,10 @@ if (runs('M8')) {
   // Learn: every lesson can be opened; open lesson 4 without having passed 1 to 3.
   await press('up', 5); await press('cross');
   s = await snap();
-  const lessons = await page.$$eval('#lesson-list button', (bs) => bs.map((b) => [b.dataset.id, b.disabled]));
+  const lessons = await page.$$eval('#lesson-list button.lesson', (bs) => bs.map((b) => [b.dataset.id, b.disabled]));
   await shot('64-m8-learn-nothing-locked');
   check('M8 Learn lists the 8 lessons, none locked; the pointer starts on the next one', s.menu.screen === 'learn' && lessons.length === 8 && lessons.every((l) => !l[1]) && /^1\. /.test(s.menu.item), `("${s.menu.item}")`);
-  await press('down', 3); await press('cross');   // lesson 4: its chapter screen (M9)
+  await press('down', 4); await press('cross');   // (past the Level 2 deck, M10e) lesson 4: its chapter screen (M9)
   await press('down', 3); await press('cross');   // Learn, Watch, Check, Try: straight to Try
   s = await snap();
   check('M8 lesson 4 opens although lessons 1 to 3 are not passed', !s.menu.open && s.app === 'learn' && s.lesson && s.lesson.id === 'outback' && await page.isVisible('#lesson'), JSON.stringify(s.lesson));

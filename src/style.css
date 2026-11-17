@@ -71,6 +71,9 @@ button.lesson.on { background: #2d6cdf; }
 button.lesson:disabled { opacity: .45; cursor: default; background: rgba(255,255,255,.08); }
 button.lesson small { font-size: 12px; color: #dfe5ee; letter-spacing: .03em; }
 button.lesson.done b::after { content: ' ✓'; color: #6fe38a; }
+button.deck { display: grid; gap: 1px; text-align: left; background: rgba(80,160,255,.18); padding: 5px 9px; border-left: 3px solid #8fd3ff; }
+button.deck:hover { background: rgba(80,160,255,.3); }
+button.deck small { font-size: 12px; color: #dfe5ee; }
 #badge { margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: #1f7a3a; font-weight: 700; text-align: center; }
 #btn-forget[hidden] { display: none; }
 #menu section > .tune-row { display: flex; gap: 8px; align-items: baseline; margin-top: 10px; }

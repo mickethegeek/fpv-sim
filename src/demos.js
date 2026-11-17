@@ -131,7 +131,7 @@ export const DEMOS = {
     fly: (t, s, h) => ({ ...h.hold(s, 0, s.pos[1], -7), throttle: between(t, 1, 2.5) ? h.hover + 0.1 : t < 1 ? h.alt(s, 1.5) : h.alt(s, s.pos[1]) }) },
   'basic-down': { start: [0, 4.5, -7], cam: [2.6, 2.6, -1.5], loop: 7, captions: ['Just under hover: it sinks gently'],
     fly: (t, s, h) => ({ ...h.hold(s, 0, s.pos[1], -7), throttle: between(t, 1, 4.5) && s.pos[1] > 1.2 ? h.hover - 0.04 : t < 1 ? h.alt(s, 4.5) : h.alt(s, Math.max(1.2, s.pos[1])) }) },
-  'basic-yaw': { start: SPOT, cam: [2.2, 2.6, -1.5], loop: 7.5, nose: true, scale: 2, captions: ['Left stick sideways: the nose turns, the drone stays'],
+  'basic-yaw': { start: SPOT, cam: [1.5, 5.5, -3.5], loop: 7.5, nose: true, scale: 2, captions: ['Left stick sideways: the nose turns, the drone stays'],
     fly: (t, s, h) => ({ ...h.hold(s, ...SPOT), yaw: between(t, 1, 3) ? -0.45 * Math.min(1, (t - 1) / 0.6, (3 - t) / 0.6) : between(t, 4, 6) ? 0.45 * Math.min(1, (t - 4) / 0.6, (6 - t) / 0.6) : 0 }) },
   'basic-back': { start: [12, 2.5, -9, 90], cam: PILOT, loop: 6, captions: ['Stick back: it tilts back and moves backward'],
     fly: (t, s, h) => level(s, h, 2.5, { pitch: between(t, 1, 3) ? -0.35 : t >= 3 && s.vel[0] < -0.4 ? 0.4 : 0 }) },
@@ -139,11 +139,11 @@ export const DEMOS = {
     fly: (t, s, h) => level(s, h, 2.5, { roll: between(t, 1, 3) ? 0.35 : t >= 3 && s.vel[0] > 0.4 ? -0.4 : 0 }) },
   'thrust-ramp': { start: [0, 1.2, -7], cam: [2.6, 2.6, -1.5], loop: 6, arrows: true, captions: ['Throttle up slowly: the push grows faster than the stick'],
     fly: (t, s, h) => ({ ...h.hold(s, 0, s.pos[1], -7), throttle: t < 1 ? h.alt(s, 1.2) : between(t, 1, 3) ? h.hover + 0.06 * (t - 1) : h.alt(s, s.pos[1]) }) },
-  'descent': { runs: 2, start: (run) => (run ? [-10, 7, -8, 90] : [0, 7, -8]), cam: PILOT, loop: 6, arrows: true,
+  'descent': { runs: 2, start: (run) => (run ? [-12, 7, -8, 90] : [0, 7, -8]), cam: PILOT, loop: 7.5, arrows: true,
     captions: ['Straight down, gently: just under hover', 'Coming down while moving forward: the drone leaves its own air behind'],
     fly: (t, s, h) => {
       const sink = s.pos[1] > 1.5 && t > 1 ? h.hover - 0.03 : h.alt(s, Math.max(1.5, s.pos[1]));
-      return h.run ? { ...level(s, h, 0, { pitch: t > 1 && s.pos[1] > 1.5 ? 0.25 : s.vel[0] > 0.4 ? -0.4 : 0 }), throttle: sink + (t > 1 && s.pos[1] > 1.5 ? 0.02 : 0) } : { ...h.hold(s, 0, s.pos[1], -8), throttle: sink };
+      return h.run ? { ...level(s, h, 0, { pitch: t > 1 && s.pos[1] > 1.5 ? 0.2 : s.vel[0] > 0.4 ? -0.4 : 0 }), throttle: sink } : { ...h.hold(s, 0, s.pos[1], -8), throttle: sink };
     } },
   // Stick patterns (src/patterns.js, M10d): run 0 does the whole pattern, run 1 forgets one part. captions[run] says which.
   'pat-hover': { runs: 2, start: SPOT, cam: [2.2, 2.6, -1.5], loop: 6, captions: ['Throttle at hover: it stays', 'Forgot: throttle a little low, so it sinks'],

@@ -149,3 +149,16 @@ test('stick patterns: each one has a demo; forgetting the part does what the car
     assert.ok(side(a) < 20 && side(b) > side(a) + 25, `${preset} turn: mean slip ${side(a).toFixed(0)} vs ${side(b).toFixed(0)} deg`);
   }
 });
+
+test('curriculum demos (M10e) show what their cards say (both quads)', () => {
+  for (const preset of ['trainer', 'freestyle']) {
+    const up = fly('basic-up', preset), down = fly('basic-down', preset), yaw = fly('basic-yaw', preset), back = fly('basic-back', preset), side = fly('basic-side', preset);
+    assert.ok(at(up, 5).pos[1] > at(up, 1).pos[1] + 2 && Math.abs(at(up, 5.5).pos[1] - at(up, 4.5).pos[1]) < 0.1, `${preset} up: climbs, then holds`);
+    assert.ok(at(down, 4).pos[1] < at(down, 1).pos[1] - 2 && Math.min(...down.map((p) => p.vel[1])) > -3, `${preset} down: sinks gently`);
+    assert.ok(Math.abs(at(yaw, 2).heading) > 60 && Math.hypot(at(yaw, 7).pos[0], at(yaw, 7).pos[2] + 7) < 0.3, `${preset} yaw: the nose turns, the drone stays`);
+    assert.ok(at(back, 4).pos[0] < at(back, 1).pos[0] - 4 && Math.abs(at(back, 4).heading - 90) < 3, `${preset} back: moves backward, nose unchanged`);
+    assert.ok(at(side, 4).pos[0] > at(side, 1).pos[0] + 4 && Math.abs(at(side, 4).heading) < 3, `${preset} sideways: slides right, nose ahead`);
+    const d0 = fly('descent', preset, 0), d1 = fly('descent', preset, 1);
+    assert.ok(Math.min(...d0.map((p) => p.vel[1])) > -3.5 && at(d0, 7).pos[1] < 2 && at(d1, 7).pos[1] < 2 && at(d1, 4).pos[0] > at(d1, 1).pos[0] + 4, `${preset} descent: gentle straight down; second run comes down moving forward`);
+  }
+});
