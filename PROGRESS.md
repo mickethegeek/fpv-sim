@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M10d Yaw climb + stick patterns**, then **M10e Curriculum**, then **M10f Independent physics review**, then **M10c Replay**, then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
+Next: **M10e Curriculum** (see "For M10e" in the notes for the vortex ring source), then **M10f Independent physics review**, then **M10c Replay**, then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -18,7 +18,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M9 Chapters with theory
 - [x] M10 Helpers (force arrows, coaching, beginner uptilt)
 - [x] M10b Demo fixes (nose, motor arrows, stop early)
-- [ ] M10d Yaw climb check + stick patterns
+- [x] M10d Yaw climb check + stick patterns
 - [ ] M10e Curriculum: levels 1-4, motors layer, going down
 - [ ] M10f Independent physics review
 - [ ] M10c Replay (last feature)
@@ -207,3 +207,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-17 11:07 Zurich · M10d: Banked turn and Orbit demos draw the ground track (green whole, orange forgotten part) with a white nose line every 0.4 s; README Stick patterns section; docs/theory.md table of the pattern demos (measured); 79 unit tests; M10d block running in Chrome · next: screenshots, full run, tick M10d
 - 2026-11-17 11:12 Zurich · M10d: trail drawn as flat dots and nose bars (1 px lines were unreadable); M10d block passes in Chrome (11 checks), screenshots 100 and 102 looked at: green track carves with the nose along it, orange track runs on while the nose bars swing across it · next: full browser run, tick M10d
 - 2026-11-17 11:23 Zurich · M10d: full browser run in progress, 112 checks pass so far, none failed; vortex ring state source noted for M10e · next: finish the run, tick M10d
+- 2026-11-17 11:32 Zurich · M10d ticked: yaw jump kept (real, Betaflight yaw pidsum limit added), 8 stick patterns flown whole and with one part forgotten, Stick patterns page, live throttle under the left stick, pattern reminder in Try, ground track + nose bars in the Banked turn and Orbit demos; 79 unit tests; full browser run passes (164 checks, 0 failures); proof/M10d/97 to 102 · next: M10e curriculum
