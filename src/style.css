@@ -129,5 +129,5 @@ button.lesson .next { color: #ffd23f; font-weight: 600; }
 #tags span { position: absolute; left: 0; top: 0; white-space: nowrap; font-size: 14px; font-weight: 600; padding: 2px 8px;
   background: rgba(12,16,26,.8); border: 2px solid #fff; border-radius: 12px; color: #fff; }
 #tags span[hidden], #hold[hidden] { display: none; }
-#hold { position: fixed; left: 50%; bottom: 18%; transform: translateX(-50%); max-width: 80vw; padding: 8px 16px; font-size: 18px; font-weight: 600;
+#hold { position: fixed; left: 50%; bottom: 25%; transform: translateX(-50%); max-width: 80vw; padding: 8px 16px; font-size: 18px; font-weight: 600;
   background: rgba(12,16,26,.85); border-radius: 10px; border-bottom: 3px solid #ffd23f; color: #fff; text-align: center; }

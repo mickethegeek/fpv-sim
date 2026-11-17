@@ -485,21 +485,27 @@ function drawDemoMarks(scale) {
     for (const c of demoMarks.children) { c.geometry.dispose(); c.material.dispose(); }
     demoMarks.clear(); demoMarks.userData.of = marks;
     for (const m of marks) {
-      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, 3), new THREE.MeshBasicMaterial({ color: m.color }));
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.02, 4), new THREE.MeshBasicMaterial({ color: m.color }));
       strip.position.set(m.x, 0.02, m.z);
       demoMarks.add(strip);
     }
   }
   const tags = [];
-  for (const m of marks) tags.push({ p: [m.x, 0.05, m.z + 1.5], text: m.text, color: '#' + m.color.toString(16).padStart(6, '0') });
+  marks.forEach((m, i) => tags.push({ p: [m.x, 0.05, i ? m.z + 1.4 + 0.9 * (i - 1) : m.z - 2.2], text: m.text, color: '#' + m.color.toString(16).padStart(6, '0') }));
   if (demo && scale && demo.tags) {
     const s = sim.state, d = sim.quad.armLength * Math.SQRT1_2 * scale;
     _tq.set(s.quat[0], s.quat[1], s.quat[2], s.quat[3]);
     MOTORS.forEach((mo, i) => {
       if (!demo.tags[i]) return;
-      _tv.set(mo.sx * d * 1.6, 0.05 * scale, mo.sz * d * 1.6).applyQuaternion(_tq);
+      _tv.set(mo.sx * d * 1.5, 0.05 * scale, mo.sz * d * 1.5).applyQuaternion(_tq);
       tags.push({ p: [s.pos[0] + _tv.x, s.pos[1] + _tv.y, s.pos[2] + _tv.z], text: demo.tags[i] === 'faster' ? '▲ faster' : '▼ slower', color: demo.tags[i] === 'faster' ? '#ffd23f' : '#a9b4c4' });
     });
+  }
+  if (demo && scale && demo.def.nose) { // a 'nose' label at the tip of the nose arrow
+    const st = sim.state;
+    _tq.set(st.quat[0], st.quat[1], st.quat[2], st.quat[3]);
+    _tv.set(0, 0.05 * scale, -0.36 * scale).applyQuaternion(_tq);
+    tags.push({ p: [st.pos[0] + _tv.x, st.pos[1] + _tv.y, st.pos[2] + _tv.z], text: 'nose', color: '#ff6a00' });
   }
   const w = canvas.clientWidth, h = canvas.clientHeight;
   tagsShown = [];

@@ -11,7 +11,9 @@ The cards and check questions are in `src/theory.js` (one chapter per lesson). R
 | relative, nose-in, lost | Controls are relative to the drone | Sim: sticks act in the body frame (`src/flightcontroller.js`). The advice "turn the nose away from you" and "nudge forward to find the nose" is **UNSOURCED** (standard line-of-sight teaching, no source read). |
 | tilt-move, tilt-height | Tilt moves the drone and costs lift | Sim: thrust is along the body's up axis, so the vertical part is thrust x cos(tilt). Geometry, no outside source needed. |
 | turn | Yaw and roll together | Sim behaviour (yaw alone leaves the velocity where it was). The bike comparison is a teaching picture, **UNSOURCED**. |
-| no-brakes, stop-early | The drone coasts; stopping distance grows fast with speed | Sim: drag values cited in `docs/physics.md`; M9's demo should measure and show the real stopping distances at two speeds. |
+| no-brakes | Levelled at 3.3 m/s (12 km/h) it is still moving 4 s later and has glided about 6 m. |
+| stop-early | Two runs braking hard (half back stick) from the same white line: about 14 km/h stops in about 1.5 m, about 33 km/h needs about 6 m (Trainer; Freestyle similar). 2.3x the speed, 4x the room, as kinetic energy (v²) predicts. Each stop is marked on the ground with its speed and distance, measured in that run. |
+| tilt | A half roll stick from a hover, run 20x slower through the 0.2 s when the motors differ, held 2.5 s at each peak: first the left pair spins faster (about 1.5x the mean thrust) and the quad starts to tip right, then the right pair spins faster (about 1.3x) to stop the tip at the angle asked for. The faster / slower tags come from the motors' thrust that frame (more than 10 % off the mean). |
 | camera | Camera tilted up because the drone flies nose down; beginners 10 to 15 degrees | Oscar Liang, "What's the Best Camera Angle": "a 10°–15° camera angle is an excellent starting point"; "20°–35° works well for general freestyle flying". https://oscarliang.com/camera-angle/ . This is also the source for M10's beginner uptilt. |
 | wind-drift, wind-lean | The drone drifts with the air | Sim: drag acts on speed through the air (`quad.wind` in `src/physics.js`); wind speed cited in `docs/physics.md`. |
 | disarm | Disarm on a crash | Lesson 6 already teaches it. "Safer than props still spinning" is **UNSOURCED** (common practice). |
@@ -28,7 +30,7 @@ Each card names a `demo` in `src/demos.js`: a short scene the sim plays beside t
 |---|---|
 | tilt-height | 30 degrees of tilt (half stick) at hover throttle for 1.6 s: the quad sinks more than 0.6 m. The same tilt with throttle added: height stays within 0.5 m. |
 | no-brakes, stop-early | Levelled at 3.3 m/s (12 km/h) it is still moving 4 s later and has glided about 6 m; tilting back stops it in about 1 m. The stopping distances at higher speeds are not shown yet. |
-| relative, nose-in | Nose toward the pilot, roll stick right: the quad moves to the pilot's left. Turned away, the same stick moves it right. |
+| relative, nose-in, lost | Nose toward the pilot, roll stick right: the quad moves to the pilot's left. Turned away, the same stick moves it right. In these three demos the quad is drawn 3x with a big orange nose arrow and a "nose" label, seen from behind the pilot and 5.5 m up (about 30 degrees down) so the arrow does not point straight at the camera (look choices, UNSOURCED). |
 | wind-drift, wind-lean | In the 2.6 m/s breeze a level quad drifts more than 3 m in 6 s; holding the spot takes a lean of a few degrees. |
 | angle, acro, acro-level | Angle mode: back under 3 degrees of tilt 1.8 s after release. Acro: the tilt stays within 3 degrees of where the stick left it, until the counter-move. |
 | rates | Full roll stick for 0.54 s: one flip (670 deg/s, Betaflight default). |

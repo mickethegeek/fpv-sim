@@ -1120,6 +1120,59 @@ if (runs('M10')) {
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
+// --- M10b: demo fixes: the nose in the nose demos, the motors held during a tilt, two stopping distances ---
+if (runs('M10b')) {
+  await page.goto(url + '?fast&learn'); await page.waitForFunction(() => window.__sim && window.__sim.ready); await frames(3);
+  const card = async (lesson, i) => { await page.evaluate((x) => { window.__sim.showChapter(x.lesson); window.__sim.startPart('learn', x.i); }, { lesson, i }); await frames(3); };
+  const until = (fn, arg, timeout = 120000) => page.waitForFunction(fn, arg, { timeout, polling: 30 });
+
+  // (1) Nose demos: the quad drawn 3x with the nose arrow; the other demos without it.
+  for (const [lesson, i, name] of [['directions', 1, '90-nose-in'], ['directions', 2, '91-nose-in-fix'], ['emergency', 3, '92-find-nose']]) {
+    await card(lesson, i); await simWait(1200);
+    const s = await snap();
+    check(`M10b ${s.demo}: quad drawn 3x with the nose arrow and a nose label, camera raised`, s.modelScale === 3 && s.nose && s.tags.includes('nose') && s.camera.pos[1] > 4, `(scale ${s.modelScale}, camera at ${s.camera.pos[1].toFixed(1)} m)`);
+    await shot(name);
+  }
+  await card('directions', 0); await simWait(300);
+  let s = await snap();
+  check('M10b other demos keep the plain quad (no nose arrow, 2x)', s.demo === 'yaw-pairs' && !s.nose && s.modelScale === 2);
+
+  // (2) Tilting: the motor push is held with tags, then the catch.
+  await card('takeoff', 1);
+  await until(() => window.__sim.snapshot().held);
+  s = await snap();
+  const faster = s.tags.filter((t) => t === '▲ faster').length, slower = s.tags.filter((t) => t === '▼ slower').length;
+  check('M10b tilt demo stops at the push: two motors tagged faster, two slower, one line', faster === 2 && slower === 2 && /left motors spin faster, so the drone starts to tip right/.test(s.hold) && await page.isVisible('#hold'), `(${s.tags.join(', ')} · "${s.hold}")`);
+  const fl = s.motors[2] + s.motors[3], fr = s.motors[0] + s.motors[1];
+  check('M10b the tags match the real motor commands this moment', fl > fr * 1.2, `(left ${fl.toFixed(2)}, right ${fr.toFixed(2)})`);
+  await shot('93-tilt-held-push');
+  const t0 = s.time; await page.waitForTimeout(800); const t1 = (await snap()).time;
+  check('M10b the moment really holds (sim time stands still)', t1 === t0 && (await snap()).held, `(${t0.toFixed(4)} → ${t1.toFixed(4)} s)`);
+  await until(() => { const x = window.__sim.snapshot(); return x.held && /stop the tip/.test(x.hold || ''); });
+  s = await snap();
+  check('M10b then the catch: the right motors faster to stop the tip', /right motors spin faster/.test(s.hold) && s.tags.length === 4, `("${s.hold}")`);
+  await shot('94-tilt-held-catch');
+  await until(() => { const x = window.__sim.snapshot(); return !x.held && !x.hold && x.time > 2; });
+  s = await snap();
+  check('M10b after the held moments the demo plays on and the tags go', s.tags.length === 0 && !(await page.isVisible('#hold')));
+
+  // (3) Stop early: slow run, fast run, both stops marked from the same brake line.
+  await card('outback', 1);
+  await until(() => window.__sim.snapshot().marks.length === 2);
+  s = await snap();
+  check('M10b stop early, run 1 (slow): brake line and one stop mark with speed and distance', s.run === 0 && s.marks[0] === 'brake here' && /^\d+ km\/h: stopped after \d+\.\d m$/.test(s.marks[1]) && s.tags.length === 2 && s.modelScale === 3, `(${s.marks.join(' | ')}; on screen: ${s.tags.length})`);
+  await simWait(1000); await shot('95-stop-slow');
+  await until(() => window.__sim.snapshot().marks.length === 3);
+  await simWait(800);
+  s = await snap();
+  const nums = s.marks.slice(1).map((m) => m.match(/^(\d+) km\/h: stopped after (\d+\.\d) m$/).slice(1).map(Number));
+  check('M10b run 2 (fast): both stops stay marked; much faster needs much more room', s.run === 1 && nums[1][0] > 1.6 * nums[0][0] && nums[1][1] > 2.5 * nums[0][1] && s.tags.length === 3, `(${s.marks.slice(1).join(' | ')}; labels on screen ${s.tags.length})`);
+  await shot('96-stop-fast');
+  await until(() => window.__sim.snapshot().run === 0);
+  s = await snap();
+  check('M10b the loop starts again with only the brake line', s.marks.length === 1);
+}
+
 const simErrors = await page.evaluate(() => window.__sim.errors);
 check('no page errors', problems.length === 0 && simErrors.length === 0, JSON.stringify([...problems, ...simErrors]));
 
