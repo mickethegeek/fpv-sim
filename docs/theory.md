@@ -62,9 +62,9 @@ Learn is ordered in four levels (`src/curriculum.js`): **1 The basics** (hover, 
 |---|---|
 | Hover takes about a ninth of full push; that sits near 15 % of the stick (21 % on the Trainer) | Thrust-to-weight 9 (docs/physics.md, PLAN range, uncited) and the thrust curve thrust ∝ command^1.35 (docs/feel.md note 2, two 2207 6S bench tables); `hoverStick()` gives 15.0 % (freestyle) and 21.4 % (Trainer) |
 | Tilted 30°, half the push points sideways; upward part = push × cos(tilt) | Geometry: sin 30° = 0.5, cos 30° = 0.87, cos 60° = 0.5 |
-| A prop's twist is its push times about 1.2 cm, against the 11 cm arm | `yawTorquePerThrust` 0.0122 m (derived from [7] in docs/physics.md) and `armLength` 0.11 m (uncited) |
+| A prop's twist is its push times about 1.2 cm, against about 8 cm of lever for tilting (11 cm arm at 45°) | `yawTorquePerThrust` 0.0122 m (derived from [7] in docs/physics.md); `armLength` 0.11 m (cited 107.5 to 112.5 mm, docs/feel.md) x cos 45° = 7.8 cm. Fixed by the M10f review (docs/review.md R3) |
 | Hard yaw makes the drone jump up, on real Betaflight quads too | docs/physics.md "Yaw jump" (Betaflight 4.2 tuning notes) |
-| Drag sets the top speed, about 150 km/h | docs/feel.md: 145 km/h measured in angle mode, 148 km/h level |
+| Prop push falls as air rushes through faster, which sets the top speed, about 150 km/h | Sim model: thrust falls with axial airspeed (`pitchSpeed`, docs/physics.md "Model choices"); docs/feel.md: 145 km/h measured in angle mode, 148 km/h level. Was "drag sets the top speed", fixed by the M10f review (R2) |
 | Coming down: up to 20 % less mean push when sinking into its own wash; the sim does not model it | Veismann et al. 2021, NASA Ames, https://rotorcraft.arc.nasa.gov/Publications/files/77-2021-0193_Veismann.pdf (abstract: "mean thrust losses of up to 20% compared to hover conditions"); a 1.68 kg variable-pitch quad in a vertical wind tunnel, so for a 5-inch it is an indication, not a measurement. Not modelled: see PROGRESS.md "For M10e" for a possible model |
 | Rates 70°/s near centre, 670°/s at full stick | Betaflight defaults (docs/physics.md [1][2]) |
 

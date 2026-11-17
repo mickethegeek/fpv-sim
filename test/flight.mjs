@@ -1271,6 +1271,27 @@ if (runs('M10e')) {
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
+// --- M10f: the cards fixed by the independent physics review show their new text ---
+if (runs('M10f')) {
+  await page.goto(url + '?fast&learn'); await page.waitForFunction(() => window.__sim && window.__sim.ready); await frames(3);
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+  const open = async (level, i) => { await menuTo('main', 'theory'); await frames(3);
+    await page.evaluate(([l, k]) => document.querySelector(`#theory-list button[data-act=level-card][data-level=${l}][data-i="${k}"]`).click(), [level, i]); await frames(4); };
+  await open('physics', 3);
+  let txt = await page.textContent('#theory-text');
+  check('M10f "Momentum and drag": top speed set by prop thrust falling with airspeed, not drag', /less they push, and that sets the top speed/.test(txt) && !/Air drag grows with speed/.test(txt), `("${txt}")`);
+  await shot('106-momentum-card');
+  await open('physics', 2);
+  await page.keyboard.press('KeyY'); await frames(3);
+  let s = await snap();
+  check('M10f "Prop torque" Why?: 8 cm tilt lever (X frame), not 11 cm', /about 8 cm of lever/.test(s.whyText || '') && await page.isVisible('#theory-why'), `("${s.whyText}")`);
+  await shot('107-prop-torque-why');
+  await open('basics', 7);
+  s = await snap();
+  check('M10f "Stop" Why?: air drag also brakes', /Apart from air drag/.test(s.whyText || ''), `("${s.whyText}")`);
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+}
+
 const simErrors = await page.evaluate(() => window.__sim.errors);
 check('no page errors', problems.length === 0 && simErrors.length === 0, JSON.stringify([...problems, ...simErrors]));
 

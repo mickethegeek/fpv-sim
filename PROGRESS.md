@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M10f Independent physics review** (a leg that did not build the physics audits it cold; findings in docs/review.md), then **M10c Replay**, then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
+Next: **M10c Replay**, then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -20,7 +20,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M10b Demo fixes (nose, motor arrows, stop early)
 - [x] M10d Yaw climb check + stick patterns
 - [x] M10e Curriculum: levels 1-4, motors layer, going down
-- [ ] M10f Independent physics review
+- [x] M10f Independent physics review
 - [ ] M10c Replay (last feature)
 - [ ] M11 Finish phase 2  ← notify Mike when done
 
@@ -217,3 +217,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-17 12:01 Zurich · M10e: full browser run 169 ok, 2 failures, both old M9 checks seeing the new parts (the □ why key hint; Theory page now also lists the level cards): list order changed (chapters first, levels after) and checks updated; M9 block rerunning · next: tick M10e
 - 2026-11-17 12:05 Zurich · M10e ticked: Learn in four levels (basics 8 cards, combinations 5, physics 5, acro 4), each a deck then its lessons; Why? (motors) on every card with the motors line, force arrows and live faster / slower tags; coming down taught with the NASA vortex-ring source and marked as not modelled; 7 new demos checked in unit tests on both quads; 83 unit tests; full browser run 169 ok + the 2 updated M9 checks pass on rerun; proof/M10e/103 to 105 · next: M10f independent physics review
 - 2026-11-17 12:23 Zurich · M10f: independent review written (docs/review.md): Betaflight 4.5.0 source, the papers and bench tables reread; 3 card sentences fixed (top speed comes from prop thrust falling with airspeed, not drag; 8 cm tilt lever, not 11 cm; drag also brakes), angle gain 10 marked tuned (Betaflight: 5 + feedforward), descent thrust cap marked UNSOURCED, idle field name and stale numbers corrected, REPORT UNSOURCED list extended; 83 unit tests · next: check the fixed cards in Chrome, tick M10f
+- 2026-11-17 12:31 Zurich · M10f ticked: docs/review.md (13 findings, R1 to R13; sources reread at Betaflight 4.5.0 and the papers), 3 cards fixed and checked in Chrome (new M10f block, 3 checks, proof/M10f/106 to 107), docs/theory.md rows updated, REPORT UNSOURCED list extended; 83 unit tests. Left open on purpose: mass 680 g (R5), angle gain 10 vs Betaflight 5 + feedforward (R1) · next: M10c Replay
