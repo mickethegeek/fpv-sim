@@ -304,6 +304,17 @@ export function buildQuadModel() {
   const nose = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.03), new THREE.MeshLambertMaterial({ color: 0xff7a1a }));
   nose.position.set(0, 0.02, -0.07);
   quad.add(nose);
+  // Big nose arrow, shown in the demos about which way the drone points (main.js turns it on): bright, unlit, on top of the frame.
+  const arrowMat = new THREE.MeshBasicMaterial({ color: 0xff6a00 });
+  const noseArrow = new THREE.Group();
+  const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.012, 0.12), arrowMat);
+  shaft.position.set(0, 0.035, -0.06);
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.08, 16).rotateX(-Math.PI / 2), arrowMat);
+  head.position.set(0, 0.035, -0.155);
+  noseArrow.add(shaft, head);
+  noseArrow.visible = false;
+  quad.add(noseArrow);
+  quad.userData.nose = noseArrow;
   const d = 0.11 * Math.SQRT1_2;
   for (const [x, z] of [[d, -d], [d, d], [-d, d], [-d, -d]]) {
     const prop = new THREE.Mesh(new THREE.CylinderGeometry(0.0635, 0.0635, 0.004, 20),

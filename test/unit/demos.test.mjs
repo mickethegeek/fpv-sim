@@ -1,30 +1,32 @@
 // The theory demos, flown on the real physics in the real world: each one shows what its card says.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEMOS, demoHelpers, runDemo } from '../../src/demos.js';
+import { DEMOS, demoHelpers, runDemo, demoStart, motorTags, peakWatch, holdLine, thrustSpread } from '../../src/demos.js';
+import { forces } from '../../src/arrows.js';
 import { allCards } from '../../src/theory.js';
 import { setPilotQuad } from '../../src/pilot.js';
 import { createSim, simSteps } from '../../src/sim.js';
 import { createWorld } from '../../src/world.js';
-import { attitude } from '../../src/physics.js';
+import { attitude, MOTORS } from '../../src/physics.js';
 import { buildConfig, defaultTuning } from '../../src/tuning.js';
 import { WIND, headingDeg } from '../../src/lessons.js';
 import { DEG } from '../../src/params.js';
 
 // Fly one loop of a demo; returns samples every 0.1 s: { t, pos, vel, tilt (deg), roll (deg), heading, crashed }.
-function fly(id, preset = 'trainer') {
+function fly(id, preset = 'trainer', run = 0) {
   const def = DEMOS[id], cfg = buildConfig(defaultTuning(preset));
   const sim = createSim({ mode: def.mode || 'angle', world: createWorld() });
   Object.assign(sim.quad, cfg.quad); Object.assign(sim.fcCfg, cfg.fc);
   sim.quad.wind = def.wind ? WIND : null;
   setPilotQuad(sim.quad, sim.fcCfg);
-  const [x, y, z, yaw = 0] = def.start, hy = (-yaw * DEG) / 2;
+  const [x, y, z, yaw = 0] = demoStart(def, run), hy = (-yaw * DEG) / 2;
   sim.state.pos = [x, y, z]; sim.state.quat = [0, Math.sin(hy), 0, Math.cos(hy)];
-  const h = demoHelpers(sim.quad, sim.fcCfg), out = [];
+  const h = demoHelpers(sim.quad, sim.fcCfg, run, []), out = [];
   for (let i = 0; i < Math.round(def.loop * 100); i++) {
     const r = runDemo(def, sim.state, h);
     sim.armed = r.arm && !sim.state.crashed;
     simSteps(sim, r.sticks, 10);
+    out.marks = h.marks;
     if (i % 10 === 9) {
       const s = sim.state, a = attitude(s.quat);
       out.push({ t: s.time, pos: [...s.pos], vel: [...s.vel], roll: a.roll / DEG, tilt: Math.acos(Math.max(-1, Math.min(1, 1 - 2 * (s.quat[0] ** 2 + s.quat[2] ** 2)))) / DEG, heading: headingDeg(s.quat), crashed: s.crashed, onGround: s.onGround });
@@ -36,8 +38,8 @@ const at = (run, t) => run.reduce((b, p) => (Math.abs(p.t - t) < Math.abs(b.t - 
 
 test('demos: every card has a demo, and every demo flies its loop without crashing or leaving the field (both quads)', () => {
   for (const card of allCards()) assert.ok(DEMOS[card.demo], `card ${card.id}: no demo "${card.demo}"`);
-  for (const preset of ['trainer', 'freestyle']) for (const id of Object.keys(DEMOS)) {
-    const run = fly(id, preset), end = run[run.length - 1];
+  for (const preset of ['trainer', 'freestyle']) for (const id of Object.keys(DEMOS)) for (let k = 0; k < (DEMOS[id].runs || 1); k++) {
+    const run = fly(id, preset, k), end = run[run.length - 1];
     assert.ok(run.every((p) => p.pos.every(Number.isFinite)), `${id} (${preset}): not a number`);
     if (id !== 'failsafe-drop') assert.ok(!end.crashed, `${id} (${preset}): crashed at ${(run.find((p) => p.crashed) || end).t.toFixed(1)} s, ${end.pos.map((v) => v.toFixed(1))}`);
     assert.ok(run.every((p) => Math.hypot(p.pos[0], p.pos[2]) < 45 && p.pos[1] < 15), `${id} (${preset}): left the field`);
@@ -52,10 +54,44 @@ test('demos: tilting with the same throttle sinks; with throttle added it holds 
 });
 
 test('demos: no brakes (it keeps gliding); tilting back stops it', () => {
-  const coast = fly('coast'), stop = fly('stop-distance');
+  const coast = fly('coast');
   assert.ok(at(coast, 4.3).vel[0] > 1 && at(coast, 6.4).vel[0] > 0.3, `still gliding at ${at(coast, 4.3).vel[0].toFixed(1)} m/s two seconds after levelling, ${at(coast, 6.4).vel[0].toFixed(1)} m/s after four`);
-  assert.ok(Math.abs(at(stop, 3.3).vel[0]) < 0.5, `stopped: ${at(stop, 5).vel[0].toFixed(2)} m/s`);
-  assert.ok(at(coast, 6.4).pos[0] - at(stop, 6.4).pos[0] > 4, 'the coasting quad ends up much further');
+  // Stop early: the same hard brake from the same line, slow then fast; both stop, and the fast run needs far more room.
+  for (const preset of ['trainer', 'freestyle']) {
+    const slow = fly('stop-distance', preset, 0), fast = fly('stop-distance', preset, 1);
+    const d = (r) => { assert.equal(r.marks.length, 1, `${preset}: one stop mark per run`); return r.marks[0].x; };
+    const v = (r) => Number(r.marks[0].text.split(' ')[0]);
+    assert.ok(Math.abs(slow[slow.length - 1].vel[0]) < 0.5 && Math.abs(fast[fast.length - 1].vel[0]) < 0.5, `${preset}: both stopped by the end of the loop`);
+    assert.ok(v(fast) > 1.6 * v(slow), `${preset}: speeds ${v(slow)} and ${v(fast)} km/h`);
+    assert.ok(d(fast) > 2.5 * d(slow) && d(slow) > 0.3, `${preset}: stopping distances ${d(slow).toFixed(1)} and ${d(fast).toFixed(1)} m`);
+  }
+});
+
+test('demos: motor tags and held moments', () => {
+  assert.deepEqual(motorTags([1, 1, 1, 1]), ['', '', '', '']);
+  assert.deepEqual(motorTags([0.5, 0.5, 1.5, 1.5]), ['slower', 'slower', 'faster', 'faster']);
+  assert.ok(Math.abs(thrustSpread([0.5, 0.5, 1.5, 1.5]) - 1) < 1e-9);
+  assert.match(holdLine(['slower', 'slower', 'faster', 'faster'], MOTORS, 0), /left motors.*tip right/);
+  assert.match(holdLine(['faster', 'faster', 'slower', 'slower'], MOTORS, 1), /right motors.*stop the tip/);
+  assert.match(holdLine(['faster', 'slower', 'slower', 'faster'], MOTORS, 0), /front motors.*tip backward/);
+  const w = {};
+  const fired = [0.1, 0.3, 0.5, 0.4, 0.2, 0.1, 0.05].map((sp) => peakWatch(w, [1 - sp / 2, 1 - sp / 2, 1 + sp / 2, 1 + sp / 2]));
+  assert.deepEqual(fired, [false, false, false, true, false, false, false]);
+  // On the real physics, at 1 ms per frame (the slow motion in the browser): the tilt shows the push, then the catch.
+  for (const preset of ['trainer', 'freestyle']) {
+    const def = DEMOS['tilt-motors'], cfg = buildConfig(defaultTuning(preset));
+    const sim = createSim({ world: createWorld() });
+    Object.assign(sim.quad, cfg.quad); Object.assign(sim.fcCfg, cfg.fc); setPilotQuad(sim.quad, sim.fcCfg);
+    sim.state.pos = [...def.start];
+    const h = demoHelpers(sim.quad, sim.fcCfg), lines = [], watch = {};
+    while (sim.state.time < def.slowmo[1]) {
+      const r = runDemo(def, sim.state, h); sim.armed = r.arm;
+      simSteps(sim, r.sticks, 1);
+      if (sim.state.time >= def.slowmo[0]) { const th = forces(sim.state, sim.quad).thrust; if (peakWatch(watch, th)) lines.push(holdLine(motorTags(th), MOTORS, lines.length)); }
+    }
+    assert.equal(lines.length, 2, `${preset}: ${lines.join(' | ')}`);
+    assert.match(lines[0], /left motors.*tip right/); assert.match(lines[1], /right motors.*stop the tip/);
+  }
 });
 
 test('demos: nose toward you, roll right goes to your left; turned away, it goes right', () => {

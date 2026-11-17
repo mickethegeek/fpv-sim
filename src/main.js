@@ -1,7 +1,7 @@
 // Entry point. Wires input, sim, FPV camera, HUD and the render loop.
 // Physics lives in sim.js / physics.js / flightcontroller.js / world.js (no DOM there).
 import * as THREE from '../vendor/three.module.min.js';
-import { PHYSICS_HZ, attitude, rotate } from './physics.js';
+import { PHYSICS_HZ, MOTORS, attitude, rotate } from './physics.js';
 import { MODES, actualRate } from './flightcontroller.js';
 import { createSim, resetSim, simAdvance } from './sim.js';
 import { DEG } from './params.js';
@@ -15,9 +15,9 @@ import { createRace, resetRace, raceUpdate, formatLap, loadBest, saveBest } from
 import * as LS from './lessons.js';
 import { Menu, navNames } from './menu.js';
 import * as TH from './theory.js';
-import { DEMOS, demoHelpers, runDemo } from './demos.js';
+import { DEMOS, demoHelpers, runDemo, demoStart, motorTags, peakWatch, holdLine } from './demos.js';
 import { createLessonPilot, setPilotQuad } from './pilot.js';
-import { buildArrows } from './arrows.js';
+import { buildArrows, forces } from './arrows.js';
 import { createRecorder, record, coachLine } from './coach.js';
 
 // View settings (M6 puts these in the settings panel).
@@ -189,6 +189,8 @@ const hook = (window.__sim = {
       race: { next: race.next, running: race.running, lapTime: race.lapTime, lastLap: race.lastLap, best: race.best, laps: race.laps, passed: race.passed },
       chapter: chapter ? { lesson: chapter.lesson.id, part: chapter.part, i: chapter.i } : null, demo: demo ? demo.card.demo : null, watching: !!watching,
       theory: theoryEl.hidden ? null : { where: theoryWhere.textContent, title: theoryTitle.textContent, text: theoryText.textContent, next: theoryNext.textContent },
+      hold: holdEl.hidden ? null : holdEl.textContent, held: !!(demo && demo.hold > 0), tags: [...tagsShown], marks: demo && demo.marks ? demo.marks.map((m) => m.text) : [], run: demo ? demo.run : null,
+      modelScale: quadModel.scale.x, nose: quadModel.userData.nose.visible,
       arrows: arrows.visible, arrowsOn: view.arrows, uptilt: uptiltNow(), uptiltSet: view.uptiltSet, toast: toast ? toast.text : null, curve: curveEl.hidden ? null : { d: (curveLine.getAttribute('d') || '').length, dot: Number(curveDot.getAttribute('cx')), label: curveMax.textContent }, seen: JSON.parse(JSON.stringify(seen)),
       app: appMode, menu: { open: menu.isOpen, screen: menu.screen, item: menu.current ? menu.current.textContent.trim() : null },
       view: view.mode, sticksShown: !sticksEl.hidden, sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open,
@@ -293,14 +295,21 @@ function playCard(i) {
   placeDemo();
   closeMenu(false);
 }
+// Time factor of a demo at sim time t: its slow-motion window, else its general speed.
+const demoRate = (def, t) => (def.slowmo && t >= def.slowmo[0] && t < def.slowmo[1] ? def.slowmo[2] : def.slow || 1);
+const HOLD_SECS = 2.5; // a held moment stays on screen this long (real seconds): time to read the line and the motor tags
 function placeDemo() {
-  const [x, y, z, yaw = 0] = demo.def.start, h = (-yaw * DEG) / 2;
+  const def = demo.def;
+  demo.run = demo.run === undefined ? 0 : (demo.run + 1) % (def.runs || 1);
+  if (demo.run === 0) demo.marks = (def.marks || []).map((m) => ({ ...m }));
+  demo.watch = {}; demo.hold = 0; demo.holdN = 0; demo.holdText = ''; demo.tags = null;
+  const [x, y, z, yaw = 0] = demoStart(def, demo.run), h = (-yaw * DEG) / 2;
   resetFlight();
   sim.state.pos = [x, y, z]; sim.state.quat = [0, Math.sin(h), 0, Math.cos(h)];
   sim.mode = demo.def.mode || MODES.ANGLE;
   sim.quad.wind = demo.def.wind ? LS.WIND : null;
   setPilotQuad(sim.quad, sim.fcCfg);
-  demo.h = demoHelpers(sim.quad, sim.fcCfg);
+  demo.h = demoHelpers(sim.quad, sim.fcCfg, demo.run, demo.marks);
 }
 // Next / previous card; past the last one the Learn part is done, before the first one it is back to the chapter.
 function cardStep(d) {
@@ -463,6 +472,51 @@ const gates = buildGates(world.course);
 scene.add(gates.group);
 const arrows = buildArrows();
 scene.add(arrows);
+// Demo marks on the ground (src/demos.js marks: a line across the flight path, with a label), and labels on the screen
+// for them and for the motors in a held moment.
+const demoMarks = new THREE.Group();
+scene.add(demoMarks);
+const tagsEl = document.getElementById('tags'), holdEl = document.getElementById('hold');
+const tagPool = [], _tv = new THREE.Vector3(), _tq = new THREE.Quaternion();
+let tagsShown = [];
+function drawDemoMarks(scale) {
+  const marks = demo && scale ? demo.marks || [] : [];
+  if (demoMarks.children.length !== marks.length || demoMarks.userData.of !== marks) {
+    for (const c of demoMarks.children) { c.geometry.dispose(); c.material.dispose(); }
+    demoMarks.clear(); demoMarks.userData.of = marks;
+    for (const m of marks) {
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, 3), new THREE.MeshBasicMaterial({ color: m.color }));
+      strip.position.set(m.x, 0.02, m.z);
+      demoMarks.add(strip);
+    }
+  }
+  const tags = [];
+  for (const m of marks) tags.push({ p: [m.x, 0.05, m.z + 1.5], text: m.text, color: '#' + m.color.toString(16).padStart(6, '0') });
+  if (demo && scale && demo.tags) {
+    const s = sim.state, d = sim.quad.armLength * Math.SQRT1_2 * scale;
+    _tq.set(s.quat[0], s.quat[1], s.quat[2], s.quat[3]);
+    MOTORS.forEach((mo, i) => {
+      if (!demo.tags[i]) return;
+      _tv.set(mo.sx * d * 1.6, 0.05 * scale, mo.sz * d * 1.6).applyQuaternion(_tq);
+      tags.push({ p: [s.pos[0] + _tv.x, s.pos[1] + _tv.y, s.pos[2] + _tv.z], text: demo.tags[i] === 'faster' ? '▲ faster' : '▼ slower', color: demo.tags[i] === 'faster' ? '#ffd23f' : '#a9b4c4' });
+    });
+  }
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  tagsShown = [];
+  tags.forEach((t, i) => {
+    const el = tagPool[i] || (tagPool[i] = tagsEl.appendChild(document.createElement('span')));
+    _tv.set(t.p[0], t.p[1], t.p[2]).project(camera);
+    const on = _tv.z < 1 && Math.abs(_tv.x) < 1.1 && Math.abs(_tv.y) < 1.1;
+    el.hidden = !on;
+    if (!on) return;
+    setText(el, t.text); el.style.borderColor = t.color;
+    el.style.transform = `translate(${((_tv.x + 1) / 2) * w}px, ${((1 - _tv.y) / 2) * h}px) translate(-50%, -50%)`;
+    tagsShown.push(t.text);
+  });
+  for (let i = tags.length; i < tagPool.length; i++) tagPool[i].hidden = true;
+  const line = demo && scale && demo.holdText && (demo.tags || demoRate(demo.def, sim.state.time) !== (demo.def.slow || 1)) ? demo.holdText : '';
+  holdEl.hidden = !line; setText(holdEl, line);
+}
 const camera = new THREE.PerspectiveCamera(80, 1, 0.03, 2500);
 const sky = scene.getObjectByName('sky');
 for (const m of Object.values(lessonMarks)) scene.add(m);
@@ -514,7 +568,15 @@ function frame(now) {
     if (inp.acroSwitch !== null) sim.mode = inp.acroSwitch ? MODES.ACRO : MODES.ANGLE;
     sim.armed = input.armed && !sim.state.crashed;
   }
-  if (!hook.paused && !menuOpen) hook.physicsSteps += simAdvance(sim, sticks, dt * (demo && demo.def.slow ? demo.def.slow : 1)); // hook.paused: only the test script, to hold the quad still for a picture
+  // hook.paused: only the test script, to hold the quad still for a picture. A demo can also hold a moment (demo.hold s).
+  if (demo && demo.hold > 0 && !menuOpen) { demo.hold -= dt; if (demo.hold <= 0) demo.tags = null; }
+  else if (!hook.paused && !menuOpen) {
+    hook.physicsSteps += simAdvance(sim, sticks, dt * (demo ? demoRate(demo.def, sim.state.time) : 1));
+    if (demo && demo.def.holds && demoRate(demo.def, sim.state.time) !== (demo.def.slow || 1)) {
+      const th = forces(sim.state, sim.quad).thrust;
+      if (peakWatch(demo.watch, th)) { demo.tags = motorTags(th); demo.holdText = holdLine(demo.tags, MOTORS, demo.holdN++); demo.hold = HOLD_SECS; }
+    }
+  }
   if (!menuOpen) lessonFrame(dt);
 
   // Crash: freeze, show it for a moment, then put the quad back on the pad, disarmed.
@@ -546,16 +608,18 @@ function frame(now) {
   shadow.update(s.pos, s.quat);
   const demoCam = demo ? demo.def.cam : null, standCam = Array.isArray(demoCam);
   quadModel.visible = demoCam ? standCam : view.mode !== 'fpv';
-  quadModel.scale.setScalar(standCam ? view.demoModelScale : view.mode === 'los' ? view.losModelScale : 1);
+  const modelScale = standCam ? demo.def.scale || view.demoModelScale : view.mode === 'los' ? view.losModelScale : 1;
+  quadModel.scale.setScalar(modelScale);
+  quadModel.userData.nose.visible = !!(demo && demo.def.nose && standCam);
   // Force arrows: in the demos that ask for them, and anywhere the player switched them on (in FPV the camera sits inside the quad: nothing to draw them on).
   arrows.visible = demo ? !!demo.def.arrows && standCam : view.arrows && view.mode !== 'fpv';
-  if (arrows.visible) arrows.update(s, sim.quad, standCam ? view.demoModelScale : view.mode === 'los' ? view.losModelScale : 1);
+  if (arrows.visible) arrows.update(s, sim.quad, modelScale);
   if (standCam) {
     // Demo: a camera that stands still and watches the quad.
     camera.position.set(demoCam[0], demoCam[1], demoCam[2]);
-    camera.fov = view.demoFovDeg;
+    camera.fov = demo.def.fov || view.demoFovDeg;
     camera.up.set(0, 1, 0);
-    camera.lookAt(quadModel.position);
+    if (demo.def.look) camera.lookAt(demo.def.look[0], demo.def.look[1], demo.def.look[2]); else camera.lookAt(quadModel.position);
   } else if (view.mode === 'los' && !demoCam) {
     // Line of sight: the pilot stands still on the ground and turns the head to follow the quad.
     camera.position.set(view.pilot[0], view.pilot[1], view.pilot[2]);
@@ -681,6 +745,7 @@ function frame(now) {
   if (hint) setText(hintEl, hint);
 
   renderer.render(scene, camera);
+  drawDemoMarks(standCam ? modelScale : 0);
   fpsCount++;
   if (fpsTime >= 1) { hook.fps = fpsCount / fpsTime; setText(fpsEl, `${Math.round(hook.fps)} fps`); fpsCount = 0; fpsTime = 0; }
   hook.frames++;

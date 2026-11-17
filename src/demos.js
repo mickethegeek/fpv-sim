@@ -7,6 +7,13 @@
 //   arrows  true: draw thrust per motor, weight and velocity (the real values, src/arrows.js)
 //   curve   true: the card also draws the rates curve (rotation speed against stick), with a dot at the stick's place
 //   fly     sticks for sim time t and quad state s; { arm: false } switches the motors off
+//   scale   how much bigger the quad is drawn (default: view.demoModelScale in main.js)
+//   nose    true: a big bright arrow on the quad points where the nose is
+//   look, fov  a fixed point the camera looks at, and its vertical field of view (default: it follows the quad)
+//   slowmo  [from, to, factor]: much slower in that window of sim time; with holds: true the scene also stops
+//           at each peak of the motor difference and labels which motors are faster (see peakWatch, motorTags)
+//   runs    the scene is flown this many times in turn (h.run = 0, 1, ...); start may then be a function of run;
+//           marks that fly() pushes to h.marks stay on screen until the first run starts again
 // The numbers here (positions, stick sizes, timings) only stage the scene; what the quad then does is the sim's physics.
 import { steer } from './pilot.js';
 import { hoverStick } from './params.js';
@@ -14,12 +21,14 @@ import { headingDeg } from './lessons.js';
 
 const PILOT = [0, 1.7, 2];      // where you stand to watch
 const SPOT = [0, 2.5, -7];      // where most demos happen
+const NOSE_CAM = [0, 4.5, 2];   // where you stand, eyes raised a little: from slightly above, the nose arrow reads at a glance
 const between = (t, a, b) => t >= a && t < b;
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 
 // Helpers handed to fly(): hold a point, hold a height, hover throttle, turn to a heading.
-export function demoHelpers(quad, fc) {
+export function demoHelpers(quad, fc, run = 0, marks = []) {
   return {
+    run, marks,
     hover: hoverStick(quad, fc),
     hold: (s, x, y, z) => steer(s, x - s.pos[0], z - s.pos[2], 3, y, Math.PI / 3, false),
     alt: (s, y) => steer(s, 0, 0, 0, y, Math.PI / 3, false).throttle,
@@ -33,8 +42,9 @@ export const DEMOS = {
   // Chapter 1
   'hover-arrows': { start: SPOT, cam: [2.2, 2.4, -3], loop: 7, arrows: true,
     fly: (t, s, h) => h.hold(s, SPOT[0], between(t, 2.5, 5) ? 4 : 2.5, SPOT[2]) },
-  'tilt-motors': { start: SPOT, cam: [0, 2.6, -2.5], loop: 6, slow: 0.5, arrows: true,
-    fly: (t, s, h) => (between(t, 1.5, 2.3) ? level(s, h, 2.5, { roll: 0.5 }) : between(t, 3.2, 4) ? level(s, h, 2.5, { roll: -0.5 }) : h.hold(s, ...SPOT)) },
+  // The motor difference lasts about 0.15 s (push, then the catch that stops the tip): that moment runs 20x slower and stops at each peak.
+  'tilt-motors': { start: SPOT, cam: [0, 2.6, -2.5], loop: 4, slow: 0.5, slowmo: [1.5, 1.72, 0.05], holds: true, arrows: true,
+    fly: (t, s, h) => (between(t, 1.5, 2.3) ? level(s, h, 2.5, { roll: 0.5 }) : h.hold(s, ...SPOT)) },
   'stick-tour': { start: SPOT, cam: PILOT, loop: 13,
     fly: (t, s, h) => {
       const k = h.hold(s, ...SPOT);
@@ -55,9 +65,9 @@ export const DEMOS = {
   // Chapter 2
   'yaw-pairs': { start: SPOT, cam: [1.2, 5, -4.5], loop: 6, slow: 0.5, arrows: true,
     fly: (t, s, h) => ({ ...h.hold(s, ...SPOT), yaw: between(t, 1.5, 4.5) ? 0.5 : 0 }) },
-  'nose-in': { start: [...SPOT, 180], cam: PILOT, loop: 6.5,
+  'nose-in': { start: [...SPOT, 180], cam: NOSE_CAM, nose: true, scale: 3, loop: 6.5,
     fly: (t, s, h) => (between(t, 1.5, 2.5) ? level(s, h, 2.5, { roll: 0.3 }) : between(t, 2.5, 4) ? level(s, h, 2.5) : h.hold(s, ...SPOT)) },
-  'nose-in-fix': { start: [...SPOT, 180], cam: PILOT, loop: 8,
+  'nose-in-fix': { start: [...SPOT, 180], cam: NOSE_CAM, nose: true, scale: 3, loop: 8,
     fly: (t, s, h) => {
       if (t < 1) return h.hold(s, ...SPOT);
       if (t < 4) return { ...h.hold(s, ...SPOT), yaw: h.turn(s, 0) };
@@ -78,8 +88,18 @@ export const DEMOS = {
   // Chapter 4
   'coast': { start: pass(), cam: PILOT, loop: 6.5, arrows: true,
     fly: (t, s, h) => level(s, h, 2.5, { pitch: between(t, 0.8, 2.3) ? 0.3 : 0 }) },
-  'stop-distance': { start: pass(), cam: PILOT, loop: 6.5, arrows: true,
-    fly: (t, s, h) => level(s, h, 2.5, { pitch: between(t, 0.8, 2.3) ? 0.3 : t >= 2.3 && s.vel[0] > 0.4 ? -0.5 : 0 }) },
+  // Two runs, slow then fast, each braking hard from the same white line; where each one stopped stays marked.
+  'stop-distance': { runs: 2, start: (run) => [run ? -20 : -12, 2.5, -9, 90], cam: [-2, 4.5, 5], look: [0, 1, -9], fov: 50, loop: 8, arrows: true,
+    marks: [{ x: 0, z: -9, color: 0xffffff, text: 'brake here' }],
+    fly: (t, s, h) => {
+      const st = h.stop || (h.stop = { braking: false, v: 0 });
+      if (!st.braking && s.pos[0] >= 0) { st.braking = true; st.v = s.vel[0]; }
+      if (st.braking && !st.done && s.vel[0] <= 0.3) {
+        st.done = true;
+        h.marks.push({ x: s.pos[0], z: -9, color: h.run ? 0xff8a3d : 0x5ee07a, text: `${Math.round(st.v * 3.6)} km/h: stopped after ${s.pos[0].toFixed(1)} m` });
+      }
+      return level(s, h, 2.5, { pitch: st.braking ? (st.done ? 0 : -0.5) : t > 0.5 ? (h.run ? 0.5 : 0.2) : 0 });
+    } },
   'camera-tilt': { start: [-6, 4, 14], cam: 'fpv', loop: 8,
     fly: (t, s, h) => level(s, h, 4, { pitch: between(t, 2.5, 6.5) ? 0.4 : 0 }) },
   // Chapter 5
@@ -94,7 +114,7 @@ export const DEMOS = {
     fly: (t, s, h) => (t < 2.5 ? level(s, h, 1.5, { pitch: t > 0.5 ? 0.25 : 0 }) : { arm: false }) },
   'spotter': { start: [-6, 3, -12, 90], cam: [0, 1.7, 5], loop: 12,
     fly: (t, s) => { const a = t * 0.5 + Math.PI; return steer(s, 7 * Math.cos(a) - s.pos[0], -12 + 4 * Math.sin(a) - s.pos[2], 4, 3); } },
-  'find-nose': { start: [3, 2.5, -10, 135], cam: PILOT, loop: 8,
+  'find-nose': { start: [3, 2.5, -10, 135], cam: NOSE_CAM, nose: true, scale: 3, loop: 8,
     fly: (t, s, h) => (between(t, 1.5, 2.3) ? level(s, h, 2.5, { pitch: 0.3 }) : between(t, 2.3, 3) ? level(s, h, 2.5, { pitch: -0.3 }) : level(s, h, 2.5, { yaw: t > 3.5 ? h.turn(s, 0) : 0 })) },
   // Chapter 7
   'angle-release': { start: SPOT, cam: [0, 2.6, -2.5], loop: 5, slow: 0.6,
@@ -112,4 +132,34 @@ const ZERO = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
 export function runDemo(def, s, h) {
   const r = def.fly(s.time, s, h) || {};
   return { sticks: { ...ZERO, roll: r.roll || 0, pitch: r.pitch || 0, yaw: r.yaw || 0, throttle: r.throttle || 0 }, arm: r.arm !== false };
+}
+
+// Where demo `def` starts on run `run`.
+export const demoStart = (def, run = 0) => (typeof def.start === 'function' ? def.start(run) : def.start);
+
+// Motor tags for a held moment: 'faster' / 'slower' against the mean thrust (more than 10 % off), else ''.
+export function motorTags(thrust) {
+  const m = thrust.reduce((a, b) => a + b, 0) / thrust.length || 1;
+  return thrust.map((f) => (f > m * 1.1 ? 'faster' : f < m * 0.9 ? 'slower' : ''));
+}
+// Spread of the motor thrusts ((max - min) / mean).
+export const thrustSpread = (thrust) => {
+  const m = thrust.reduce((a, b) => a + b, 0) / thrust.length || 1;
+  return (Math.max(...thrust) - Math.min(...thrust)) / m;
+};
+// Call once per frame with this frame's thrusts; true on the first frame after a peak of the spread above `min`.
+export function peakWatch(w, thrust, min = 0.2) {
+  const sp = thrustSpread(thrust), prev = w.prev ?? 0;
+  const peak = !!w.rising && sp < prev && prev > min;
+  w.rising = sp > prev; w.prev = sp;
+  return peak;
+}
+// One line for held moment n (0: the push that starts the tip, 1: the catch that stops it), from the tags and the
+// motor layout (sx > 0: right side, sz < 0: front).
+export function holdLine(tags, motors, n = 0) {
+  const r = motors.filter((m, i) => tags[i] === 'faster');
+  const f = r.length !== 2 ? null : r[0].sx === r[1].sx ? (r[0].sx > 0 ? 'right' : 'left') : r[0].sz === r[1].sz ? (r[0].sz < 0 ? 'front' : 'back') : null;
+  if (!f) return 'Held: the motors differ';
+  const away = { left: 'right', right: 'left', front: 'backward', back: 'forward' }[f];
+  return n === 0 ? `Held: the ${f} motors spin faster, so the drone starts to tip ${away}.` : `Held: now the ${f} motors spin faster, to stop the tip at the angle the stick asks for.`;
 }
