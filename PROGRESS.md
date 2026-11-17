@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M10c Replay**, then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
+Next: **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -21,7 +21,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M10d Yaw climb check + stick patterns
 - [x] M10e Curriculum: levels 1-4, motors layer, going down
 - [x] M10f Independent physics review
-- [ ] M10c Replay (last feature)
+- [x] M10c Replay (last feature)
 - [ ] M11 Finish phase 2  ← notify Mike when done
 
 ## Direction for the hover-throttle decision (Claude, from the main chat, 2026-11-16 ~10:52 UTC; Mike asked "is 30% hover accurate?")
@@ -106,7 +106,12 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - Coaching thresholds (a stick counts as held beyond 15 % for 0.3 s, and so on) and the advice wording are judgements, marked UNSOURCED in `docs/theory.md`. The numbers in each line are measured from the run.
 - No coaching in Gates or Free fly (nothing "fails" there except a crash; PLAN asks for it after a failed Try).
 
+## Assumptions (M10c)
+- Replay is reached from the pause menu only ("Replay last run"); it shows the current run if it has more than 1 s armed, else the previous one (so a crashed run can still be watched after the automatic reset). Exiting puts the quad back on the pad, like Restart. The best-lap ghost (optional in PLAN) is not built.
+
 ## Notes for the next leg
+- **Replay (M10c):** `src/replay.js` (pure: `createTape`, `tapeRecord` at 60 samples per sim second, last 3 min, `tapeSample` interpolates, `createPlayer` / `playerStep` / `playerSeek` / `playerToggle` / `playerSpeed`; unit tests `test/unit/replay.test.mjs`). `main.js`: `tape` (current run, recorded each frame while armed / airborne / crashed, not in demos or Watch), `lastTape` (kept by `resetFlight`), `replay` ({ p: player }), `startReplay()` / `stopReplay()` / `replayFrame()` / `renderReplay()`; while `replay` is set the physics, lessons, crash timer and race stand still and the sim state is written from the tape. Pause menu item `data-act="replay"` (third item: menu-navigation tests that count D-pad presses must count it). Snapshot: `replay`, `tapeLen`. Browser block `M10c` (10 checks). The tape samples once per rendered frame at most, so in the 12 fps sandbox it holds about 11 samples per second; on a real GPU 60. Not done: the optional ghost of the best gates lap.
+- **M10f review:** findings in `docs/review.md`. Two items left open on purpose: mass 680 g vs the cited 625 to 670 g (R5), angle gain 10 vs Betaflight's 5 + feedforward (R1).
 - Menus: `src/menu.js` (`navUpdate` pure and unit-tested; `Menu` class: screens are `<section data-screen>` in `index.html`, buttons with `data-go="screen|back"` or `data-act="..."`, `data-first` marks where the pointer starts; anything focusable on a screen is reachable with the D-pad, sliders and selects change with left / right). `main.js`: `menu`, `start(mode, id)`, `closeMenu`, `appMode` (`learn` / `gates` / `free`); the sim, lessons, crash timer and lap timer stand still while `menu.isOpen`. Test hook: `__sim.menu.open('pause')`, `.push('settings')`, `.close()`, `__sim.start('learn', 'wind')`, `snapshot().menu` and `.app`. In `test/flight.mjs`: `menuTo(...)`, `menuClose()`, `frames(n)`; `simWait` hangs while a menu is open (the sim is paused), use `frames`. Old blocks open the page with `&gates` (was `&free`), lesson blocks with `&learn`.
 - To add a menu screen (M9 Theory page, chapter parts): add a `<section data-screen="x" data-title="...">` and a button with `data-go="x"`.
 - After any physics or controller change: `node test/feel.mjs` and update the tables in `docs/feel.md`.
@@ -221,3 +226,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-17 12:24 Zurich · M10c started: src/replay.js (tape of the flight at 60 samples/s of sim time, last 3 min, interpolated playback, player with pause / seek / 0.1 to 1x speed), 5 unit tests (playback within 3 cm and 2° of the real flight); 88 unit tests; not on the page yet · next: replay screen on the page (pause menu entry, bar with play / scrub / speed / view)
 - 2026-11-17 12:27 Zurich · M10c: replay on the page: pause menu > Replay last run plays the last flown run (also after a crash) with the stick overlay; bar with play / pause, scrub slider, 1x / 0.5x / 0.25x / 0.1x, view FPV / line of sight / chase, exit; keys Space, arrows, Backspace; controller cross, D-pad, circle, triangle; browser block M10c (10 checks) passes · next: look at the screenshots, README, then the best-lap ghost (optional) and tick M10c
 - 2026-11-17 12:31 Zurich · M10c: replay bar moved above the stick overlay (it covered it), screenshots 108 to 111 looked at (FPV, line of sight, chase with the sticks and bar readable), README Replay section; M8 checks updated for the new pause menu item, M8 block rerunning · next: tick M10c when M8 passes (best-lap ghost left out, optional)
+- 2026-11-17 12:37 Zurich · M10c ticked: replay of the last run from the pause menu (play / pause, scrub, 1x to 0.1x, FPV / line of sight / chase, stick overlay; controller, keys and mouse), also after a crash; 88 unit tests; browser blocks M10c (10 checks), M8 and M9 (both updated for the new pause item) pass; full browser run left to M11; proof/M10c/108 to 111 · next: M11 finish phase 2

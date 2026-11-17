@@ -948,11 +948,11 @@ if (runs('M9')) {
   await press('cross');
   s = await snap();
   const tryOn = !s.menu.open && s.lesson && s.lesson.id === 'takeoff' && s.lesson.state === 'ready' && !s.watching && s.chapter.part === 'try';
-  await press('options'); await press('down', 2); await press('cross');    // Skip this part
+  await press('options'); await press('down', 3); await press('cross');    // Skip this part
   s = await snap();
   check('M9 Try is the lesson itself; Skip this part from the pause menu goes on to chapter 2', tryOn && s.menu.screen === 'chapter' && s.chapter.lesson === 'directions', `(${JSON.stringify(s.chapter)})`);
   await press('cross'); await simTime(1);
-  await press('options'); await press('down', 2); await press('cross');    // skip Learn of chapter 2
+  await press('options'); await press('down', 3); await press('cross');    // skip Learn of chapter 2
   s = await snap();
   check('M9 any part can be skipped: skipping Learn puts the pointer on Watch and leaves Learn unticked', s.menu.screen === 'chapter' && /^Watch/.test(s.menu.item) && !(s.seen.directions && s.seen.directions.learn), `("${s.menu.item}")`);
 
@@ -978,7 +978,7 @@ if (runs('M9')) {
   check('M9 the acro rates card draws the rates curve with the stick marked on it (full stick during the flip)', !!curve && curve.seen && curve.d > 200 && curve.dot > 190 && /670°\/s at full stick/.test(curve.label), JSON.stringify(curve));
 
   // Theory page: every card, to revise any time.
-  await press('options'); await press('down', 4); await press('cross');    // Back to menu
+  await press('options'); await press('down', 5); await press('cross');    // Back to menu
   await press('down', 3); await press('cross');                             // Theory
   s = await snap();
   const listed = await page.$$eval('#theory-list button[data-act=card]', (bs) => bs.length); // (the level cards, M10e, come after them)
