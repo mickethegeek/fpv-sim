@@ -36,6 +36,7 @@ export function defaultFc() {
     // Rate PID in physical units: output is angular acceleration (rad/s^2) per rad/s of error.
     kp: 120, ki: 30, kd: 1.5, iLimit: 3, // tuned to the step-response targets in docs/feel.md
     iRelax: 60,       // deg/s: the I-term only accumulates when the rate error is below this
+    pidsumLimit: 0.5, pidsumLimitYaw: 0.4, // Betaflight pidsum_limit 500 / pidsum_limit_yaw 400 (of 1000 = the whole motor range): the most one axis may move a motor's command (docs/physics.md)
     idle: 0.055,      // minimum motor command when armed: Betaflight default motor idle 5.5 % (docs/feel.md F25)
     throttleLimit: 1, // Betaflight throttle limit, SCALE type: full stick gives this fraction of full command
   };

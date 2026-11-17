@@ -43,9 +43,9 @@ Rule from PLAN.md (Mike, 2026-11-16): every number comes from real-life data. Ro
 | Acro pitch, full stick: time to 50 % / 90 % of 670 deg/s | 25 ms / 43 ms |
 | Acro pitch, full stick: overshoot, rate held | 6.1 %, 670 deg/s |
 | Acro pitch: time to stop after letting go (below 5 %) | 47 ms |
-| Acro yaw, full stick: time to 50 % / 90 % of 670 deg/s | 106 ms / 166 ms |
-| Acro yaw, full stick: overshoot, rate held | 1.3 %, 670 deg/s |
-| Acro yaw: time to stop after letting go (below 5 %) | 183 ms |
+| Acro yaw, full stick: time to 50 % / 90 % of 670 deg/s | 129 ms / 207 ms |
+| Acro yaw, full stick: overshoot, rate held | 1.0 %, 670 deg/s |
+| Acro yaw: time to stop after letting go (below 5 %) | 229 ms |
 | Acro roll, 30 % stick: rate held, time to 90 %, overshoot | 75 deg/s, 40 ms, 7.6 % |
 | Angle mode, half roll stick: tilt held (target), time to 90 % | 29.9 deg (30), 203 ms |
 | Angle mode: overshoot going in, swing past level coming back | 0.0 %, 0.0 deg |

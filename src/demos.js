@@ -14,6 +14,7 @@
 //           at each peak of the motor difference and labels which motors are faster (see peakWatch, motorTags)
 //   runs    the scene is flown this many times in turn (h.run = 0, 1, ...); start may then be a function of run;
 //           marks that fly() pushes to h.marks stay on screen until the first run starts again
+//   captions  one line per run, shown under the quad (the stick patterns use it for 'the whole pattern' / 'forgot one part')
 // The numbers here (positions, stick sizes, timings) only stage the scene; what the quad then does is the sim's physics.
 import { steer } from './pilot.js';
 import { hoverStick } from './params.js';
@@ -125,6 +126,31 @@ export const DEMOS = {
     fly: (t, s, h) => ({ roll: between(t, 1, 1.537) ? 1 : 0, throttle: h.hover }) },   // 360 deg at the full-stick rate
   'acro-level': { start: [-3, 5, -9], mode: 'acro', cam: [0, 3.2, -2.5], loop: 5, slow: 0.6,
     fly: (t, s, h) => ({ roll: between(t, 1, 1.4) ? 0.2 : between(t, 2.2, 2.6) ? -0.2 : 0, throttle: h.hover }) },
+  // Stick patterns (src/patterns.js, M10d): run 0 does the whole pattern, run 1 forgets one part. captions[run] says which.
+  'pat-hover': { runs: 2, start: SPOT, cam: [2.2, 2.6, -1.5], loop: 6, captions: ['Throttle at hover: it stays', 'Forgot: throttle a little low, so it sinks'],
+    fly: (t, s, h) => (h.run ? { roll: 0, pitch: 0, yaw: 0, throttle: t > 1 ? h.hover - 0.04 : h.alt(s, 2.5) } : h.hold(s, ...SPOT)) },
+  'pat-updown': { start: SPOT, cam: [2.2, 2.6, -1.5], loop: 7, captions: ['Up: more throttle. Down: a little less than hover, never zero'],
+    fly: (t, s, h) => ({ ...h.hold(s, ...SPOT), throttle: between(t, 1, 2.2) ? h.hover + 0.12 : between(t, 3.5, 5.3) ? h.hover - 0.05 : h.alt(s, s.pos[1]) }) },
+  'pat-spin': { runs: 2, start: SPOT, cam: [2.2, 2.6, -1.5], loop: 6, captions: ['Yaw smoothly and ease the throttle a touch: the height stays', 'Snapped the yaw and kept the throttle: it jumps up'],
+    fly: (t, s, h) => {
+      if (h.run) return { roll: 0, pitch: 0, yaw: between(t, 1, 4) ? 0.7 : 0, throttle: t < 1 ? h.alt(s, 2.5) : h.hover };
+      const yaw = between(t, 1, 4) ? 0.7 * Math.min(1, (t - 1) / 0.8, (4 - t) / 0.8) : 0; // eased in and out over 0.8 s
+      return { ...h.hold(s, ...SPOT), yaw };
+    } },
+  'pat-forward': { runs: 2, start: pass(), cam: PILOT, loop: 6, captions: ['Stick forward and a little more throttle: it holds its height', 'Forgot the throttle: it sinks'],
+    fly: (t, s, h) => {
+      const pitch = between(t, 1, 3.5) ? 0.35 : t >= 3.5 && s.vel[0] > 0.4 ? -0.4 : 0;
+      return h.run && between(t, 1, 3.5) ? { roll: 0, pitch, yaw: 0, throttle: h.hover } : level(s, h, 2.5, { pitch });
+    } },
+  'pat-stop': { runs: 2, start: pass(), cam: PILOT, loop: 6.5, captions: ['Stick back early, centre it when it has stopped', 'Forgot: only centred, so it glides on'],
+    fly: (t, s, h) => level(s, h, 2.5, { pitch: between(t, 0.8, 2.3) ? 0.3 : !h.run && t >= 2.3 && s.vel[0] > 0.4 ? -0.5 : 0 }) },
+  'pat-nose-in': { start: [...SPOT, 180], cam: NOSE_CAM, nose: true, scale: 3, loop: 6.5, captions: ['Nose toward you: roll right moves it to YOUR left'],
+    fly: (t, s, h) => (between(t, 1.5, 2.5) ? level(s, h, 2.5, { roll: 0.3 }) : between(t, 2.5, 4) ? level(s, h, 2.5) : h.hold(s, ...SPOT)) },
+  'pat-turn': { runs: 2, start: [-8, 2.5, 1], cam: [0.8, 20, 12], look: [0.8, 0, -4], fov: 60, scale: 4, loop: 10,
+    captions: ['Roll and yaw the same way, with forward: it carves round', 'Forgot the roll: the nose turns, the drone slides sideways'],
+    fly: (t, s, h) => level(s, h, 2.5, t < 1.5 ? { pitch: 0.35 } : { pitch: 0.35, yaw: 0.2, roll: h.run ? 0 : 0.4 }) },
+  'pat-orbit': { start: [-6, 3, -12, 90], cam: [0, 6, 4], loop: 12, captions: ['Orbit: roll toward the centre, yaw the same way, a little forward'],
+    fly: (t, s) => { const a = t * 0.5 + Math.PI; return steer(s, 6 * Math.cos(a) - s.pos[0], -12 + 6 * Math.sin(a) - s.pos[2], 4, 3); } },
 };
 
 // Sticks and arm state for demo `def` at this moment.

@@ -72,10 +72,15 @@ export function fcUpdate(fc, sticks, mode, armed, state, dt, cfg, quad) {
   const thr = cfg.idle + (1 - cfg.idle) * clamp(sticks.throttle, 0, 1) * (cfg.throttleLimit ?? 1);
   const base = tMax * thr ** e;
   let lo = Infinity, hi = -Infinity;
+  // Pidsum limits (Betaflight): one axis may move a motor's command by at most L, so in thrust (this mixer's space) a
+  // motor pair can differ by at most tMax * (2L)^e (one at 0, the other at 2L). Half of that either side of the middle.
+  const capRP = cfg.pidsumLimit ? tMax * (2 * cfg.pidsumLimit) ** e / 2 : Infinity;
+  const capY = cfg.pidsumLimitYaw ? tMax * (2 * cfg.pidsumLimitYaw) ** e / 2 : Infinity;
+  const dRoll = clamp(torque[2] / (4 * d), -capRP, capRP), dPitch = clamp(torque[0] / (4 * d), -capRP, capRP);
+  const dYaw = clamp(torque[1] / (4 * quad.yawTorquePerThrust), -capY, capY);
   for (let i = 0; i < 4; i++) {
     const m = MOTORS[i];
-    const f = base - m.sz * torque[0] / (4 * d) + m.sx * torque[2] / (4 * d)
-      + m.spin * torque[1] / (4 * quad.yawTorquePerThrust);
+    const f = base - m.sz * dPitch + m.sx * dRoll + m.spin * dYaw;
     out[i] = f;
     if (f < lo) lo = f;
     if (f > hi) hi = f;

@@ -124,3 +124,28 @@ test('demos: yaw turns the nose on the spot; disarming drops the quad; arm, fly,
 });
 
 if (process.env.DEMO_PRINT) for (const id of process.env.DEMO_PRINT.split(',')) console.log(id, fly(id).filter((p, i) => i % 5 === 4).map((p) => `${p.t.toFixed(1)}s x${p.pos[0].toFixed(1)} y${p.pos[1].toFixed(1)} z${p.pos[2].toFixed(1)} v${Math.hypot(...p.vel).toFixed(1)}`).join(' | '));
+
+test('stick patterns: each one has a demo; forgetting the part does what the card says (both quads)', async () => {
+  const { PATTERNS } = await import('../../src/patterns.js');
+  const { sentences } = await import('../../src/theory.js');
+  for (const p of PATTERNS) {
+    assert.ok(DEMOS[p.demo], `${p.id}: no demo`);
+    assert.ok(sentences(p.text) <= 2, `${p.id}: more than 2 sentences`);
+    assert.equal((DEMOS[p.demo].captions || []).length, DEMOS[p.demo].runs || 1, `${p.id}: one caption per run`);
+  }
+  for (const preset of ['trainer', 'freestyle']) {
+    const top = (r, a, b) => Math.max(...r.filter((x) => x.t > a && x.t < b).map((x) => x.pos[1]));
+    const low = (r, a, b) => Math.min(...r.filter((x) => x.t > a && x.t < b).map((x) => x.pos[1]));
+    let a = fly('pat-spin', preset, 0), b = fly('pat-spin', preset, 1);
+    assert.ok(top(a, 1, 4.5) < 3.0 && top(b, 1, 4.5) > top(a, 1, 4.5) + 0.7, `${preset} spin: ${top(a, 1, 4.5).toFixed(2)} m eased, ${top(b, 1, 4.5).toFixed(2)} m forgot`);
+    a = fly('pat-forward', preset, 0); b = fly('pat-forward', preset, 1);
+    assert.ok(low(a, 1, 3.5) > 2.0 && low(b, 1, 3.5) < low(a, 1, 3.5) - 0.4, `${preset} forward: ${low(a, 1, 3.5).toFixed(2)} vs ${low(b, 1, 3.5).toFixed(2)} m`);
+    a = fly('pat-hover', preset, 0); b = fly('pat-hover', preset, 1);
+    assert.ok(Math.abs(at(a, 5.5).pos[1] - 2.5) < 0.3 && at(b, 5.5).pos[1] < 2.0, `${preset} hover: ${at(a, 5.5).pos[1].toFixed(2)} vs ${at(b, 5.5).pos[1].toFixed(2)} m`);
+    a = fly('pat-stop', preset, 0); b = fly('pat-stop', preset, 1);
+    assert.ok(at(b, 6).pos[0] - at(a, 6).pos[0] > 3, `${preset} stop: ${at(a, 6).pos[0].toFixed(1)} vs ${at(b, 6).pos[0].toFixed(1)} m`);
+    a = fly('pat-turn', preset, 0); b = fly('pat-turn', preset, 1);
+    const side = (r) => { const v = r.filter((x) => x.t > 3).map((x) => Math.abs((Math.atan2(x.vel[0], -x.vel[2]) * 180 / Math.PI - x.heading + 540) % 360 - 180)); return v.reduce((p, q) => p + q, 0) / v.length; };
+    assert.ok(side(a) < 20 && side(b) > side(a) + 25, `${preset} turn: mean slip ${side(a).toFixed(0)} vs ${side(b).toFixed(0)} deg`);
+  }
+});

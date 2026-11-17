@@ -10,6 +10,7 @@ Looked up 2026-11-16.
 | What | Value | Status | Source |
 |---|---|---|---|
 | Default rates type | Actual | cited | Betaflight `controlrate_profile.c`: `.rates_type = RATES_TYPE_ACTUAL` [1] |
+| PID sum limit roll / pitch, yaw | 500, 400 (of 1000) | cited | `pidsum_limit = 500`, `pidsum_limit_yaw = 400`, Betaflight 4.0 CLI reference [13]; the current CLI reference gives the same two values [14]. Reading 1000 as the whole motor command range is **UNSOURCED** (not stated on those pages). Sim: `pidsumLimit` / `pidsumLimitYaw` in `src/params.js`, applied in the mixer of `src/flightcontroller.js` |
 | Default center sensitivity (roll, pitch, yaw) | 70 deg/s | cited | `.rcRates[...] = 7`, multiplied by 10 in `applyActualRates` [1][2] |
 | Default max rate (roll, pitch, yaw) | 670 deg/s | cited | `.rates[...] = 67`, multiplied by 10 [1][2] |
 | Default expo | 0 | cited | `.rcExpo[...] = 0` [1] |
@@ -96,6 +97,16 @@ These are not flight parameters; they are listed so every number on screen has a
 10. MultiGP shop, "Champ Size MultiGP Start - Finish Gate 7'x6'": https://shop.multigp.com/?p=615
 11. Met Office, "Beaufort wind force scale" (force 2, Light breeze: 4-6 knots, 2-3 m/s; "for m/s multiply by 0.514"): https://weather.metoffice.gov.uk/guides/coast-and-sea/beaufort-scale
 12. NASA NSSDC, "Sun Fact Sheet" (apparent diameter from Earth: at 1 A.U. 1919, maximum 1952, minimum 1887 seconds of arc): https://nssdc.gsfc.nasa.gov/planetary/factsheet/sunfact.html
+13. Betaflight 4.0 CLI command reference: https://betaflight.com/docs/wiki/guides/archive/Betaflight-4.0-CLI-commands
+14. Betaflight CLI reference (current): https://betaflight.com/docs/wiki/guides/current/Cli
+15. Betaflight 4.2 Tuning Notes (yaw): https://betaflight.com/docs/wiki/tuning/4-2-Tuning-Notes
+16. Betaflight Mixer Types (default `mixer_type = LEGACY`): https://betaflight.com/docs/wiki/guides/current/Mixer-Types
+17. IntoFPV, "Drone throttling upwards aggressively when yawing" (5-inch, Betaflight 4.4/4.5, pilot report): https://intofpv.com/t-drone-throttling-upwards-aggressively-when-yawing
+
+## Yaw jump (M10d)
+Mike, flying lesson 2: "when I turn I shoot up". Measured on the sim from a hover, throttle stick unchanged, yaw stick held 2 s: half yaw climbs 1.2 m, full yaw 4.2 m (after the yaw pidsum limit; 1.4 m and 4.7 m before it). The climb comes in the first 0.2 s: the yaw needs a big motor difference (prop drag torque is only 0.0122 m per newton of thrust, against 0.078 m of arm for roll), two motors drop to idle, so the mixer raises all four to keep the yaw (airmode-style), and the total thrust briefly reaches about 3x the weight.
+- Real quads do this. Betaflight 4.2 tuning notes [15]: "for big, fast yaw inputs, the motors quickly get driven to a very high differential, with one pair at 100% and the other at zero", and they name "yaw jump" as a typical yaw problem. Betaflight's default mixer keeps throttle until it cannot, then "will drastically start to change throttle to still get desired authority" [16]. A 5-inch pilot reports the climb on "really sharp yaw turns", and a log reader says the motors were "maxed out and spun down all the way to idle in order to produce the needed yaw" [17].
+- Not validated: no source gives a height for a real 5-inch, so the sim's 1.2 m / 4.2 m is the model's own number (**UNSOURCED** magnitude). Kept and taught: the Stick patterns card "Turn on the spot" shows a snapped yaw jumping up and a smooth yaw with a touch less throttle holding height.
 
 ## Still to source
 See `docs/feel.md`, note 6 (UNSOURCED list) and note 7 (beginner quad specs).
