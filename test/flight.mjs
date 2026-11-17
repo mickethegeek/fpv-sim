@@ -748,14 +748,14 @@ if (runs('M8')) {
   let s = await snap();
   const mainItems = await page.$$eval('#menu [data-screen=main] button b', (bs) => bs.map((b) => b.textContent));
   const st0 = await steps(); await page.waitForTimeout(400);
-  check('M8 the page opens on the start menu: Learn, Gates, Free fly, Theory, Settings; the sim stands still behind it', s.menu.open && s.menu.screen === 'main' && mainItems.join() === 'Learn,Gates,Free fly,Theory,Settings'
+  check('M8 the page opens on the start menu: Learn, Gates, Free fly, Theory, Stick patterns, Settings; the sim stands still behind it', s.menu.open && s.menu.screen === 'main' && mainItems.join() === 'Learn,Gates,Free fly,Theory,Stick patterns,Settings'
     && /^Learn/.test(s.menu.item) && await steps() === st0 && !(await visible('#hud')), `(${mainItems.join(', ')})`);
   const help = await page.textContent('#menu-help');
   check('M8 the menu says which controller buttons to use, as PlayStation symbols', /D-pad: move · ✕ select · ◯ back/.test(help), `("${help}")`);
   await shot('62-m8-start-menu');
 
   // Controller: D-pad down to Settings, cross to open, circle back.
-  await press('down', 4);
+  await press('down', 5);                         // Gates, Free fly, Theory, Stick patterns (M10d), Settings
   s = await snap();
   const onSettings = /^Settings/.test(s.menu.item);
   await press('cross');
@@ -765,7 +765,7 @@ if (runs('M8')) {
   const before = (await snap()).menu.item;
   await press('cross');
   const after = (await snap()).menu.item;
-  await press('down', 3);                         // View, Force arrows, then Camera tilt (M10)
+  await press('down', 4);                         // View, Force arrows, Pattern reminder (M10d), then Camera tilt (M10)
   const tiltItem = await page.evaluate(() => document.activeElement && document.activeElement.id || (window.__sim.menu.current && window.__sim.menu.current.id));
   await press('right', 2);
   const tiltPad = await snap();
@@ -786,7 +786,7 @@ if (runs('M8')) {
   check('M8 circle goes back to the start menu, pointer still on Settings', s.menu.screen === 'main' && /^Settings/.test(s.menu.item), `("${s.menu.item}")`);
 
   // Learn: every lesson can be opened; open lesson 4 without having passed 1 to 3.
-  await press('up', 4); await press('cross');
+  await press('up', 5); await press('cross');
   s = await snap();
   const lessons = await page.$$eval('#lesson-list button', (bs) => bs.map((b) => [b.dataset.id, b.disabled]));
   await shot('64-m8-learn-nothing-locked');
