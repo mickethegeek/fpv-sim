@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M10e Curriculum** (see "For M10e" in the notes for the vortex ring source), then **M10f Independent physics review**, then **M10c Replay**, then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
+Next: **M10f Independent physics review** (a leg that did not build the physics audits it cold; findings in docs/review.md), then **M10c Replay**, then **M11 Finish phase 2** (PLAN.md, Phase 2; see "For M11" in the notes): every chapter checked in Chrome, README and REPORT.md updated for phase 2, notify Mike, then Status DONE and both relay tasks off.
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -19,7 +19,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - [x] M10 Helpers (force arrows, coaching, beginner uptilt)
 - [x] M10b Demo fixes (nose, motor arrows, stop early)
 - [x] M10d Yaw climb check + stick patterns
-- [ ] M10e Curriculum: levels 1-4, motors layer, going down
+- [x] M10e Curriculum: levels 1-4, motors layer, going down
 - [ ] M10f Independent physics review
 - [ ] M10c Replay (last feature)
 - [ ] M11 Finish phase 2  ← notify Mike when done
@@ -215,3 +215,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-17 11:42 Zurich · M10e: unit tests for the curriculum and the new demos (83 pass); old M6 / M8 checks updated for the deck buttons (M8 block passes); README and docs/theory.md 'Curriculum' (every card claim with its source or measurement; coming down marked as not modelled); screenshots 103 to 105 looked at · next: full browser run, tick M10e
 - 2026-11-17 11:52 Zurich · M10e: full browser run in progress, 109 checks pass so far, none failed · next: finish the run, tick M10e
 - 2026-11-17 12:01 Zurich · M10e: full browser run 169 ok, 2 failures, both old M9 checks seeing the new parts (the □ why key hint; Theory page now also lists the level cards): list order changed (chapters first, levels after) and checks updated; M9 block rerunning · next: tick M10e
+- 2026-11-17 12:05 Zurich · M10e ticked: Learn in four levels (basics 8 cards, combinations 5, physics 5, acro 4), each a deck then its lessons; Why? (motors) on every card with the motors line, force arrows and live faster / slower tags; coming down taught with the NASA vortex-ring source and marked as not modelled; 7 new demos checked in unit tests on both quads; 83 unit tests; full browser run 169 ok + the 2 updated M9 checks pass on rerun; proof/M10e/103 to 105 · next: M10f independent physics review
