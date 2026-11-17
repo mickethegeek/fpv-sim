@@ -481,7 +481,7 @@ if (runs('M6')) {
   await page.keyboard.press('KeyV');
   await simWait(100);
   s = await snap();
-  const onScreen = await page.evaluate(() => { const p = window.__sim.scene.children.find((c) => c.visible && c.type === 'Group' && c.children.length === 8).position.clone().project(window.__sim.camera); return [p.x, p.y, p.z]; });
+  const onScreen = await page.evaluate(() => { const p = window.__sim.scene.children.find((c) => c.visible && c.type === 'Group' && c.userData.nose).position.clone().project(window.__sim.camera); return [p.x, p.y, p.z]; });
   check('M6 V switches to line of sight: camera stands at the pilot, quad in the middle of the view', s.view === 'los' && Math.abs(s.camera.pos[1] - 1.7) < 1e-6 && Math.abs(s.camera.pos[2] - 5) < 1e-6 && Math.abs(onScreen[0]) < 0.05 && Math.abs(onScreen[1]) < 0.05 && /LINE OF SIGHT/.test(await page.textContent('#hud')), JSON.stringify(onScreen.map((v) => +v.toFixed(3))));
   await shot('39-m6-line-of-sight');
   await page.keyboard.press('KeyO');
