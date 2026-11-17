@@ -132,7 +132,11 @@ button.lesson .next { color: #ffd23f; font-weight: 600; }
 #hold { position: fixed; left: 50%; bottom: 25%; transform: translateX(-50%); max-width: 80vw; padding: 8px 16px; font-size: 18px; font-weight: 600;
   background: rgba(12,16,26,.85); border-radius: 10px; border-bottom: 3px solid #ffd23f; color: #fff; text-align: center; }
 #theory-sticks { font-size: 13px; color: #ffd23f; line-height: 1.35; }
-#theory-sticks[hidden], #lesson-pattern[hidden] { display: none; }
+#theory-sticks[hidden], #lesson-pattern[hidden], #theory-why[hidden], #theory-whybtn[hidden] { display: none; }
+#theory-why { font-size: 13px; color: #8fd3ff; line-height: 1.35; }
+#lesson-list .level { margin: 10px 0 2px; font-weight: 600; color: #cfd8e3; }
+#lesson-list .deck b { color: #8fd3ff; }
+#lesson-list .deck.done b::after { content: ' ✓'; color: #5ee07a; }
 #lesson-pattern { color: #ffd23f; font-size: 13px; }
 #stick-thr { position: absolute; left: 0; right: 0; bottom: -18px; text-align: center; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
 #pattern-list { display: flex; flex-direction: column; gap: 8px; }

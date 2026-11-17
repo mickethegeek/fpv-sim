@@ -1226,6 +1226,51 @@ if (runs('M10d')) {
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
+// --- M10e: Learn in four levels, each with a deck of cards; every card has a Why? (motors) layer ---
+if (runs('M10e')) {
+  await page.goto(url + '?fast&learn'); await page.waitForFunction(() => window.__sim && window.__sim.ready); await frames(3);
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+  const until = (fn, arg, timeout = 120000) => page.waitForFunction(fn, arg, { timeout, polling: 30 });
+  await menuTo('main', 'learn'); await frames(3);
+  const levels = await page.$$eval('#lesson-list .level', (p) => p.map((x) => x.textContent));
+  const decks = await page.$$eval('#lesson-list button.deck', (b) => b.map((x) => x.dataset.level));
+  const lessons = await page.$$eval('#lesson-list button.lesson', (b) => b.map((x) => x.dataset.id));
+  check('M10e Learn shows 4 levels, each with a deck, and all 8 lessons under them in order', levels.length === 4 && /^Level 1 · The basics/.test(levels[0]) && /^Level 3 · The physics/.test(levels[2]) && decks.join() === 'basics,combos,physics,acro' && lessons.length === 8 && lessons[0] === 'takeoff' && lessons[7] === 'ready', `(${levels.join(' | ')})`);
+  await shot('103-learn-levels');
+  // Level 1 deck: the first card plays with its pattern; Why? shows the motors line, arrows and live motor tags.
+  await page.click('#lesson-list button.deck[data-level=basics]'); await frames(3);
+  let s = await snap();
+  check('M10e Level 1 opens its deck: Hover, with the stick pattern, Why? off', s.demo === 'pat-hover' && /^Level 1 · The basics · 1 of 8$/.test(s.theory.where) && /throttle at hover/.test(s.theorySticks || '') && !s.why && s.whyText === null && await page.isVisible('#theory-whybtn'), `("${s.theory.where}")`);
+  await page.keyboard.press('Enter'); await frames(3); // Up
+  await page.keyboard.press('Enter'); await frames(3); // Down
+  await page.keyboard.press('Enter'); await frames(3); // Turn left and right
+  s = await snap();
+  check('M10e Enter steps through the basics (4th card: Turn left and right)', s.demo === 'basic-yaw' && /4 of 8/.test(s.theory.where));
+  await page.keyboard.press('KeyY'); await frames(3);
+  await until(() => window.__sim.snapshot().tags.filter((t) => t === '▲' || t === '▼').length === 4, undefined, 60000).catch(() => {});
+  s = await snap();
+  check('M10e Why? (Y): the motors line, the force arrows and live faster / slower motor tags', s.why && /^Why: Props spin two one way/.test(s.whyText || '') && s.arrows && s.tags.filter((t) => t === '▲' || t === '▼').length === 4 && await page.isVisible('#theory-why'), `("${s.whyText}", tags ${JSON.stringify(s.tags)})`);
+  await shot('104-basics-turn-why');
+  // A level 3 card from the Theory page: coming down, taught as not modelled.
+  await menuTo('main', 'theory'); await frames(3);
+  await page.evaluate(() => document.querySelector('#theory-list button[data-act=level-card][data-level=physics][data-i="4"]').click()); await frames(3);
+  await until(() => { const x = window.__sim.snapshot(); return x.time > 3; });
+  s = await snap();
+  check('M10e Level 3 card "Coming down": demo flies, says the sim does not model it yet; Why? stays on', s.demo === 'descent' && /does not model this yet/.test(s.theory.text || await page.textContent('#theory-text')) && s.why && /NASA/.test(s.whyText || ''), `("${s.whyText}")`);
+  await shot('105-physics-coming-down-why');
+  await page.click('#theory-whybtn'); await frames(3);
+  s = await snap();
+  check('M10e the Why? button switches it off again', !s.why && s.whyText === null);
+  // Done on the last card of a deck goes back to Learn, with a tick on the deck.
+  await menuTo('main', 'learn'); await frames(2);
+  await page.click('#lesson-list button.deck[data-level=acro]'); await frames(3);
+  for (let k = 0; k < 4; k++) { await page.keyboard.press('Enter'); await frames(3); }
+  s = await snap();
+  const ticked = await page.$eval('#lesson-list button.deck[data-level=acro]', (b) => b.classList.contains('done'));
+  check('M10e Done after the last card returns to Learn, the deck ticked (saved)', s.menu.open && s.menu.screen === 'learn' && !s.demo && ticked && /acro/.test(await page.evaluate(() => localStorage.getItem('fpvsim.levels.v1'))));
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+}
+
 const simErrors = await page.evaluate(() => window.__sim.errors);
 check('no page errors', problems.length === 0 && simErrors.length === 0, JSON.stringify([...problems, ...simErrors]));
 
