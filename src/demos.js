@@ -134,7 +134,7 @@ export const DEMOS = {
   'pat-spin': { runs: 2, start: SPOT, cam: [2.2, 2.6, -1.5], loop: 6, captions: ['Yaw smoothly and ease the throttle a touch: the height stays', 'Snapped the yaw and kept the throttle: it jumps up'],
     fly: (t, s, h) => {
       if (h.run) return { roll: 0, pitch: 0, yaw: between(t, 1, 4) ? 0.7 : 0, throttle: t < 1 ? h.alt(s, 2.5) : h.hover };
-      const yaw = between(t, 1, 4) ? 0.7 * Math.min(1, (t - 1) / 0.8, (4 - t) / 0.8) : 0; // eased in and out over 0.8 s
+      const yaw = between(t, 1, 4.5) ? 0.6 * Math.min(1, (t - 1) / 1.5, (4.5 - t) / 1) : 0; // eased in over 1.5 s, out over 1 s
       return { ...h.hold(s, ...SPOT), yaw };
     } },
   'pat-forward': { runs: 2, start: pass(), cam: PILOT, loop: 6, captions: ['Stick forward and a little more throttle: it holds its height', 'Forgot the throttle: it sinks'],
@@ -146,7 +146,7 @@ export const DEMOS = {
     fly: (t, s, h) => level(s, h, 2.5, { pitch: between(t, 0.8, 2.3) ? 0.3 : !h.run && t >= 2.3 && s.vel[0] > 0.4 ? -0.5 : 0 }) },
   'pat-nose-in': { start: [...SPOT, 180], cam: NOSE_CAM, nose: true, scale: 3, loop: 6.5, captions: ['Nose toward you: roll right moves it to YOUR left'],
     fly: (t, s, h) => (between(t, 1.5, 2.5) ? level(s, h, 2.5, { roll: 0.3 }) : between(t, 2.5, 4) ? level(s, h, 2.5) : h.hold(s, ...SPOT)) },
-  'pat-turn': { runs: 2, start: [-8, 2.5, 1], cam: [0.8, 20, 12], look: [0.8, 0, -4], fov: 60, scale: 4, loop: 10,
+  'pat-turn': { runs: 2, start: [-8, 2.5, 1], cam: [0.8, 15, 9], look: [0.8, 0, -3], fov: 62, scale: 5, loop: 10,
     captions: ['Roll and yaw the same way, with forward: it carves round', 'Forgot the roll: the nose turns, the drone slides sideways'],
     fly: (t, s, h) => level(s, h, 2.5, t < 1.5 ? { pitch: 0.35 } : { pitch: 0.35, yaw: 0.2, roll: h.run ? 0 : 0.4 }) },
   'pat-orbit': { start: [-6, 3, -12, 90], cam: [0, 6, 4], loop: 12, captions: ['Orbit: roll toward the centre, yaw the same way, a little forward'],

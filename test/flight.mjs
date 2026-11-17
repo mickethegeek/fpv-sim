@@ -1173,6 +1173,53 @@ if (runs('M10b')) {
   check('M10b the loop starts again with only the brake line', s.marks.length === 1);
 }
 
+// --- M10d: yaw jump, live throttle on the stick overlay, stick patterns page and reminder ---
+if (runs('M10d')) {
+  await page.goto(url + '?fast&learn'); await page.waitForFunction(() => window.__sim && window.__sim.ready); await frames(3);
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+  const until = (fn, arg, timeout = 120000) => page.waitForFunction(fn, arg, { timeout, polling: 30 });
+  // The menu page lists every pattern; picking one plays it with its stick formula and the caption.
+  await menuTo('main', 'patterns'); await frames(3);
+  const items = await page.$$eval('#pattern-list button', (b) => b.map((x) => x.querySelector('b').textContent));
+  check('M10d Stick patterns page in the menu lists 8 moves', items.length === 8 && await page.isVisible('#pattern-list') && items.includes('Turn on the spot'), `(${items.join(', ')})`);
+  await shot('97-patterns-page');
+  const pick = async (title) => { await page.evaluate((t) => [...document.querySelectorAll('#pattern-list button')].find((b) => b.querySelector('b').textContent === t).click(), title); await frames(3); };
+  await pick('Turn on the spot');
+  let s = await snap();
+  check('M10d a pattern plays as a card: title, stick formula, live sticks with the throttle value', s.demo === 'pat-spin' && /^Stick patterns · 3 of 8$/.test(s.theory.where) && /yaw, smoothly/.test(s.theorySticks) && /^throttle \d+ %$/.test(s.stickThr) && await page.isVisible('#theory-sticks') && await page.isVisible('#stick-thr'), `("${s.theory.where}" · "${s.theorySticks}" · "${s.stickThr}")`);
+  await until(() => { const x = window.__sim.snapshot(); return x.run === 0 && x.time > 2.5; });
+  s = await snap();
+  check('M10d run 1: the whole pattern, captioned; height holds', /^Yaw smoothly/.test(s.hold) && Math.abs(s.pos[1] - 2.5) < 0.5 && await page.isVisible('#hold'), `("${s.hold}", ${s.pos[1].toFixed(2)} m)`);
+  await shot('98-pattern-spin-smooth');
+  await until(() => { const x = window.__sim.snapshot(); return x.run === 1 && x.time > 2.2; });
+  s = await snap();
+  check('M10d run 2: one part forgotten (snapped yaw, throttle kept): it jumps up', /^Snapped the yaw/.test(s.hold) && s.pos[1] > 3.2, `("${s.hold}", ${s.pos[1].toFixed(2)} m)`);
+  await shot('99-pattern-spin-forgot');
+  await page.keyboard.press('Enter'); await frames(3);
+  s = await snap();
+  check('M10d Next goes to the next pattern', s.demo === 'pat-forward' && /4 of 8/.test(s.theory.where));
+  await page.evaluate(() => { const m = window.__sim; m.showChapter('turns'); m.startPart('learn', 0); }); await frames(3); // a normal card in between
+  await page.evaluate(() => [...document.querySelectorAll('#pattern-list button')].find((b) => b.querySelector('b').textContent === 'Banked turn').click()); await frames(3);
+  await until(() => { const x = window.__sim.snapshot(); return x.run === 1 && x.time > 6; });
+  await shot('100-pattern-turn-forgot');
+  // Last pattern: Done goes back to the patterns page.
+  await pick('Orbit'); await page.keyboard.press('Enter'); await frames(3);
+  s = await snap();
+  check('M10d after the last pattern it is back on the patterns page', s.menu.open && s.menu.screen === 'patterns' && !s.demo);
+  // Try shows the lesson's pattern as a reminder, and Settings switches it off.
+  await menuClose(); await page.evaluate(() => { window.__sim.start('learn', 'directions'); }); await frames(3);
+  s = await snap();
+  check('M10d Try shows the pattern reminder for the lesson', /^Turn on the spot: Left: sideways for yaw/.test(s.lessonPattern || '') && await page.isVisible('#lesson-pattern'), `("${s.lessonPattern}")`);
+  await shot('101-try-pattern-reminder');
+  await menuTo('pause', 'settings'); await frames(2);
+  await page.click('#btn-pattern'); await frames(2);
+  const label = await page.textContent('#btn-pattern');
+  await menuClose(); await frames(3);
+  s = await snap();
+  check('M10d Settings: Pattern reminder off hides it (saved)', label === 'Pattern reminder: off' && !s.patternHint && s.lessonPattern === null && /"patternHint":false/.test(await page.evaluate(() => localStorage.getItem('fpvsim.view.v1'))), `("${label}")`);
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+}
+
 const simErrors = await page.evaluate(() => window.__sim.errors);
 check('no page errors', problems.length === 0 && simErrors.length === 0, JSON.stringify([...problems, ...simErrors]));
 

@@ -15,6 +15,7 @@ import { createRace, resetRace, raceUpdate, formatLap, loadBest, saveBest } from
 import * as LS from './lessons.js';
 import { Menu, navNames } from './menu.js';
 import * as TH from './theory.js';
+import { PATTERNS, patternFor } from './patterns.js';
 import { DEMOS, demoHelpers, runDemo, demoStart, motorTags, peakWatch, holdLine } from './demos.js';
 import { createLessonPilot, setPilotQuad } from './pilot.js';
 import { buildArrows, forces } from './arrows.js';
@@ -30,6 +31,7 @@ const view = {
   losModelScale: 1.5, // the quad is drawn this much bigger in line-of-sight view: a screen shows far less detail than the eye
   demoFovDeg: 36, demoModelScale: 2, // theory demos: a slightly zoomed camera and a quad drawn twice its size, so tilt and arrows read at 10 m (UNSOURCED look choices)
   sticks: true,    // live stick overlay
+  patternHint: true, // the lesson's stick pattern as a small line during Try (Settings)
   arrows: false,   // force arrows on the quad while flying (F, or Settings): thrust per motor, weight, velocity. Seen in line of sight and chase view.
   uptiltSet: false, // true once the player has chosen a camera tilt: it is then used everywhere
   get chase() { return this.mode === 'chase'; },
@@ -50,9 +52,10 @@ const VIEW_KEY = 'fpvsim.view.v1';
 try {
   const v = (storage && JSON.parse(storage.getItem(VIEW_KEY))) || {};
   view.arrows = v.arrows === true;
+  view.patternHint = v.patternHint !== false;
   if (Number.isFinite(v.uptilt) && v.uptilt >= 0 && v.uptilt <= 60) { view.uptiltDeg = v.uptilt; view.uptiltSet = true; }
 } catch { /* blocked or damaged */ }
-function saveView() { try { if (storage) storage.setItem(VIEW_KEY, JSON.stringify({ arrows: view.arrows, uptilt: view.uptiltSet ? view.uptiltDeg : null })); } catch { /* blocked */ } }
+function saveView() { try { if (storage) storage.setItem(VIEW_KEY, JSON.stringify({ arrows: view.arrows, patternHint: view.patternHint, uptilt: view.uptiltSet ? view.uptiltDeg : null })); } catch { /* blocked */ } }
 function toggleArrows() {
   view.arrows = !view.arrows; saveView();
   toast = { text: view.arrows ? `Force arrows on: yellow thrust, red weight, blue speed${view.mode === 'fpv' ? ' · seen in line of sight and chase view' : ''}` : 'Force arrows off', best: false, left: 3 };
@@ -190,7 +193,7 @@ const hook = (window.__sim = {
       chapter: chapter ? { lesson: chapter.lesson.id, part: chapter.part, i: chapter.i } : null, demo: demo ? demo.card.demo : null, watching: !!watching,
       theory: theoryEl.hidden ? null : { where: theoryWhere.textContent, title: theoryTitle.textContent, text: theoryText.textContent, next: theoryNext.textContent },
       hold: holdEl.hidden ? null : holdEl.textContent, held: !!(demo && demo.hold > 0), tags: [...tagsShown], marks: demo && demo.marks ? demo.marks.map((m) => m.text) : [], run: demo ? demo.run : null,
-      modelScale: quadModel.scale.x, nose: quadModel.userData.nose.visible,
+      modelScale: quadModel.scale.x, theorySticks: theorySticks.hidden ? null : theorySticks.textContent, lessonPattern: lessonPattern.hidden || lessonEl.hidden ? null : lessonPattern.textContent, stickThr: sticksEl.hidden ? null : stickThr.textContent, patternHint: view.patternHint, nose: quadModel.userData.nose.visible,
       arrows: arrows.visible, arrowsOn: view.arrows, uptilt: uptiltNow(), uptiltSet: view.uptiltSet, toast: toast ? toast.text : null, curve: curveEl.hidden ? null : { d: (curveLine.getAttribute('d') || '').length, dot: Number(curveDot.getAttribute('cx')), label: curveMax.textContent }, seen: JSON.parse(JSON.stringify(seen)),
       app: appMode, menu: { open: menu.isOpen, screen: menu.screen, item: menu.current ? menu.current.textContent.trim() : null },
       view: view.mode, sticksShown: !sticksEl.hidden, sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open,
@@ -204,7 +207,7 @@ const hud = Object.fromEntries(['state', 'mode', 'view', 'thr', 'speed', 'alt', 
 const hintEl = document.getElementById('hint');
 const guideEl = document.getElementById('guide'), guideArrow = document.getElementById('guide-arrow'), guideText = document.getElementById('guide-text');
 const toastEl = document.getElementById('toast');
-const sticksEl = document.getElementById('sticks'), stickL = document.getElementById('stick-l'), stickR = document.getElementById('stick-r');
+const stickThr = document.getElementById('stick-thr'), sticksEl = document.getElementById('sticks'), stickL = document.getElementById('stick-l'), stickR = document.getElementById('stick-r');
 const controllerEl = document.getElementById('controller');
 const keysEl = document.getElementById('keys');
 keysEl.innerHTML = KEY_HELP.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
@@ -216,7 +219,7 @@ forgetEl.addEventListener('click', (e) => { e.currentTarget.blur(); autoSetupFor
 
 // Lessons panel.
 const lessonListEl = document.getElementById('lesson-list'), lessonEl = document.getElementById('lesson'), lessonTitle = document.getElementById('lesson-title'),
-  lessonLine = document.getElementById('lesson-line'), lessonStep = document.getElementById('lesson-step'), cardEl = document.getElementById('card'),
+  lessonPattern = document.getElementById('lesson-pattern'), lessonLine = document.getElementById('lesson-line'), lessonStep = document.getElementById('lesson-step'), cardEl = document.getElementById('card'),
   cardTitle = document.getElementById('card-title'), cardText = document.getElementById('card-text'), badgeEl = document.getElementById('badge');
 function renderLessons() {
   const dots = (l, k) => { const p = progress[l.id][k], n = LS.streakNeeded(l); return p.passed ? '✓' : '●'.repeat(p.streak) + '○'.repeat(n - p.streak); };
@@ -248,7 +251,7 @@ try { seen = (storage && JSON.parse(storage.getItem(SEEN_KEY))) || {}; } catch {
 const partsOf = (c) => ['learn', 'watch', 'check', 'try'].filter((p) => (p === 'learn' ? c.ch.cards.length : p === 'check' ? c.ch.check.length : true));
 const chapterEl = document.querySelector('#menu [data-screen=chapter]'), partsEl = document.getElementById('chapter-parts'), checkEl = document.querySelector('#menu [data-screen=check]'),
   checkQ = document.getElementById('check-q'), checkAnswers = document.getElementById('check-answers'), checkResult = document.getElementById('check-result'), checkNext = document.getElementById('check-next'),
-  theoryEl = document.getElementById('theory'), theoryWhere = document.getElementById('theory-where'), theoryTitle = document.getElementById('theory-title'), theoryText = document.getElementById('theory-text'),
+  theorySticks = document.getElementById('theory-sticks'), theoryEl = document.getElementById('theory'), theoryWhere = document.getElementById('theory-where'), theoryTitle = document.getElementById('theory-title'), theoryText = document.getElementById('theory-text'),
   curveEl = document.getElementById('theory-curve'), curveLine = document.getElementById('curve-line'), curveDot = document.getElementById('curve-dot'), curveMax = document.getElementById('curve-max'),
   theoryPrev = document.getElementById('theory-prev'), theoryNext = document.getElementById('theory-next'), theoryKeys = document.getElementById('theory-keys');
 function renderChapter(first) {
@@ -267,6 +270,7 @@ function showChapter(id, part) {
 }
 function stopAuto() { demo = null; watching = null; arrows.visible = false; }
 function markSeen(part) {
+  if (chapter.patterns) return;
   (seen[chapter.lesson.id] ||= {})[part] = true;
   try { if (storage) storage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch { /* blocked */ }
 }
@@ -274,7 +278,7 @@ function markSeen(part) {
 function partDone(part, skipped = false) {
   const c = chapter, parts = partsOf(c), k = parts.indexOf(part);
   if (!skipped) markSeen(part);
-  if (c.fromTheory) { stopAuto(); resetFlight(); setLesson(null); chapter = null; menu.open('main'); menu.push('theory'); return; }
+  if (c.fromTheory) { stopAuto(); resetFlight(); setLesson(null); chapter = null; menu.open('main'); menu.push(c.patterns ? 'patterns' : 'theory'); return; }
   if (k < parts.length - 1) return showChapter(c.lesson.id, parts[k + 1]);
   const n = LS.LESSONS[LS.LESSONS.indexOf(c.lesson) + 1];
   if (n) showChapter(n.id); else { stopAuto(); resetFlight(); setLesson(null); chapter = null; renderLessons(); menu.open('main'); }
@@ -343,6 +347,9 @@ function answer(k) {
   menu.mark(menu.items().indexOf(checkNext));
 }
 // Theory page: every card, grouped by chapter. Choosing one plays it in the sim.
+// Stick patterns (M10d): played like theory cards, from their own menu page.
+const PATTERN_CHAPTER = { id: 'patterns', title: 'Stick patterns' };
+document.getElementById('pattern-list').innerHTML = PATTERNS.map((p, i) => `<button type="button" data-act="pattern" data-i="${i}"><b>${p.title}</b><small>${p.sticks}</small></button>`).join('');
 document.getElementById('theory-list').innerHTML = TH.CHAPTERS.filter((c) => c.cards.length).map((c) => `<p class="menu-note">${LS.LESSONS.findIndex((l) => l.id === c.lesson) + 1}. ${LS.lessonById(c.lesson).title}</p>`
   + c.cards.map((card, i) => `<button type="button" data-act="card" data-lesson="${c.lesson}" data-i="${i}"><b>${card.title}</b><small>${card.text}</small></button>`).join('')).join('');
 
@@ -365,6 +372,8 @@ const menu = new Menu({
     else if (act === 'sticks') view.sticks = !view.sticks;
     else if (act === 'view') nextView();
     else if (act === 'arrows') toggleArrows();
+    else if (act === 'pattern-hint') { view.patternHint = !view.patternHint; saveView(); }
+    else if (act === 'pattern') { chapter = { lesson: PATTERN_CHAPTER, ch: { cards: PATTERNS, check: [] }, part: 'learn', i: 0, fromTheory: true, patterns: true }; playCard(Number(el.dataset.i)); }
     else if (act === 'uptilt-auto') { view.uptiltSet = false; view.uptiltDeg = 25; saveView(); }
   },
   onBack(root) { if (root === 'pause') closeMenu(true); },
@@ -428,7 +437,7 @@ for (const el of [presetEl, ...slidersEl.querySelectorAll('input')]) el.addEvent
 document.getElementById('tune-reset').addEventListener('click', (e) => { e.currentTarget.blur(); applyTuning(defaultTuning(tuning.preset)); });
 applyTuning(tuning, false);
 // Camera tilt: the player's own setting. Until it is touched, Learn uses the beginner tilt and Gates / Free fly the usual 25 degrees.
-const uptiltEl = document.getElementById('uptilt'), uptiltOut = document.getElementById('uptilt-out'), uptiltAuto = document.getElementById('btn-uptilt-auto'), arrowsBtn = document.getElementById('btn-arrows');
+const uptiltEl = document.getElementById('uptilt'), uptiltOut = document.getElementById('uptilt-out'), uptiltAuto = document.getElementById('btn-uptilt-auto'), arrowsBtn = document.getElementById('btn-arrows'), patternBtn = document.getElementById('btn-pattern');
 uptiltEl.addEventListener('input', () => { view.uptiltDeg = Number(uptiltEl.value); view.uptiltSet = true; saveView(); });
 uptiltEl.addEventListener('change', () => uptiltEl.blur());
 window.addEventListener('keydown', (e) => {
@@ -520,7 +529,8 @@ function drawDemoMarks(scale) {
     tagsShown.push(t.text);
   });
   for (let i = tags.length; i < tagPool.length; i++) tagPool[i].hidden = true;
-  const line = demo && scale && demo.holdText && (demo.tags || demoRate(demo.def, sim.state.time) !== (demo.def.slow || 1)) ? demo.holdText : '';
+  const held = demo && scale && demo.holdText && (demo.tags || demoRate(demo.def, sim.state.time) !== (demo.def.slow || 1)) ? demo.holdText : '';
+  const line = held || (demo && demo.def.captions ? demo.def.captions[demo.run] || '' : '');
   holdEl.hidden = !line; setText(holdEl, line);
 }
 const camera = new THREE.PerspectiveCamera(80, 1, 0.03, 2500);
@@ -662,6 +672,7 @@ function frame(now) {
   sticksEl.hidden = !(view.sticks || demo || watching) || setup.open;
   if (!sticksEl.hidden) {
     stickL.style.transform = `translate(${(sticks.yaw * 34).toFixed(1)}px, ${((0.5 - sticks.throttle) * 68).toFixed(1)}px)`;
+    setText(stickThr, `throttle ${Math.round(sticks.throttle * 100)} %`); // live: on a gamepad a sideways (yaw) push easily moves it too
     stickR.style.transform = `translate(${(sticks.roll * 34).toFixed(1)}px, ${(-sticks.pitch * 34).toFixed(1)}px)`;
   }
   setText(hud.thr, `${Math.round(sticks.throttle * 100)}%`);
@@ -687,12 +698,17 @@ function frame(now) {
     setText(lessonStep, running || attempt.state === 'ready' ? attempt.status : '');
     lessonStep.dataset.alarm = String(!!attempt.prompt);
     lessonLine.hidden = running;
+    const pat = view.patternHint && !watching ? patternFor(lesson.id) : null;
+    lessonPattern.hidden = !pat;
+    if (pat) setText(lessonPattern, `${pat.title}: ${pat.sticks}`);
   }
   // The card beside a demo, or the note while the test pilot flies.
   theoryEl.hidden = !(demo || watching) || menuOpen || setup.open;
   if (!theoryEl.hidden) {
     const c = chapter, n = LS.LESSONS.indexOf(c.lesson) + 1, pn = navNames(input.gamepadId), padOn = !!pad && pad.mapping === 'standard';
-    setText(theoryWhere, demo ? `${n}. ${c.lesson.title} · Learn ${c.i + 1} of ${c.ch.cards.length}` : `${n}. ${c.lesson.title} · Watch`);
+    setText(theoryWhere, c.patterns ? `Stick patterns · ${c.i + 1} of ${c.ch.cards.length}` : demo ? `${n}. ${c.lesson.title} · Learn ${c.i + 1} of ${c.ch.cards.length}` : `${n}. ${c.lesson.title} · Watch`);
+    theorySticks.hidden = !(demo && demo.card.sticks);
+    if (!theorySticks.hidden) setText(theorySticks, demo.card.sticks);
     setText(theoryTitle, demo ? demo.card.title : 'Watch the test pilot');
     setText(theoryText, demo ? demo.card.text : 'It flies the lesson. Watch what the sticks do.');
     theoryPrev.hidden = !demo;
@@ -736,6 +752,7 @@ function frame(now) {
     setText(sticksBtn, `Stick overlay: ${view.sticks ? 'on' : 'off'}`);
     setText(viewBtn, `View: ${view.mode === 'los' ? 'line of sight' : view.mode === 'chase' ? 'chase' : 'FPV'}`);
     setText(arrowsBtn, `Force arrows: ${view.arrows ? 'on' : 'off'}`);
+    setText(patternBtn, `Pattern reminder: ${view.patternHint ? 'on' : 'off'}`);
     if (document.activeElement !== uptiltEl) uptiltEl.value = String(uptiltNow());
     setText(uptiltOut, view.uptiltSet ? `${view.uptiltDeg}° (yours)` : `${LEARN_UPTILT}° in Learn, ${view.uptiltDeg}° in Gates and Free fly`);
     uptiltAuto.hidden = !view.uptiltSet;

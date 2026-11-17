@@ -3,7 +3,7 @@
 // and a demo in src/demos.js that flies it on the real physics; most demos fly it twice: whole, then with the part forgotten.
 // The stick overlay shows the demo's real sticks in sync with the flight.
 export const PATTERNS = [
-  { id: 'hover', title: 'Hover', demo: 'pat-hover', lessons: ['takeoff', 'directions'],
+  { id: 'hover', title: 'Hover', demo: 'pat-hover', lessons: ['takeoff'],
     sticks: 'Left: throttle at hover · Right: tiny taps against any drift',
     text: 'Find the throttle where it neither climbs nor sinks and keep it there. Correct drift with small taps, not big pushes.',
     forget: 'Throttle a little low and it slowly sinks.' },

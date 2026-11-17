@@ -43,7 +43,7 @@ button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 #tune-info { margin-top: 6px; color: #c5cedb; font-size: 12px; }
 #tune-reset { margin-top: 10px; }
 #hud-view { color: #c5cedb; font-size: 12px; letter-spacing: .06em; }
-#sticks { position: fixed; left: 50%; bottom: 62px; transform: translateX(-50%); display: flex; gap: 26px; }
+#sticks { position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%); display: flex; gap: 26px; }
 #sticks[hidden] { display: none; }
 .stick { position: relative; width: 80px; height: 80px; background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.45); border-radius: 8px; }
 .stick::before, .stick::after { content: ''; position: absolute; background: rgba(255,255,255,.25); }
@@ -131,3 +131,10 @@ button.lesson .next { color: #ffd23f; font-weight: 600; }
 #tags span[hidden], #hold[hidden] { display: none; }
 #hold { position: fixed; left: 50%; bottom: 25%; transform: translateX(-50%); max-width: 80vw; padding: 8px 16px; font-size: 18px; font-weight: 600;
   background: rgba(12,16,26,.85); border-radius: 10px; border-bottom: 3px solid #ffd23f; color: #fff; text-align: center; }
+#theory-sticks { font-size: 13px; color: #ffd23f; line-height: 1.35; }
+#theory-sticks[hidden], #lesson-pattern[hidden] { display: none; }
+#lesson-pattern { color: #ffd23f; font-size: 13px; }
+#stick-thr { position: absolute; left: 0; right: 0; bottom: -18px; text-align: center; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
+#pattern-list { display: flex; flex-direction: column; gap: 8px; }
+#pattern-list button { display: grid; gap: 2px; text-align: left; background: rgba(255,255,255,.12); padding: 9px 12px; font-size: 16px; }
+#pattern-list button b { font-size: 15px; }

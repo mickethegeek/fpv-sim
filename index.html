@@ -21,16 +21,17 @@
   <span class="race"><small>BEST</small> <b id="hud-best"></b></span>
 </div>
 <div id="sticks" hidden aria-hidden="true">
-  <div class="stick"><i id="stick-l"></i></div>
+  <div class="stick"><i id="stick-l"></i><small id="stick-thr"></small></div>
   <div class="stick"><i id="stick-r"></i></div>
 </div>
 <div id="guide" hidden><span id="guide-arrow">▲</span><span id="guide-text"></span></div>
-<div id="lesson" hidden><b id="lesson-title"></b><span id="lesson-line"></span><span id="lesson-step"></span></div>
+<div id="lesson" hidden><b id="lesson-title"></b><span id="lesson-line"></span><span id="lesson-step"></span><small id="lesson-pattern" hidden></small></div>
 <div id="card" hidden><b id="card-title"></b><span id="card-text"></span></div>
 <div id="theory" hidden>
   <small id="theory-where"></small>
   <b id="theory-title"></b>
   <span id="theory-text"></span>
+  <small id="theory-sticks" hidden></small>
   <div id="theory-curve" hidden><svg viewBox="0 0 200 110" aria-label="Rotation speed against stick position"><path id="curve-line" fill="none" stroke="#ffd23f" stroke-width="2"/><circle id="curve-dot" r="5" fill="#fff"/>
     <text x="4" y="12" fill="#a9b4c4" font-size="10" id="curve-max"></text><text x="196" y="106" fill="#a9b4c4" font-size="10" text-anchor="end">stick →</text></svg></div>
   <div class="row"><button type="button" id="theory-prev">Back</button><button type="button" id="theory-next">Next</button></div>
@@ -49,6 +50,7 @@
       <button type="button" class="big" data-act="gates"><b>Gates</b><small id="main-gates">Seven gates against the clock</small></button>
       <button type="button" class="big" data-act="free"><b>Free fly</b><small>The open field, nothing on screen you did not ask for</small></button>
       <button type="button" class="big" data-go="theory"><b>Theory</b><small>Every card, to revise any time</small></button>
+      <button type="button" class="big" data-go="patterns"><b>Stick patterns</b><small>What both sticks do for each move, and what happens if you forget one</small></button>
       <button type="button" class="big" data-go="settings"><b>Settings</b><small>Controller, graphics, feel</small></button>
     </section>
     <section data-screen="learn" data-title="Learn" hidden>
@@ -66,6 +68,11 @@
       <div id="check-answers"></div>
       <p id="check-result" class="menu-note"></p>
       <button type="button" data-act="check-next" id="check-next" hidden>Next question</button>
+      <button type="button" data-go="back">Back</button>
+    </section>
+    <section data-screen="patterns" data-title="Stick patterns" hidden>
+      <p class="menu-note">Pick a move: the sim flies it, the stick overlay shows both sticks.</p>
+      <div id="pattern-list"></div>
       <button type="button" data-go="back">Back</button>
     </section>
     <section data-screen="theory" data-title="Theory" hidden>
@@ -91,6 +98,7 @@
         <button type="button" data-act="sticks" id="btn-sticks"></button>
         <button type="button" data-act="view" id="btn-view"></button>
         <button type="button" data-act="arrows" id="btn-arrows"></button>
+        <button type="button" data-act="pattern-hint" id="btn-pattern"></button>
       </div>
       <label class="tune-row" id="uptilt-row"><span>Camera tilt</span><input type="range" id="uptilt" min="0" max="50" step="1"><output id="uptilt-out"></output></label>
       <button type="button" data-act="uptilt-auto" id="btn-uptilt-auto" hidden>Camera tilt back to default</button>
