@@ -145,3 +145,14 @@ button.lesson .next { color: #ffd23f; font-weight: 600; }
 #pattern-list { display: flex; flex-direction: column; gap: 8px; }
 #pattern-list button { display: grid; gap: 2px; text-align: left; background: rgba(255,255,255,.12); padding: 9px 12px; font-size: 16px; }
 #pattern-list button b { font-size: 15px; }
+
+/* Replay bar (M10c) */
+#replay { position: fixed; left: 50%; bottom: 62px; transform: translateX(-50%); width: min(640px, calc(100vw - 32px)); box-sizing: border-box; padding: 8px 12px; background: rgba(10,14,22,.82); border-radius: 10px; color: #fff; font: 14px system-ui, sans-serif; z-index: 6; }
+#replay[hidden] { display: none; }
+#replay .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+#replay .row + .row { margin-top: 6px; }
+#replay button { background: #2a6fdb; color: #fff; border: 0; border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer; }
+#replay #rp-exit { background: #3a4252; }
+#replay input[type=range] { flex: 1; min-width: 120px; accent-color: #ffd23f; }
+#replay small { color: #a9b4c4; }
+#rp-time { font-variant-numeric: tabular-nums; min-width: 92px; text-align: right; }

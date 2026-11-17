@@ -21,6 +21,7 @@ import { DEMOS, demoHelpers, runDemo, demoStart, motorTags, peakWatch, holdLine 
 import { createLessonPilot, setPilotQuad } from './pilot.js';
 import { buildArrows, forces } from './arrows.js';
 import { createRecorder, record, coachLine } from './coach.js';
+import { createTape, tapeRecord, tapeSample, tapeUsable, tapeStart, tapeEnd, createPlayer, playerStep, playerSeek, playerToggle, playerSpeed } from './replay.js';
 
 // View settings (M6 puts these in the settings panel).
 const view = {
@@ -156,6 +157,8 @@ function lessonFrame(dt) {
 const names = () => (input.gamepadId && !input.needsSetup && !input.profiles[input.gamepadId] ? buttonNames(input.gamepadId) : { view: 'V', mode: 'M', reset: 'R', arm: 'Space' });
 
 function resetFlight() {
+  if (tapeUsable(tape)) lastTape = tape; // the run just ended stays available for Replay
+  tape = createTape();
   resetSim(sim);
   input.disarm();
   crashTimer = 0;
@@ -163,6 +166,62 @@ function resetFlight() {
   racePrev = null;
   Object.assign(sticks, { roll: 0, pitch: 0, yaw: 0, throttle: 0 });
 }
+// Replay (M10c): the last run, watched back from any view with play / pause / scrub / slow motion. The sim stands still meanwhile.
+let tape = createTape(), lastTape = null, replay = null;
+const replayEl = document.getElementById('replay'), rpPlay = document.getElementById('rp-play'), rpScrub = document.getElementById('rp-scrub'), rpTime = document.getElementById('rp-time'), rpSpeed = document.getElementById('rp-speed'), rpKeys = document.getElementById('rp-keys');
+const replayTape = () => (tapeUsable(tape) ? tape : lastTape);
+function startReplay() {
+  const t = replayTape();
+  if (!t) { toast = { text: 'Nothing to replay yet: fly first', best: false, left: 2.5 }; closeMenu(true); return; }
+  stopAuto();
+  if (tapeUsable(tape)) { lastTape = tape; tape = createTape(); }
+  replay = { p: createPlayer(t), pad: {} };
+  input.disarm(); crashTimer = 0; racePrev = null;
+  closeMenu(false);
+}
+function stopReplay() {
+  if (!replay) return;
+  replay = null;
+  resetFlight(); if (lesson) setLesson(lesson.id);
+}
+function replayFrame(dt, pad, events) {
+  const p = replay.p;
+  // Controller: cross play / pause, D-pad left / right 2 s back / on, up / down speed, circle exit (triangle switches view as always).
+  if (pad && pad.mapping === 'standard') {
+    const edge = (i) => { const on = !!(pad.buttons[i] && pad.buttons[i].pressed), was = replay.pad[i]; replay.pad[i] = on; return on && !was; };
+    if (edge(0)) playerToggle(p);
+    if (edge(14)) playerSeek(p, p.t - 2);
+    if (edge(15)) playerSeek(p, p.t + 2);
+    if (edge(12)) playerSpeed(p, 1);
+    if (edge(13)) playerSpeed(p, -1);
+    if (edge(1)) { stopReplay(); return; }
+  }
+  for (const ev of events) if (ev === 'view') nextView();
+  playerStep(p, dt);
+  const f = tapeSample(p.tape, p.t), s = sim.state;
+  for (let i = 0; i < 3; i++) { s.pos[i] = f.pos[i]; s.vel[i] = f.vel[i]; s.omega[i] = 0; }
+  for (let i = 0; i < 4; i++) { s.quat[i] = f.quat[i]; s.motors[i] = f.motors[i]; }
+  s.crashed = false; s.onGround = f.pos[1] <= sim.quad.groundHeight + 1e-3;
+  Object.assign(sticks, f.sticks);
+  sim.armed = f.armed;
+}
+const fmtT = (x) => `${Math.floor(x / 60)}:${(x % 60).toFixed(1).padStart(4, '0')}`;
+function renderReplay() {
+  replayEl.hidden = !replay || menu.isOpen;
+  if (!replay) return;
+  const p = replay.p, a = tapeStart(p.tape), len = Math.max(1e-6, tapeEnd(p.tape) - a);
+  setText(rpPlay, p.playing ? 'Pause' : 'Play');
+  if (document.activeElement !== rpScrub) rpScrub.value = String(Math.round(((p.t - a) / len) * 1000));
+  setText(rpTime, `${fmtT(p.t - a)} / ${fmtT(len)}`);
+  setText(rpSpeed, `${p.speed}x`);
+  setText(rpKeys, input.source === 'gamepad' ? '✕ play · ◀ ▶ 2 s · ▲ ▼ speed · △ view · ◯ exit' : 'Space play · ← → 2 s · ↑ ↓ speed · V / C view · Backspace exit');
+}
+rpPlay.addEventListener('click', (e) => { e.currentTarget.blur(); if (replay) playerToggle(replay.p); });
+rpSpeed.addEventListener('click', (e) => { e.currentTarget.blur(); if (replay) { const sp = replay.p.speed; playerSpeed(replay.p, -1); if (replay.p.speed === sp) replay.p.speed = 1; } }); // 1 → 0.5 → 0.25 → 0.1 → 1
+document.getElementById('rp-view').addEventListener('click', (e) => { e.currentTarget.blur(); if (view.chase) { view.chase = false; view.mode = 'fpv'; } else if (view.mode === 'fpv') view.mode = 'los'; else view.chase = true; }); // FPV → line of sight → chase
+document.getElementById('rp-exit').addEventListener('click', (e) => { e.currentTarget.blur(); stopReplay(); });
+rpScrub.addEventListener('input', () => { if (replay) { const p = replay.p, a = tapeStart(p.tape); playerSeek(p, a + (Number(rpScrub.value) / 1000) * (tapeEnd(p.tape) - a)); } });
+rpScrub.addEventListener('change', () => rpScrub.blur());
 function toggleMode() { sim.mode = sim.mode === MODES.ACRO ? MODES.ANGLE : MODES.ACRO; }
 
 // Test hook: the Playwright flight script (test/flight.mjs) drives and reads the sim through this.
@@ -197,6 +256,7 @@ const hook = (window.__sim = {
       hold: holdEl.hidden ? null : holdEl.textContent, held: !!(demo && demo.hold > 0), tags: [...tagsShown], marks: demo && demo.marks ? demo.marks.map((m) => m.text) : [], run: demo ? demo.run : null, trail: trailLine.visible ? { points: trail.n, ticks: trail.ticks } : null,
       modelScale: quadModel.scale.x, theorySticks: theorySticks.hidden ? null : theorySticks.textContent, lessonPattern: lessonPattern.hidden || lessonEl.hidden ? null : lessonPattern.textContent, stickThr: sticksEl.hidden ? null : stickThr.textContent, patternHint: view.patternHint, why: view.why, whyText: whyEl.hidden ? null : whyEl.textContent, nose: quadModel.userData.nose.visible,
       arrows: arrows.visible, arrowsOn: view.arrows, uptilt: uptiltNow(), uptiltSet: view.uptiltSet, toast: toast ? toast.text : null, curve: curveEl.hidden ? null : { d: (curveLine.getAttribute('d') || '').length, dot: Number(curveDot.getAttribute('cx')), label: curveMax.textContent }, seen: JSON.parse(JSON.stringify(seen)),
+      replay: replay ? { t: replay.p.t - tapeStart(replay.p.tape), len: tapeEnd(replay.p.tape) - tapeStart(replay.p.tape), speed: replay.p.speed, playing: replay.p.playing, frames: replay.p.tape.frames.length, bar: !replayEl.hidden } : null, tapeLen: tapeEnd(tape) - tapeStart(tape),
       app: appMode, menu: { open: menu.isOpen, screen: menu.screen, item: menu.current ? menu.current.textContent.trim() : null },
       view: view.mode, sticksShown: !sticksEl.hidden, sticks: { ...sticks }, source: input.source, hint: input.hint, setupOpen: setup.open,
       camera: { fov: camera.fov, pos: camera.position.toArray(), dir: camera.getWorldDirection(new THREE.Vector3()).toArray() } };
@@ -384,9 +444,11 @@ const menu = new Menu({
   onAction(act, el) {
     if (act === 'pause') { if (!menu.isOpen) { resumeArmed = { armed: input.armed, blocked: input.switchBlocked }; input.keys.clear(); renderLessons(); menu.open('pause'); } }
     else if (act === 'resume') closeMenu(true);
+    else if (act === 'replay') startReplay();
+    else if (act === 'restart' && replay) { stopReplay(); closeMenu(false); }
     else if (act === 'restart') { if (demo) { placeDemo(); closeMenu(false); } else if (watching) startPart('watch'); else { resetFlight(); if (lesson) setLesson(lesson.id); closeMenu(false); } }
     else if (act === 'skip') { if (chapter) partDone(chapter.part || 'try', true); } // on to the next part; after Try, the next chapter
-    else if (act === 'quit') { stopAuto(); chapter = null; resetFlight(); setLesson(null); renderLessons(); menu.open('main'); }
+    else if (act === 'quit') { replay = null; stopAuto(); chapter = null; resetFlight(); setLesson(null); renderLessons(); menu.open('main'); }
     else if (act === 'part') startPart(el.dataset.part);
     else if (act === 'answer') answer(Number(el.dataset.k));
     else if (act === 'check-next') { if (chapter.i + 1 < chapter.ch.check.length) { chapter.i++; renderCheck(); menu.refresh(true); } else partDone('check'); }
@@ -466,6 +528,13 @@ uptiltEl.addEventListener('input', () => { view.uptiltDeg = Number(uptiltEl.valu
 uptiltEl.addEventListener('change', () => uptiltEl.blur());
 window.addEventListener('keydown', (e) => {
   if (e.repeat || (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName || ''))) return;
+  if (replay && !menu.isOpen) {
+    const p = replay.p, k = e.code;
+    if (k === 'Space') { e.preventDefault(); playerToggle(p); return; }
+    if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); playerSeek(p, p.t + (k === 'ArrowLeft' ? -2 : 2)); return; }
+    if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); playerSpeed(p, k === 'ArrowUp' ? 1 : -1); return; }
+    if (k === 'Backspace') { e.preventDefault(); stopReplay(); return; }
+  }
   if ((e.code === 'Enter' || e.code === 'Backspace') && (demo || watching)) { e.preventDefault(); cardStep(e.code === 'Enter' ? 1 : -1); return; }
   if (e.code === 'KeyC') view.chase = !view.chase;
   if (e.code === 'KeyV') nextView();
@@ -644,7 +713,8 @@ function frame(now) {
   // A controller with no standard layout and no saved profile (a USB radio): open the setup screen by itself, once.
   if (input.needsSetup && !setup.open && autoSetupFor !== input.gamepadId) { autoSetupFor = input.gamepadId; setup.start(); }
   const auto = (demo || watching) && !menuOpen; // a demo or the test pilot flies; the player only steps through
-  if (auto) {
+  if (replay) { if (!menuOpen) replayFrame(dt, pad, inp.events); }
+  else if (auto) {
     const sq = !!(pad && pad.mapping === 'standard' && pad.buttons[2] && pad.buttons[2].pressed);
     if (demo && sq && !whyPadPrev) view.why = !view.why; // square: Why? (motors)
     whyPadPrev = sq;
@@ -660,7 +730,7 @@ function frame(now) {
   }
   // hook.paused: only the test script, to hold the quad still for a picture. A demo can also hold a moment (demo.hold s).
   if (demo && demo.hold > 0 && !menuOpen) { demo.hold -= dt; if (demo.hold <= 0) demo.tags = null; }
-  else if (!hook.paused && !menuOpen) {
+  else if (!hook.paused && !menuOpen && !replay) {
     // Why? on: while the motors differ the demo runs at a quarter speed, and the faster / slower tags stay up 1.2 s (they last ~0.1 s in the sim).
     let whySlow = 1;
     if (demo && view.why) {
@@ -673,10 +743,12 @@ function frame(now) {
       if (peakWatch(demo.watch, th)) { demo.tags = motorTags(th); demo.holdText = holdLine(demo.tags, MOTORS, demo.holdN++); demo.hold = HOLD_SECS; }
     }
   }
-  if (!menuOpen) lessonFrame(dt);
+  if (!menuOpen && !replay) lessonFrame(dt);
+  // Replay tape: every flown frame of the player's own run (not demos, not the test pilot), once the quad is armed or off the ground.
+  if (!replay && !demo && !watching && !menuOpen && (sim.armed || sim.state.crashed || sim.state.pos[1] > sim.quad.groundHeight + 0.05)) tapeRecord(tape, sim.state, sticks, sim.armed);
 
   // Crash: freeze, show it for a moment, then put the quad back on the pad, disarmed.
-  if (sim.state.crashed && !menuOpen) {
+  if (sim.state.crashed && !menuOpen && !replay) {
     if (crashTimer === 0) { crashes++; input.disarm(); sim.armed = false; }
     crashTimer += dt;
     if (crashTimer >= CRASH_PAUSE) { if (demo) placeDemo(); else resetFlight(); }
@@ -684,7 +756,7 @@ function frame(now) {
 
   // Gates and lap timer (sim time, so a slow computer does not change lap times).
   const s = sim.state;
-  if (racePrev && !s.crashed && appMode === 'gates') {
+  if (racePrev && !s.crashed && appMode === 'gates' && !replay) {
     for (const ev of raceUpdate(race, racePrev.pos, s.pos, racePrev.time, s.time)) {
       if (ev.type === 'start') toast = { text: 'Lap started', best: false, left: 1.2 };
       if (ev.type === 'lap') {
@@ -747,9 +819,10 @@ function frame(now) {
   setText(hud.state, state);
   hud.state.dataset.state = state;
   setText(hud.mode, sim.mode === MODES.ACRO ? 'ACRO' : 'ANGLE');
-  setText(hud.view, demo ? 'DEMO' : VIEW_NAMES[view.mode]);
+  setText(hud.view, replay ? `REPLAY · ${view.chase ? 'CHASE' : VIEW_NAMES[view.mode]}` : demo ? 'DEMO' : VIEW_NAMES[view.mode]);
+  renderReplay();
   // Stick overlay: where the sticks are right now (left: throttle + yaw, right: pitch + roll; Mode 2).
-  sticksEl.hidden = !(view.sticks || demo || watching) || setup.open;
+  sticksEl.hidden = !(view.sticks || demo || watching || replay) || setup.open;
   if (!sticksEl.hidden) {
     stickL.style.transform = `translate(${(sticks.yaw * 34).toFixed(1)}px, ${((0.5 - sticks.throttle) * 68).toFixed(1)}px)`;
     setText(stickThr, `throttle ${Math.round(sticks.throttle * 100)} %`); // live: on a gamepad a sideways (yaw) push easily moves it too
@@ -844,7 +917,7 @@ function frame(now) {
   }
   let hint = inp.hint;
   if (s.crashed) hint = `Crashed${s.crashedInto && s.crashedInto !== 'ground' ? ' into a ' + s.crashedInto : ''}. Resetting…`;
-  else if (!sim.armed && !hint && !setup.open && !scripted && !demo && !watching) {
+  else if (!sim.armed && !hint && !setup.open && !scripted && !demo && !watching && !replay) {
     hint = input.source === 'gamepad' ? (usesDefault ? `Pull the left stick down and press ${names.arm} to arm` : 'Throttle down, then arm to fly') : 'Press Space to arm, then hold W to take off';
   }
   hintEl.hidden = !hint || menuOpen;

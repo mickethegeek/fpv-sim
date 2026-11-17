@@ -41,6 +41,10 @@
 <div id="tags" aria-hidden="true"></div>
 <div id="hold" hidden></div>
 <div id="toast" hidden></div>
+<div id="replay" hidden>
+  <div class="row"><button type="button" id="rp-play">Pause</button><input type="range" id="rp-scrub" min="0" max="1000" value="0" aria-label="Replay position"><span id="rp-time"></span></div>
+  <div class="row"><button type="button" id="rp-speed">1x</button><button type="button" id="rp-view">View</button><button type="button" id="rp-exit">Exit replay</button><small id="rp-keys"></small></div>
+</div>
 <div id="hint" hidden></div>
 <div id="corner" hidden></div>
 <div id="menu" hidden>
@@ -84,6 +88,7 @@
     <section data-screen="pause" data-title="Paused" hidden>
       <button type="button" data-act="resume" data-first>Resume</button>
       <button type="button" data-act="restart" id="btn-reset">Restart</button>
+      <button type="button" data-act="replay" id="btn-replay">Replay last run</button>
       <button type="button" data-act="skip" id="btn-skip">Skip this part</button>
       <button type="button" data-go="settings">Settings</button>
       <button type="button" data-act="quit">Back to menu</button>

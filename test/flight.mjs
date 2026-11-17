@@ -1292,6 +1292,65 @@ if (runs('M10f')) {
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
 }
 
+// --- M10c: replay the last run, from any view, with play / pause / scrub / slow motion ---
+if (runs('M10c')) {
+  await page.goto(url + '?fast&free'); await page.waitForFunction(() => window.__sim && window.__sim.ready); await frames(3);
+  const act = (a) => page.evaluate((x) => document.querySelector(`[data-screen=pause] [data-act=${x}]`).click(), a);
+  await menuTo('pause'); await frames(2); await act('replay'); await frames(3);
+  let s = await snap();
+  check('M10c Replay with nothing flown yet says so and does not start', !s.replay && /Nothing to replay/.test(s.toast || ''), `(${s.toast})`);
+  // Fly a short run: climb, then forward and a turn.
+  await page.evaluate(() => { const m = window.__sim; m.arm(true); m.setSticks({ roll: 0, pitch: 0, yaw: 0, throttle: m.config.hover + 0.12 }); });
+  await simWait(1500);
+  const mid = await snap();
+  await fly({ roll: 0.25, pitch: 0.45, yaw: 0.3, throttle: (await page.evaluate(() => window.__sim.config.hover)) + 0.08 }, 2000);
+  await menuTo('pause'); await frames(2);
+  const end = await snap(); // the sim stands still while the menu is open: this is where the run ended
+  await act('replay'); await frames(3);
+  s = await snap();
+  check('M10c Replay last run (pause menu): plays from the start, bar, sticks and REPLAY shown', !!s.replay && s.replay.len > 3 && s.replay.bar && s.stickThr !== null && s.pos[1] < mid.pos[1] && await page.isVisible('#replay') && /REPLAY/.test(await page.textContent('#hud-view')), JSON.stringify(s.replay));
+  await shot('108-replay-start');
+  await page.waitForFunction(() => window.__sim.snapshot().replay.t > 1.8, undefined, { timeout: 60000, polling: 30 });
+  s = await snap();
+  check('M10c playing back, the quad flies the recorded path (climbed, sticks replayed)', s.pos[1] > 1 && s.armed && s.stickThr !== '' , `(alt ${s.pos[1].toFixed(2)}, recorded mid ${mid.pos[1].toFixed(2)})`);
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await frames(2);
+  s = await snap();
+  check('M10c slow motion: ↓ twice gives 0.25x', s.replay.speed === 0.25 && /0.25x/.test(await page.textContent('#rp-speed')));
+  await page.keyboard.press('Space'); await frames(2);
+  const t1 = (await snap()).replay.t; await frames(6);
+  s = await snap();
+  check('M10c Space pauses (time stands still)', !s.replay.playing && Math.abs(s.replay.t - t1) < 1e-9);
+  await page.keyboard.press('ArrowLeft'); await frames(2);
+  s = await snap();
+  check('M10c ← jumps 2 s back', Math.abs(s.replay.t - t1 + 2) < 0.05, `(${t1} → ${s.replay.t})`);
+  // Scrub to the end with the slider: the quad is where the run ended.
+  await page.evaluate(() => { const r = document.getElementById('rp-scrub'); r.value = '1000'; r.dispatchEvent(new Event('input')); }); await frames(3);
+  s = await snap();
+  const d = Math.hypot(s.pos[0] - end.pos[0], s.pos[1] - end.pos[1], s.pos[2] - end.pos[2]);
+  check('M10c scrub to the end: the quad is where the run really ended (within 0.5 m)', d < 0.5, `(${d.toFixed(2)} m)`);
+  await page.evaluate(() => { const r = document.getElementById('rp-scrub'); r.value = '600'; r.dispatchEvent(new Event('input')); }); await frames(3);
+  await shot('109-replay-fpv');
+  await page.click('#rp-view'); await frames(3); s = await snap();
+  const los = s.view === 'los';
+  await shot('110-replay-line-of-sight');
+  await page.click('#rp-view'); await frames(4);
+  await shot('111-replay-chase');
+  const chase = /CHASE/.test(await page.textContent('#hud-view'));
+  check('M10c View button: FPV → line of sight → chase', los && chase);
+  await page.click('#rp-view'); await frames(2);
+  await page.keyboard.press('Backspace'); await frames(3);
+  s = await snap();
+  check('M10c Backspace leaves the replay: quad back on the pad, disarmed, bar gone', !s.replay && !s.armed && s.pos[1] < 0.2 && !(await page.isVisible('#replay')));
+  // A run that ends in a crash: after the automatic reset it can still be replayed.
+  await page.evaluate(() => { const m = window.__sim; m.place(0, 8, -5); m.arm(true); m.setSticks({ roll: 0, pitch: 0, yaw: 0, throttle: 0 }); });
+  await page.waitForFunction(() => window.__sim.snapshot().crashes > 0, undefined, { timeout: 60000, polling: 30 });
+  await page.waitForFunction(() => !window.__sim.snapshot().crashed, undefined, { timeout: 60000, polling: 30 });
+  await menuTo('pause'); await frames(2); await act('replay'); await frames(3);
+  s = await snap();
+  check('M10c a crashed run is still there to replay after the reset', !!s.replay && s.replay.len > 0.5, JSON.stringify(s.replay));
+  await page.evaluate(() => document.getElementById('rp-exit').click()); await frames(2);
+}
+
 const simErrors = await page.evaluate(() => window.__sim.errors);
 check('no page errors', problems.length === 0 && simErrors.length === 0, JSON.stringify([...problems, ...simErrors]));
 
