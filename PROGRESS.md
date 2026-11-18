@@ -249,3 +249,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-18 15:53 Zurich · M12: browser M12 block 6 checks pass (I7a added); feel numbers rerun and written to docs/feel.md (yaw 90 % in 183 ms, chop 7.7 m/s, punch 125 km/h, top 151 km/h); repro after all fixes proof/M12/repro-after.txt; full browser run going · next: full run result, Coming down card in Chrome, tick M12
 - 2026-11-18 15:54 Zurich · M12: Coming down card checked in Chrome (new text, demo comes down gently, proof/M12/m12-coming-down-card.png); REPORT phase 3 rewritten · next: full run result, tick M12
 - 2026-11-18 16:00 Zurich · M12: full browser run at 89 ok, 0 failures so far · next: finish run, tick M12
+- 2026-11-18 16:08 Zurich · M12: full browser run at 132 ok, 0 failures · next: finish run, tick M12
