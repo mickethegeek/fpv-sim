@@ -29,14 +29,18 @@
 | M10c Replay | Pause menu > Replay last run: play / pause, scrub, slow motion down to 0.1x, FPV / line of sight / chase, with your sticks shown | `proof/M10c/` |
 | M11 Finish | Every chapter walked through with the controller in Chrome; HUD fits narrow windows; live site checked | `proof/M11/` |
 
-## Phase 3: the inertia question (M12, in progress, 2026-11-18)
+## Phase 3: the inertia question (M12, 2026-11-18)
 
-Your friend's point, checked: `docs/inertia-review.md`. Reproduced in `node test/inertia-repro.mjs`.
+Your friend's point, checked: `docs/inertia-review.md`; reproduced in `node test/inertia-repro.mjs` (before / after in `proof/M12/`).
 
 - The rigid-body maths (rotation equation, attitude update, frames) was correct: momentum and rotation were already coupled.
-- What was wrong, and is fixed: the props did not damp rotations (each prop now feels its own airflow, I2); drag was the same in every direction and did not turn with the quad (now rotor drag in the rotor plane, body frame, I3); rotor drag did not need the props to spin (now it scales with prop speed and is gone when disarmed, I4).
-- What a real quad also does and the sim keeps: with airmode, throttle at zero still flips and rolls at full rate (real Betaflight does this); a full yaw at zero throttle makes the quad jump up (Betaflight's yaw jump).
-- Still open: body drag by orientation and a tumbling disarmed quad that never slows (I5), prop spin-up torque and gyroscopic effects (I6), translational lift and vortex ring (I7).
+- What was wrong, now fixed, in order of how much it changes the flying:
+  1. **Drag** was the same in every direction and did not turn with the quad. Now rotor drag acts in the prop plane, in the body frame, and only while the props spin (I3, I4).
+  2. **Coming straight down** gave *more* thrust. Now sinking into its own wash costs up to 20 % (vortex ring state); coming down while moving forward is safe (I7a).
+  3. **Props were massless and did not damp rotation.** Now each prop feels its own airflow (damps roll and pitch, I2) and carries angular momentum: speeding props up kicks the yaw, and spinning props couple roll into pitch while yawing hard (I6). Yaw D is now 0, as in Betaflight 4.5.
+- Real and kept: with airmode at zero throttle the quad still flips and rolls at full rate (Betaflight does too); a full yaw at zero throttle still jumps up (Betaflight's yaw jump, now 1.2 m half stick / 5.0 m full from a hover).
+- Felt changes: a climb settles more slowly after you let go (only prop inflow slows it), a throttle chop sinks a little faster, yaw starts quicker, fast vertical drops run away.
+- Still open: body drag by orientation and the tumble of a disarmed quad (I5, needs sourced areas of frame, battery and stopped props); translational lift (I7b).
 
 ## How it was checked
 

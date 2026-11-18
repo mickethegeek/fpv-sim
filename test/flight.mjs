@@ -1380,6 +1380,14 @@ if (runs('M12')) {
   check('M12 sticks centred: rotation stops', Math.abs(s.omega[2]) * 57.3 < 20, `(${(s.omega[2] * 57.3).toFixed(1)} deg/s)`);
   await shot('m12-after-roll');
   await page.evaluate(() => { window.__sim.view.chase = false; window.__sim.setMode('angle'); window.__sim.reset(); });
+  // The "Coming down" card now says the sim models the lost push (I7a), and its demo still comes down gently.
+  await page.goto(url + '?fast&learn'); await page.waitForFunction(() => window.__sim && window.__sim.ready); await frames(3);
+  await menuTo('main', 'theory'); await frames(3);
+  await page.evaluate(() => [...document.querySelectorAll('#theory-list button[data-act=level-card]')].find((b) => /Coming down/.test(b.textContent)).click()); await frames(4);
+  const txt = await page.textContent('#theory-text');
+  check('M12 "Coming down" card: loses push in its own wash, no "does not model"', /loses push/.test(txt) && !/does not model/.test(txt), `("${txt}")`);
+  await simWait(4000);
+  await shot('m12-coming-down-card');
 }
 
 if (runs('M11')) {
