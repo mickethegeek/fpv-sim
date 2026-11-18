@@ -29,6 +29,15 @@
 | M10c Replay | Pause menu > Replay last run: play / pause, scrub, slow motion down to 0.1x, FPV / line of sight / chase, with your sticks shown | `proof/M10c/` |
 | M11 Finish | Every chapter walked through with the controller in Chrome; HUD fits narrow windows; live site checked | `proof/M11/` |
 
+## Phase 3: the inertia question (M12, in progress, 2026-11-18)
+
+Your friend's point, checked: `docs/inertia-review.md`. Reproduced in `node test/inertia-repro.mjs`.
+
+- The rigid-body maths (rotation equation, attitude update, frames) was correct: momentum and rotation were already coupled.
+- What was wrong, and is fixed: the props did not damp rotations (each prop now feels its own airflow, I2); drag was the same in every direction and did not turn with the quad (now rotor drag in the rotor plane, body frame, I3); rotor drag did not need the props to spin (now it scales with prop speed and is gone when disarmed, I4).
+- What a real quad also does and the sim keeps: with airmode, throttle at zero still flips and rolls at full rate (real Betaflight does this); a full yaw at zero throttle makes the quad jump up (Betaflight's yaw jump).
+- Still open: body drag by orientation and a tumbling disarmed quad that never slows (I5), prop spin-up torque and gyroscopic effects (I6), translational lift and vortex ring (I7).
+
 ## How it was checked
 
 - 88 unit tests on the physics, controller logic, course, lessons, demos, coaching, curriculum and replay. Each physics test was shown to fail on a deliberately broken model (`node test/mutations.mjs`).
