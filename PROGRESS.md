@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
 Status: **IN PROGRESS**
-Next: **M12 Inertia / coupling investigation** (PLAN.md, Phase 3)
+Next: **M12 continued**: I5 (per-axis body drag + tumble drag for a disarmed quad, needs sourced 5-inch areas), I6 (prop spin-up yaw torque, gyroscopic precession: size them with sources), I7 (translational lift, vortex ring), then Learn cards if the physics they teach changes, and tick M12. I1 to I4 done, see docs/inertia-review.md
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -243,3 +243,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-18 15:14 Zurich · M12: I3 refined + I4 fixed: rotor drag in the rotor plane only (axial already in the thrust law) and scaled by prop speed (Martin 2014 Eq. 1, NeuroBEM): none with props stopped, 0.3 at hover, 0.9 at full; pitchSpeed 65 → 54 (top speed 151 km/h); motors-off fall now 120 km/h (UNSOURCED quadratic drag only); 91 unit tests, M12 browser block passes · next: I5 per-axis body drag + tumble drag (needs sourced areas), I6 prop torque/gyro, full browser run, REPORT, cards
 - 2026-11-18 15:20 Zurich · M12: full browser run going; 2 old checks (M1 hover, M5 pad hover) failed because a climb now settles slower (no axial rotor drag, only prop inflow, ~1.8 s; written up in inertia-review I3): both given more time; REPORT phase 3 section · next: finish full run, rerun M1/M5
 - 2026-11-18 15:28 Zurich · M12: M1 and M5 blocks rerun alone with the longer waits: pass; full run at 124 ok, only the 2 old failures so far · next: finish full run
+- 2026-11-18 15:37 Zurich · M12 leg end: full browser run 194 ok, 2 failures (M1 hover, M5 pad hover: waits too short for the slower climb settling) both fixed and passing on rerun (proof/M12rerun, log proof/M12/full-run.log); 91 unit tests; I1 to I4 done, lock released · next: I5, I6, I7, then tick M12
