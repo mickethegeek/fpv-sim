@@ -1352,6 +1352,33 @@ if (runs('M10c')) {
 }
 
 // --- M11: every chapter walked through with the PlayStation controller only: Learn (every card), Watch, Check, Try, Skip ---
+// --- M12: inertia / coupling fixes, checked on the modules the page itself serves, then the friend's manoeuvre flown on the page ---
+if (runs('M12')) {
+  const r = await page.evaluate(async (u) => {
+    const P = await import(u + 'src/physics.js'), Q = await import(u + 'src/params.js');
+    const q = Q.defaultQuad(), c = ((q.mass * 9.80665) / (4 * q.maxThrustPerMotor)) ** (1 / q.thrustExponent);
+    const s = P.createState(50); s.motors = [c, c, c, c]; s.omega[2] = 300 * Q.DEG;
+    for (let i = 0; i < 500; i++) P.stepPhysics(s, [c, c, c, c], 1 / P.PHYSICS_HZ, q);
+    const flat = P.createState(200), edge = P.createState(200); edge.quat = [0, 0, Math.SQRT1_2, Math.SQRT1_2];
+    flat.vel = [10, 0, 0]; edge.vel = [10, 0, 0]; q.dragQuadratic = 0;
+    P.stepPhysics(flat, [0, 0, 0, 0], 1e-3, q); P.stepPhysics(edge, [0, 0, 0, 0], 1e-3, q);
+    return { left: s.omega[2] / (300 * Q.DEG), dFlat: (10 - flat.vel[0]) / 1e-3 * q.mass / 10, dEdge: (10 - edge.vel[0]) / 1e-3 * q.mass / 10 };
+  }, url);
+  check('M12 I2 page physics: props damp a roll (hover motors, no FC)', r.left < 0.85 && r.left > 0.5, `(${(r.left * 100).toFixed(0)} % left after 0.5 s)`);
+  check('M12 I3 page physics: rotor drag turns with the quad', Math.abs(r.dFlat - 0.3) < 0.01 && Math.abs(r.dEdge - 0.15) < 0.01, `(in-plane ${r.dFlat.toFixed(3)}, axial ${r.dEdge.toFixed(3)} N per m/s)`);
+  // The friend's manoeuvre on the page: climb, cut throttle, full roll while falling (acro, airmode), chase view.
+  await page.evaluate(() => { window.__sim.reset(); window.__sim.view.chase = true; window.__sim.setMode('acro'); window.__sim.arm(true); });
+  let s = await fly({ ...neutral, throttle: 0.9 }, 2000);
+  const alt0 = s.pos[1];
+  s = await fly({ ...neutral, throttle: 0, roll: 1 }, 500);
+  await shot('m12-falling-roll');
+  check('M12 falling with throttle cut: airmode still rolls (real Betaflight does too)', Math.abs(s.omega[2]) * 57.3 > 500 && !s.crashed, `(roll rate ${(Math.abs(s.omega[2]) * 57.3).toFixed(0)} deg/s, alt ${alt0.toFixed(0)} → ${s.pos[1].toFixed(0)} m)`);
+  s = await fly({ ...neutral, throttle: 0 }, 300);
+  check('M12 sticks centred: rotation stops', Math.abs(s.omega[2]) * 57.3 < 20, `(${(s.omega[2] * 57.3).toFixed(1)} deg/s)`);
+  await shot('m12-after-roll');
+  await page.evaluate(() => { window.__sim.view.chase = false; window.__sim.setMode('angle'); window.__sim.reset(); });
+}
+
 if (runs('M11')) {
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
   await page.goto(url + '?fast');
