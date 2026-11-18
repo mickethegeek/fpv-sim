@@ -1359,13 +1359,12 @@ if (runs('M12')) {
     const q = Q.defaultQuad(), c = ((q.mass * 9.80665) / (4 * q.maxThrustPerMotor)) ** (1 / q.thrustExponent);
     const s = P.createState(50); s.motors = [c, c, c, c]; s.omega[2] = 300 * Q.DEG;
     for (let i = 0; i < 500; i++) P.stepPhysics(s, [c, c, c, c], 1 / P.PHYSICS_HZ, q);
-    const flat = P.createState(200), edge = P.createState(200); edge.quat = [0, 0, Math.SQRT1_2, Math.SQRT1_2];
-    flat.vel = [10, 0, 0]; edge.vel = [10, 0, 0]; q.dragQuadratic = 0;
-    P.stepPhysics(flat, [0, 0, 0, 0], 1e-3, q); P.stepPhysics(edge, [0, 0, 0, 0], 1e-3, q);
-    return { left: s.omega[2] / (300 * Q.DEG), dFlat: (10 - flat.vel[0]) / 1e-3 * q.mass / 10, dEdge: (10 - edge.vel[0]) / 1e-3 * q.mass / 10 };
+    q.dragQuadratic = 0;
+    const k = (m) => { const x = P.createState(200); x.vel = [10, 0, 0]; x.motors = [m, m, m, m]; P.stepPhysics(x, [m, m, m, m], 1e-3, q); return (10 - x.vel[0]) / 1e-3 * q.mass / 10; };
+    return { left: s.omega[2] / (300 * Q.DEG), dHover: k(c), dStopped: k(0) };
   }, url);
   check('M12 I2 page physics: props damp a roll (hover motors, no FC)', r.left < 0.85 && r.left > 0.5, `(${(r.left * 100).toFixed(0)} % left after 0.5 s)`);
-  check('M12 I3 page physics: rotor drag turns with the quad', Math.abs(r.dFlat - 0.3) < 0.01 && Math.abs(r.dEdge - 0.15) < 0.01, `(in-plane ${r.dFlat.toFixed(3)}, axial ${r.dEdge.toFixed(3)} N per m/s)`);
+  check('M12 I3/I4 page physics: rotor drag 0.3 at hover prop speed, none with props stopped', Math.abs(r.dHover - 0.3) < 0.01 && Math.abs(r.dStopped) < 1e-6, `(hover ${r.dHover.toFixed(3)}, stopped ${r.dStopped.toFixed(3)} N per m/s)`);
   // The friend's manoeuvre on the page: climb, cut throttle, full roll while falling (acro, airmode), chase view.
   await page.evaluate(() => { window.__sim.reset(); window.__sim.view.chase = true; window.__sim.setMode('acro'); window.__sim.arm(true); });
   let s = await fly({ ...neutral, throttle: 0.9 }, 2000);

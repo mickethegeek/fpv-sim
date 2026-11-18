@@ -36,7 +36,7 @@ The model's sourced numbers are right. Three card sentences were wrong for the s
 - Card geometry: cos 30° = 87 %, cos 60° = 50 %, sin 30° = half sideways; 0.5^1.35 = 0.39 ("well under half"); one flip at 670 deg/s = 0.54 s.
 
 ## Still UNSOURCED after this review (also in REPORT.md)
-Angle-mode gain 10 (R1, tuned); descent thrust cap +25 % (R7); quadratic body drag 0.006 and the 60 km/h free fall it gives; `pitchSpeed` 65 m/s (tuned to the cited 150 km/h); yaw-jump height; crash speed 6 m/s; lesson limits (landing 1.5 m/s, slow 8 m/s, disarm 1.0 s, heading 20°); gamepad deadzone; look choices.
+Angle-mode gain 10 (R1, tuned); descent thrust cap +25 % (R7); quadratic body drag 0.006 and the 120 km/h free fall it gives (60 before M12); `pitchSpeed` 54 m/s (65 before M12) (tuned to the cited 150 km/h); yaw-jump height; crash speed 6 m/s; lesson limits (landing 1.5 m/s, slow 8 m/s, disarm 1.0 s, heading 20°); gamepad deadzone; look choices.
 
 ## Sources read this leg
 - Betaflight 4.5.0 / 4.4.0 source: `src/main/fc/controlrate_profile.c`, `fc/rc.c`, `flight/pid.c`, `flight/pid.h`, `flight/pid_init.c`, `flight/failsafe.c`, `flight/mixer_init.c`, `pg/motor.c`, `drivers/motor.h` (raw.githubusercontent.com/betaflight/betaflight/4.5.0/...)

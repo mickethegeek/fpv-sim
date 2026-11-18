@@ -33,7 +33,7 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 |---|---|---|---|
 | Inertia roll / pitch / yaw | 2.5e-3 / 2.1e-3 / 4.3e-3 kg m² | cited | Kaufmann, Bauersfeld, Scaramuzza 2022, Table II, identified from a real racing quad of 0.768 kg [7] |
 | Yaw torque per newton of thrust | 0.0122 m | derived | c_d / c_l = 1.909e-8 / 1.563e-6 from the same Table II [7] |
-| Linear (rotor) drag | 0.3 N per m/s in the rotor plane, 0.15 along the thrust axis, in the body frame | cited | k_vx, k_vy, k_vz in Table II [7]; body-frame form `R D Rᵀ v` from Faessler 2018 Eq. 2 (docs/inertia-review.md I3) |
+| Linear (rotor) drag | 0.3 N per m/s at hover prop speed, in the rotor plane only, body frame, scaled by prop speed (none with props stopped) | cited | in-plane k_vx, k_vy of Table II [7]; body-frame form from Faessler 2018 Eq. 2 (dz = 0 there); per rotor ∝ prop speed × in-plane airspeed, Martin 2014 Eq. 1 (docs/inertia-review.md I3, I4) |
 | Level top speed target | about 150 km/h | cited | "A typical 6S 5-inch freestyle FPV drone can reach about 150 km/h" [8] |
 | Mass with battery | 0.68 kg | cited | 625 to 670 g with a 6S 1300 mAh pack (`docs/feel.md` F7) |
 | Thrust-to-weight | 9 | cited (range) | 7.5 measured in flight trim on an 870 g race quad, 10 to 11 from bench thrust (`docs/feel.md` F4 to F6); 9 is the middle. Gives 15 N static thrust per motor. |

@@ -51,7 +51,7 @@ PLAN rule: every number from real-life data. These are the ones still without a 
 | Rate-loop response time | 45 ms to 90 % | Only third-party tuner thresholds found, no primary measurement |
 | Angle-mode lean time | 200 ms | A judgement; no published figure |
 | Yaw authority | 166 ms to 90 % | Follows from the motor model; not checked against a real quad |
-| Falling speed with motors off | 60 km/h | No figure found |
+| Falling speed with motors off | 120 km/h (M12; was 60) | No figure found; set by the UNSOURCED quadratic drag alone now that rotor drag needs spinning props |
 | Quadratic body drag | 0.006 N per (m/s)² | Placeholder |
 | Crash speed | 6 m/s | A choice |
 | Gamepad stick deadzone | 5 % | No figure for PlayStation sticks; slider in the panel |
@@ -62,7 +62,7 @@ PLAN rule: every number from real-life data. These are the ones still without a 
 | Angle-mode gain (M10f review) | 10 deg/s per degree | Betaflight 4.5 uses 5 plus angle feedforward and a filter; the sim has no feedforward, so 10 is tuned to a similar lean (docs/review.md R1) |
 | Thrust when sinking (M10f review) | up to +25 % over static | The model gives extra thrust in a descent, capped at +25 % with no source; real quads lose up to 20 % in a fast vertical descent (vortex ring state, not modelled; docs/review.md R7) |
 | Mass (M10f review) | 680 g | 10 g above the cited 625 to 670 g (docs/review.md R5) |
-| Prop pitch speed | 65 m/s | Tuned so level top speed lands on the cited 150 km/h |
+| Prop pitch speed | 54 m/s (M12; was 65) | Tuned so level top speed lands on the cited 150 km/h |
 | Yaw-jump height | 1.2 m (half yaw) / 4.2 m (full yaw) in 2 s | Real yaw jump is cited, its size is not |
 
 Independent physics review (M10f, 2026-11-17): every parameter and card claim rechecked against primary sources; findings and fixes in `docs/review.md`.

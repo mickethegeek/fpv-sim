@@ -87,7 +87,14 @@ export function stepPhysics(s, cmd, dt, p, world) {
   // Drag. Linear part in the BODY frame (rotor drag, Faessler 2018 Eq. 2: -R D R^T v): per body axis [x, y = thrust axis, z],
   // so it turns with the quad (docs/inertia-review.md I3). Quadratic part stays the same on every axis (UNSOURCED).
   const speed = Math.hypot(rvx, rvy, rvz);
-  const [kx, ky, kz] = p.dragBody || [p.dragLinear, p.dragLinear, p.dragLinear];
+  // Rotor drag grows with prop speed: per rotor -lambda * omega_i * (in-plane airspeed) (Martin 2014 Eq. 1; NeuroBEM: it "depends
+  // on the propeller speed"). The cited coefficients hold at hover prop speed; stopped props give none (docs/inertia-review.md I4).
+  let nSum = 0;
+  for (let i = 0; i < 4; i++) nSum += s.motors[i] ** (p.thrustExponent / 2);
+  const nHover = Math.sqrt((p.mass * GRAVITY) / (4 * p.maxThrustPerMotor));
+  const rs = p.rotorDragScales === false ? 1 : nSum / (4 * nHover);
+  const kb = p.dragBody || [p.dragLinear, p.dragLinear, p.dragLinear];
+  const kx = kb[0] * rs, ky = kb[1] * rs, kz = kb[2] * rs;
   const qc = [-s.quat[0], -s.quat[1], -s.quat[2], s.quat[3]];
   rotate(qc, [rvx, rvy, rvz], _vb);
   _vb[0] *= kx; _vb[1] *= ky; _vb[2] *= kz;

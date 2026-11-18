@@ -56,7 +56,7 @@ Rule from PLAN.md (Mike, 2026-11-16): every number comes from real-life data. Ro
 | Throttle chop from hover: sink rate and drop after 1 s (free fall: 9.8 m/s, 4.9 m) | 6.0 m/s, 3.2 m |
 | Coasting from 23 km/h after centring the sticks (angle mode): half speed after, below 1 m/s after, distance | 1.6 s, 4.1 s, 12 m |
 | Top speed in angle mode (60 deg tilt limit, full throttle) | 145 km/h |
-| Falling with motors off: terminal speed | 60 km/h |
+| Falling with motors off: terminal speed | 120 km/h (was 60 before M12: rotor drag now vanishes with the props stopped, docs/inertia-review.md I4) |
 
 Trainer preset (throttle limit 70 %): hover 21.7 %, punch 4.0 g, climb after 1 s 80 km/h, 111 km/h top speed in angle mode. Rotation numbers are the same as above.
 
