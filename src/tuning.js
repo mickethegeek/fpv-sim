@@ -51,6 +51,7 @@ export function buildConfig(tuning) {
   for (const axis of ['roll', 'pitch', 'yaw']) fc.rates[axis] = { center: t.rateCenter, max: t.rateMax, expo: t.expo };
   fc.kp *= t.responsiveness; fc.kd *= t.responsiveness;
   quad.dragLinear /= t.floatiness; quad.dragQuadratic /= t.floatiness;
+  if (quad.dragBody) quad.dragBody = quad.dragBody.map((k) => k / t.floatiness);
   const hover = hoverStick(quad, fc);
   return { tuning: t, quad, fc, hover,
     input: { throttleMid: t.throttleMid ?? hover, throttleExpo: t.throttleExpo, deadzone: t.deadzone } };

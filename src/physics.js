@@ -50,7 +50,7 @@ export function motorThrust(u, vAxial, p) {
   return t < 0 ? 0 : (t > cap ? cap : t);
 }
 
-const _up = [0, 0, 0];
+const _up = [0, 0, 0], _vb = [0, 0, 0], _db = [0, 0, 0];
 
 // Advance the state by dt seconds. cmd = commanded motor speeds [4], each 0..1. Mutates and returns state.
 // world (optional): { hit(pos) -> truthy when the quad touches an obstacle } (see world.js). Any obstacle hit is a crash.
@@ -70,20 +70,32 @@ export function stepPhysics(s, cmd, dt, p, world) {
   const rvx = s.vel[0] - w[0], rvy = s.vel[1] - w[1], rvz = s.vel[2] - w[2];
   const vAxial = rvx * _up[0] + rvy * _up[1] + rvz * _up[2];
   const d = p.armLength * Math.SQRT1_2;
+  // Each prop sees its own axial airspeed: the body's plus the motor's own motion from the rotation (omega x r, body Y part).
+  // A motor swinging up gets less thrust, one swinging down more: this is the rotor's damping of roll and pitch, falling
+  // straight out of the thrust-vs-airspeed law above (docs/inertia-review.md I2).
+  const [w0, , w2] = s.omega;
   let thrust = 0, tx = 0, ty = 0, tz = 0;
   for (let i = 0; i < 4; i++) {
-    const f = motorThrust(s.motors[i], vAxial, p);
+    const m0 = MOTORS[i];
+    const f = motorThrust(s.motors[i], vAxial + d * (w2 * m0.sx - w0 * m0.sz), p);
     const m = MOTORS[i];
     thrust += f;
     tx += -m.sz * d * f;
     tz += m.sx * d * f;
     ty += m.spin * p.yawTorquePerThrust * f;
   }
+  // Drag. Linear part in the BODY frame (rotor drag, Faessler 2018 Eq. 2: -R D R^T v): per body axis [x, y = thrust axis, z],
+  // so it turns with the quad (docs/inertia-review.md I3). Quadratic part stays the same on every axis (UNSOURCED).
   const speed = Math.hypot(rvx, rvy, rvz);
-  const drag = p.dragLinear + p.dragQuadratic * speed;
-  const ax = (thrust * _up[0] - drag * rvx) / p.mass;
-  const ay = (thrust * _up[1] - drag * rvy) / p.mass - GRAVITY;
-  const az = (thrust * _up[2] - drag * rvz) / p.mass;
+  const [kx, ky, kz] = p.dragBody || [p.dragLinear, p.dragLinear, p.dragLinear];
+  const qc = [-s.quat[0], -s.quat[1], -s.quat[2], s.quat[3]];
+  rotate(qc, [rvx, rvy, rvz], _vb);
+  _vb[0] *= kx; _vb[1] *= ky; _vb[2] *= kz;
+  rotate(s.quat, _vb, _db);
+  const dq = p.dragQuadratic * speed;
+  const ax = (thrust * _up[0] - _db[0] - dq * rvx) / p.mass;
+  const ay = (thrust * _up[1] - _db[1] - dq * rvy) / p.mass - GRAVITY;
+  const az = (thrust * _up[2] - _db[2] - dq * rvz) / p.mass;
 
   // Angular: I * domega = torque - omega x (I * omega).
   const [ix, iy, iz] = p.inertia;

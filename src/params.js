@@ -12,10 +12,11 @@ export function defaultQuad() {
     maxThrustPerMotor: (thrustToWeight * mass * 9.80665) / 4, // N static
     motorTau: 0.033,            // s, first-order lag on motor speed, cited (docs/feel.md F8)
     yawTorquePerThrust: 0.0122, // m, derived from [7]
-    dragLinear: 0.3,            // N per m/s, cited [7]
+    dragLinear: 0.3,            // N per m/s, cited [7] (in-plane)
+    dragBody: [0.3, 0.15, 0.3], // N per m/s on body x, y (thrust axis), z: k_vx, k_vz, k_vy of [7]; Faessler 2018 gives 0.26 to 0.33 in-plane (docs/inertia-review.md I3)
     dragQuadratic: 0.006,       // N per (m/s)^2, uncited
     thrustExponent: 1.35,       // static thrust = max * command^1.35: middle of two 2207 6S bench tables, 1.24 and 1.45 (docs/feel.md, note 2)
-    pitchSpeed: 65,             // m/s at full throttle, tuned for ~150 km/h level top speed [8]
+    pitchSpeed: 60,             // m/s at full throttle, tuned for ~150 km/h level top speed [8]
     crashSpeed: 6,              // m/s impact speed that counts as a crash (assumption)
     groundHeight: 0.05,         // m, height of the centre of mass when sitting on the ground
   };

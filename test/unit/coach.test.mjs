@@ -57,7 +57,7 @@ test('coach: landing beside the pad after holding roll says which way, how far, 
   assert.ok(x.sim.state.pos[0] > 1.5, `landed at x ${x.sim.state.pos[0].toFixed(1)}`);
   assert.match(x.line, /^You landed \d+\.\d m to the right of the pad: you held roll right for 1\.[4-7] s and never stopped the drift\. There are no brakes: roll left briefly, then level\.$/); one(x.line);
   const said = Number(x.line.match(/landed (\d+\.\d) m/)[1]);
-  assert.ok(Math.abs(said - Math.hypot(x.sim.state.pos[0], x.sim.state.pos[2])) < 0.06, 'the distance is the measured one');
+  assert.ok(Math.abs(said - Math.hypot(x.sim.state.pos[0], x.sim.state.pos[2])) < 0.06, 'the distance is the measured one ' + said + ' ' + Math.hypot(x.sim.state.pos[0], x.sim.state.pos[2]));
 });
 
 test('coach: the same mistake seen from the ground (line of sight) with the nose toward you: "to the right" is the pilot\'s right, the stick is the quad\'s', () => {
