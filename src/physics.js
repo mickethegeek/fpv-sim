@@ -58,10 +58,16 @@ const NO_WIND = [0, 0, 0];
 export function stepPhysics(s, cmd, dt, p, world) {
   if (s.crashed) return s;
   // Motor lag.
-  const a = 1 - Math.exp(-dt / p.motorTau);
+  const a = 1 - Math.exp(-dt / p.motorTau), he = p.thrustExponent / 2;
+  // Spinning props (and bells) carry angular momentum along the body Y axis: H = sum of -spin * J * omegaMax * n (docs/inertia-review.md I6).
+  // Speeding a prop up pushes the frame the other way (reaction torque -dH/dt, mostly yaw); H also couples roll and pitch (gyroscopic).
+  const jw = (p.propInertia || 0) * (p.propSpeedMax || 0);
+  let hOld = 0, hNew = 0;
   for (let i = 0; i < 4; i++) {
     const c = cmd[i] < 0 ? 0 : cmd[i] > 1 ? 1 : cmd[i];
+    hOld -= MOTORS[i].spin * jw * s.motors[i] ** he;
     s.motors[i] += (c - s.motors[i]) * a;
+    hNew -= MOTORS[i].spin * jw * s.motors[i] ** he;
   }
   // Forces and torques.
   bodyUp(s.quat, _up);
@@ -104,9 +110,11 @@ export function stepPhysics(s, cmd, dt, p, world) {
   const ay = (thrust * _up[1] - _db[1] - dq * rvy) / p.mass - GRAVITY;
   const az = (thrust * _up[2] - _db[2] - dq * rvz) / p.mass;
 
-  // Angular: I * domega = torque - omega x (I * omega).
+  // Angular: I * domega = torque - omega x (I * omega + H) - dH/dt, H = prop angular momentum (0, hNew, 0) in body axes.
   const [ix, iy, iz] = p.inertia;
   const [wx, wy, wz] = s.omega;
+  ty -= (hNew - hOld) / dt;
+  tx += wz * hNew; tz -= wx * hNew;
   s.omega[0] = wx + dt * (tx - (wy * iz * wz - wz * iy * wy)) / ix;
   s.omega[1] = wy + dt * (ty - (wz * ix * wx - wx * iz * wz)) / iy;
   s.omega[2] = wz + dt * (tz - (wx * iy * wy - wy * ix * wx)) / iz;

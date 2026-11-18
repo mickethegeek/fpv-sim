@@ -61,7 +61,8 @@ export function fcUpdate(fc, sticks, mode, armed, state, dt, cfg, quad) {
     else if (Math.abs(err) < cfg.iRelax * DEG) fc.integ[i] = clamp(fc.integ[i] + err * dt, -cfg.iLimit, cfg.iLimit);
     const dOmega = (state.omega[i] - fc.prevOmega[i]) / dt;
     fc.prevOmega[i] = state.omega[i];
-    const alpha = cfg.kp * err + cfg.ki * fc.integ[i] - cfg.kd * dOmega;
+    const kd = i === 1 ? (cfg.kdYaw ?? cfg.kd) : cfg.kd;   // yaw: no D, as Betaflight 4.5 (PID_YAW_DEFAULT D = 0)
+    const alpha = cfg.kp * err + cfg.ki * fc.integ[i] - kd * dOmega;
     torque[i] = quad.inertia[i] * alpha;
   }
   // Mixer: per-motor thrust (N), then to motor command with thrust ~ command^e.

@@ -25,13 +25,14 @@ Actual rates, from the Betaflight source [2] (stick `x` in −1..1, result in de
     expof = |x| * (x^5 * expo + x * (1 - expo))
     rate  = x * center + max(0, maxRate - center) * expof
 
-Not copied from Betaflight: the PID loop itself. Betaflight's default gains (roll 45/80/30, F 120 [6]) are in its own internal units and depend on its filters and loop rate. The sim uses a PID on angular rate in physical units (`src/flightcontroller.js`), tuned so that a full-stick roll reaches the configured max rate within about 0.2 s (unit test).
+Not copied from Betaflight: the PID loop itself. Betaflight's default gains (roll 45/80/40, yaw 45/80/0, F 120 [6], 4.5.0; the sim copies only yaw D = 0, M12) are in its own internal units and depend on its filters and loop rate. The sim uses a PID on angular rate in physical units (`src/flightcontroller.js`), tuned so that a full-stick roll reaches the configured max rate within about 0.2 s (unit test).
 
 ## Airframe
 
 | What | Value | Status | Source |
 |---|---|---|---|
 | Inertia roll / pitch / yaw | 2.5e-3 / 2.1e-3 / 4.3e-3 kg m² | cited | Kaufmann, Bauersfeld, Scaramuzza 2022, Table II, identified from a real racing quad of 0.768 kg [7] |
+| Prop inertia, prop speed at full | 1.34e-6 kg m², 3275 rad/s | cited | Emax Avan Flow spec; T-Motor P2306 V3 table (docs/inertia-review.md I6) |
 | Yaw torque per newton of thrust | 0.0122 m | derived | c_d / c_l = 1.909e-8 / 1.563e-6 from the same Table II [7] |
 | Linear (rotor) drag | 0.3 N per m/s at hover prop speed, in the rotor plane only, body frame, scaled by prop speed (none with props stopped) | cited | in-plane k_vx, k_vy of Table II [7]; body-frame form from Faessler 2018 Eq. 2 (dz = 0 there); per rotor ∝ prop speed × in-plane airspeed, Martin 2014 Eq. 1 (docs/inertia-review.md I3, I4) |
 | Level top speed target | about 150 km/h | cited | "A typical 6S 5-inch freestyle FPV drone can reach about 150 km/h" [8] |
@@ -104,7 +105,7 @@ These are not flight parameters; they are listed so every number on screen has a
 17. IntoFPV, "Drone throttling upwards aggressively when yawing" (5-inch, Betaflight 4.4/4.5, pilot report): https://intofpv.com/t-drone-throttling-upwards-aggressively-when-yawing
 
 ## Yaw jump (M10d)
-Mike, flying lesson 2: "when I turn I shoot up". Measured on the sim from a hover, throttle stick unchanged, yaw stick held 2 s: half yaw climbs 1.2 m, full yaw 4.2 m (after the yaw pidsum limit; 1.4 m and 4.7 m before it). The climb comes in the first 0.2 s: the yaw needs a big motor difference (prop drag torque is only 0.0122 m per newton of thrust, against 0.078 m of arm for roll), two motors drop to idle, so the mixer raises all four to keep the yaw (airmode-style), and the total thrust briefly reaches about 3x the weight.
+Mike, flying lesson 2: "when I turn I shoot up". Measured on the sim from a hover, throttle stick unchanged, yaw stick held 2 s: half yaw climbs 1.2 m, full yaw 4.2 m (after the yaw pidsum limit; 1.4 m and 4.7 m before it). After M12 (new drag, prop spin-up torque, yaw D = 0): half 1.2 m, full 5.0 m. The climb comes in the first 0.2 s: the yaw needs a big motor difference (prop drag torque is only 0.0122 m per newton of thrust, against 0.078 m of arm for roll), two motors drop to idle, so the mixer raises all four to keep the yaw (airmode-style), and the total thrust briefly reaches about 3x the weight.
 - Real quads do this. Betaflight 4.2 tuning notes [15]: "for big, fast yaw inputs, the motors quickly get driven to a very high differential, with one pair at 100% and the other at zero", and they name "yaw jump" as a typical yaw problem. Betaflight's default mixer keeps throttle until it cannot, then "will drastically start to change throttle to still get desired authority" [16]. A 5-inch pilot reports the climb on "really sharp yaw turns", and a log reader says the motors were "maxed out and spun down all the way to idle in order to produce the needed yaw" [17].
 - Not validated: no source gives a height for a real 5-inch, so the sim's 1.2 m / 4.2 m is the model's own number (**UNSOURCED** magnitude). Kept and taught: the Stick patterns card "Turn on the spot" shows a snapped yaw jumping up and a smooth yaw with a touch less throttle holding height.
 

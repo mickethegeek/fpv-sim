@@ -12,6 +12,8 @@ export function defaultQuad() {
     maxThrustPerMotor: (thrustToWeight * mass * 9.80665) / 4, // N static
     motorTau: 0.033,            // s, first-order lag on motor speed, cited (docs/feel.md F8)
     yawTorquePerThrust: 0.0122, // m, derived from [7]
+    propInertia: 1.34e-6,       // kg m^2, one 5-inch prop: Emax Avan Flow 5x4.3x3, 13.4 g cm^2 (maker's spec); motor bell not included (docs/inertia-review.md I6)
+    propSpeedMax: 3275,         // rad/s at full command: 31277 rpm, T-Motor P2306 V3 1750 KV, T5143S-3 prop, 24.8 V (maker's thrust table)
     dragLinear: 0.3,            // N per m/s, cited [7] (in-plane)
     dragBody: [0.3, 0, 0.3],    // N per m/s at hover prop speed, body x, y (thrust axis), z: rotor drag acts in the rotor plane only (Martin 2014; Faessler 2018 sets dz = 0); in-plane 0.3 = k_vx, k_vy of [7]; scales with prop speed (docs/inertia-review.md I3, I4)
     dragQuadratic: 0.006,       // N per (m/s)^2, uncited
@@ -35,7 +37,7 @@ export function defaultFc() {
     angleGain: 10,    // deg/s per deg of error; Betaflight 4.5 is P/10 = 5 plus angle feedforward and a filter (docs/review.md R1); tuned for a 200 ms lean with no overshoot (docs/feel.md)
     rateLimit: 1998,  // deg/s, cited [2]
     // Rate PID in physical units: output is angular acceleration (rad/s^2) per rad/s of error.
-    kp: 120, ki: 30, kd: 1.5, iLimit: 3, // tuned to the step-response targets in docs/feel.md
+    kp: 120, ki: 30, kd: 1.5, iLimit: 3, kdYaw: 0, // yaw D = 0 as in Betaflight 4.5.0 pid.h PID_YAW_DEFAULT { 45, 80, 0, 120 }; with the prop spin-up torque (I6) a yaw D term rings (docs/inertia-review.md I6) // tuned to the step-response targets in docs/feel.md
     iRelax: 60,       // deg/s: the I-term only accumulates when the rate error is below this
     pidsumLimit: 0.5, pidsumLimitYaw: 0.4, // Betaflight pidsum_limit 500 / pidsum_limit_yaw 400 (of 1000 = the whole motor range): the most one axis may move a motor's command (docs/physics.md)
     idle: 0.055,      // minimum motor command when armed: Betaflight default digitalIdleOffsetValue 550 of 10000 = 5.5 % (DShot) (docs/feel.md F25)

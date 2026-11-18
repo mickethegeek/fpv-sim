@@ -51,3 +51,24 @@ test('I4: rotor drag grows with prop speed and is gone with the props stopped', 
   assert.ok(Math.abs(k(hoverCmd(q)) - 0.3) < 0.01, `hover ${k(hoverCmd(q)).toFixed(3)}`);
   assert.ok(Math.abs(k(1) - 0.3 / nHover) < 0.02, `full ${k(1).toFixed(3)} (want ${(0.3 / nHover).toFixed(3)})`);
 });
+
+test('I6: speeding props up twists the frame the other way (yaw), and spinning props couple roll into pitch', () => {
+  const q = defaultQuad(), c = hoverCmd(q);
+  // Yaw step from hover: motors 0 and 2 (spin +1) up, 1 and 3 down. Yaw rate after 20 ms, with and without prop inertia.
+  const yawAfter = (quad) => {
+    const s = createState(50); s.motors = [c, c, c, c];
+    for (let i = 0; i < 20; i++) stepPhysics(s, [0.6, 0.06, 0.6, 0.06], DT, quad);
+    return s.omega[1];
+  };
+  const none = { ...q, propInertia: 0 };
+  const w1 = yawAfter(q), w0 = yawAfter(none);
+  assert.ok(Math.sign(w1) === Math.sign(w0) && Math.abs(w1) > 1.3 * Math.abs(w0), `yaw after 20 ms: ${(w1 / DEG).toFixed(0)} vs ${(w0 / DEG).toFixed(0)} deg/s without prop inertia`);
+  // Gyroscopic: props held unequal (net spin), roll at 300 deg/s: a pitch rate appears; none without prop inertia.
+  const pitchFromRoll = (quad) => {
+    const s = createState(50); const m = [0.6, 0.06, 0.6, 0.06]; s.motors = [...m]; s.omega[2] = 300 * DEG;
+    for (let i = 0; i < 50; i++) stepPhysics(s, m, DT, quad);
+    return s.omega[0];
+  };
+  const gyro = pitchFromRoll(q) - pitchFromRoll(none);   // the uneven props also damp the roll unevenly (I2): take that out
+  assert.ok(Math.abs(gyro) > 5 * DEG, `gyroscopic pitch rate ${(gyro / DEG).toFixed(1)} deg/s after 50 ms`);
+});
