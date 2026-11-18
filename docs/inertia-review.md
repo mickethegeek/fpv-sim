@@ -14,6 +14,18 @@ Reproduced with `node test/inertia-repro.mjs` (same physics and flight controlle
 | D. 30 m/s, throttle cut, full yaw | yaw 344 deg/s within 0.14 s; motors pushed to 80 % on one pair (yaw jump: quad climbs 1.6 m) | Betaflight does the same with pidsum_limit_yaw 400 (docs/physics.md "Yaw jump"); real yaw is helped by prop spin-up torque (not modelled, I6) |
 | G. 20 m/s sideways, level | slows like any direction | rotor drag (in the rotor plane) is the strongest drag on a flying quad |
 
+## After the fixes (`proof/M12/repro-after.txt`)
+
+| Manoeuvre | Before | After |
+|---|---|---|
+| Hover spin damping (motors held) | none | 64 % of a roll rate left after 0.5 s (I2) |
+| 20 m/s sideways, level, hover throttle | slowed by world drag | slowed by rotor drag in the prop plane, 0.3 N per m/s at hover prop speed, more at full throttle (I3, I4) |
+| Disarmed fall | 0.3 N per m/s rotor drag even with props stopped | no rotor drag; 120 km/h terminal (UNSOURCED quadratic drag only) |
+| Straight down at 7 m/s | +25 % thrust | 80 % of hover thrust (I7a) |
+| Full yaw from hover, 90 % of rate | 208 ms | 183 ms (prop spin-up kick, I6) |
+| Zero-throttle flip (airmode) | full rate | full rate (real) |
+| 30 m/s, throttle cut, full yaw | the quad keeps going the old way, nose turns | same: that is momentum, correct |
+
 ## Checked and correct
 
 - **I1. Rigid-body equation and attitude update.** `I dω = τ − ω × Iω` in body axes (`stepPhysics`): the three cross-product components checked by hand. Quaternion update `q̇ = ½ q ⊗ (ω, 0)` with body-frame ω, normalised each step: correct. Torque from each motor `r × F` with r = (±d, 0, ±d): signs correct. Body vs world: thrust and torques built in the body frame, rotated to world for the linear motion. **No bug here**: rotations and translation are already coupled the right way (thrust follows the tilt, momentum keeps going when you yaw).
@@ -33,7 +45,7 @@ Reproduced with `node test/inertia-repro.mjs` (same physics and flight controlle
 
 ## Found, still open (next legs)
 
-- **I5. Body (parasitic) drag the same on every axis, and a disarmed spin that never stops.** With the props stopped what is left is the frame, stopped props and battery. Flat should be draggier than edge-on, and the arms and stopped blades should slow a tumble (flat plate Cd 1.28, NASA Glenn [G]). Needs sourced areas of a 5-inch frame, battery and stopped props (top vs side). Not found yet; I2 does not help here because it needs spinning props.
+- **I5. Body (parasitic) drag the same on every axis, and a disarmed spin that never stops.** With the props stopped what is left is the frame, stopped props and battery. Flat should be draggier than edge-on, and the arms and stopped blades should slow a tumble (flat plate Cd 1.28, NASA Glenn [G]). Needs sourced areas of a 5-inch frame, battery and stopped props (top vs side). Not found yet: the battery (CNHL 1300 6S, 77 x 48 x 33 mm) and frame (225 mm wheelbase, 5 mm arms, 36 mm tall) have published sizes, but arm width and stopped-blade area do not. Left open on purpose: it changes only a disarmed quad, which always ends in a crash, so it matters least to what a pilot can do. I2 does not help here because it needs spinning props.
 - **I7a. Vortex ring state (fixed).** Before, sinking along the thrust axis gave *more* thrust (up to +25 %, review R7), so a fast vertical drop was free. Veismann et al. 2021 [V] measured "mean thrust losses of up to 20% compared to hover conditions" in the regime −2v_h < v_z < 0 (v_h = hover induced speed). Now: v_h from momentum theory at the prop's current thrust, v_h = √(T / 2ρA) (5-inch disc, ρ = 1.225), 7.3 m/s for this quad at hover; between 0 and 2 v_h the thrust blends (sin², UNSOURCED shape) toward 80 % of hover thrust, worst at v_h, and the loss fades out as in-plane airspeed reaches v_h (UNSOURCED: moving forward leaves the wash behind, as the card says). At hover thrust: 1.00 / 1.06 / 0.98 / 0.80 / 0.93 / 1.25 x at 0 / 2 / 4 / 7 / 10 / 16 m/s of sink. So a slow descent is unchanged, a fast straight drop sinks faster and faster (the real runaway), and coming down while moving forward is safe. The shaking pilots feel is not modelled. The two curriculum demos that come down "just under hover" now cut 2 % stick instead of 3 to 4 % (with 4 % the freestyle quad now runs into the ring and drops). Card "Coming down" no longer says the sim does not model it. Test: I7.
 - **I7b. Translational lift** (in-plane airflow raising thrust): still missing; the thrust law only knows the axial airflow. Needs a sourced size for a 5-inch prop.
 
