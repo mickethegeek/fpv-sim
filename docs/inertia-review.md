@@ -34,7 +34,8 @@ Reproduced with `node test/inertia-repro.mjs` (same physics and flight controlle
 ## Found, still open (next legs)
 
 - **I5. Body (parasitic) drag the same on every axis, and a disarmed spin that never stops.** With the props stopped what is left is the frame, stopped props and battery. Flat should be draggier than edge-on, and the arms and stopped blades should slow a tumble (flat plate Cd 1.28, NASA Glenn [G]). Needs sourced areas of a 5-inch frame, battery and stopped props (top vs side). Not found yet; I2 does not help here because it needs spinning props.
-- **I7. Translational lift / in-plane airflow raising thrust**, and the vortex ring loss in descent (review R7): still missing.
+- **I7a. Vortex ring state (fixed).** Before, sinking along the thrust axis gave *more* thrust (up to +25 %, review R7), so a fast vertical drop was free. Veismann et al. 2021 [V] measured "mean thrust losses of up to 20% compared to hover conditions" in the regime −2v_h < v_z < 0 (v_h = hover induced speed). Now: v_h from momentum theory at the prop's current thrust, v_h = √(T / 2ρA) (5-inch disc, ρ = 1.225), 7.3 m/s for this quad at hover; between 0 and 2 v_h the thrust blends (sin², UNSOURCED shape) toward 80 % of hover thrust, worst at v_h, and the loss fades out as in-plane airspeed reaches v_h (UNSOURCED: moving forward leaves the wash behind, as the card says). At hover thrust: 1.00 / 1.06 / 0.98 / 0.80 / 0.93 / 1.25 x at 0 / 2 / 4 / 7 / 10 / 16 m/s of sink. So a slow descent is unchanged, a fast straight drop sinks faster and faster (the real runaway), and coming down while moving forward is safe. The shaking pilots feel is not modelled. The two curriculum demos that come down "just under hover" now cut 2 % stick instead of 3 to 4 % (with 4 % the freestyle quad now runs into the ring and drops). Card "Coming down" no longer says the sim does not model it. Test: I7.
+- **I7b. Translational lift** (in-plane airflow raising thrust): still missing; the thrust law only knows the axial airflow. Needs a sourced size for a 5-inch prop.
 
 ## Sources
 
@@ -46,4 +47,5 @@ Reproduced with `node test/inertia-repro.mjs` (same physics and flight controlle
 - [T] T-Motor P2306 V3 thrust table (1750 KV, T5143S-3, 24.8 V: 31,277 rpm, 1612 g at 100 %): https://store.tmotor.com/product/p2306-v3-fpv-motor.html
 - [L] LIGPOWER V2207.5 V2 thrust table (1750 KV, 6S): https://www.ligpower.com/jp/product/v2207_5-v2-fpv-motor.html
 - [B] Betaflight 4.5.0 `src/main/flight/pid.h`, PID_ROLL_DEFAULT { 45, 80, 40, 120 }, PID_YAW_DEFAULT { 45, 80, 0, 120 }: https://github.com/betaflight/betaflight/blob/4.5.0/src/main/flight/pid.h
+- [V] Veismann et al. 2021 (NASA Ames): https://rotorcraft.arc.nasa.gov/Publications/files/77-2021-0193_Veismann.pdf
 - [7] Kaufmann, Bauersfeld, Scaramuzza 2022, Table II (docs/physics.md): k_vx, k_vy 0.3, k_vz 0.15 N per m/s. (Could not be reread this leg: fetch not permitted; values as cited by earlier legs.)

@@ -130,7 +130,7 @@ export const DEMOS = {
   'basic-up': { start: [0, 1.5, -7], cam: [2.6, 2.4, -1.5], loop: 6, captions: ['Throttle above hover: it climbs; back to hover: it holds'],
     fly: (t, s, h) => ({ ...h.hold(s, 0, s.pos[1], -7), throttle: between(t, 1, 2.5) ? h.hover + 0.1 : t < 1 ? h.alt(s, 1.5) : h.alt(s, s.pos[1]) }) },
   'basic-down': { start: [0, 4.5, -7], cam: [2.6, 2.6, -1.5], loop: 7, captions: ['Just under hover: it sinks gently'],
-    fly: (t, s, h) => ({ ...h.hold(s, 0, s.pos[1], -7), throttle: between(t, 1, 4.5) && s.pos[1] > 1.2 ? h.hover - 0.04 : t < 1 ? h.alt(s, 4.5) : h.alt(s, Math.max(1.2, s.pos[1])) }) },
+    fly: (t, s, h) => ({ ...h.hold(s, 0, s.pos[1], -7), throttle: between(t, 1, 4.5) && s.pos[1] > 1.2 ? h.hover - 0.025 : t < 1 ? h.alt(s, 4.5) : h.alt(s, Math.max(1.2, s.pos[1])) }) },
   'basic-yaw': { start: SPOT, cam: [1.5, 5.5, -3.5], loop: 7.5, nose: true, scale: 2, captions: ['Left stick sideways: the nose turns, the drone stays'],
     fly: (t, s, h) => ({ ...h.hold(s, ...SPOT), yaw: between(t, 1, 3) ? -0.45 * Math.min(1, (t - 1) / 0.6, (3 - t) / 0.6) : between(t, 4, 6) ? 0.45 * Math.min(1, (t - 4) / 0.6, (6 - t) / 0.6) : 0 }) },
   'basic-back': { start: [12, 2.5, -9, 90], cam: PILOT, loop: 6, captions: ['Stick back: it tilts back and moves backward'],
@@ -142,7 +142,7 @@ export const DEMOS = {
   'descent': { runs: 2, start: (run) => (run ? [-12, 7, -8, 90] : [0, 7, -8]), cam: PILOT, loop: 7.5, arrows: true,
     captions: ['Straight down, gently: just under hover', 'Coming down while moving forward: the drone leaves its own air behind'],
     fly: (t, s, h) => {
-      const sink = s.pos[1] > 1.5 && t > 1 ? h.hover - 0.03 : h.alt(s, Math.max(1.5, s.pos[1]));
+      const sink = s.pos[1] > 1.5 && t > 1 ? h.hover - 0.02 : h.alt(s, Math.max(1.5, s.pos[1]));
       return h.run ? { ...level(s, h, 0, { pitch: t > 1 && s.pos[1] > 1.5 ? 0.2 : s.vel[0] > 0.4 ? -0.4 : 0 }), throttle: sink } : { ...h.hold(s, 0, s.pos[1], -8), throttle: sink };
     } },
   // Stick patterns (src/patterns.js, M10d): run 0 does the whole pattern, run 1 forgets one part. captions[run] says which.

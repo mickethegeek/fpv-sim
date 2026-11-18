@@ -1,7 +1,7 @@
 // M12 inertia / coupling fixes. Each test fails on the model before M12 (docs/inertia-review.md).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createState, stepPhysics, PHYSICS_HZ } from '../../src/physics.js';
+import { createState, stepPhysics, PHYSICS_HZ, motorThrust } from '../../src/physics.js';
 import { defaultQuad, DEG } from '../../src/params.js';
 
 const DT = 1 / PHYSICS_HZ;
@@ -19,7 +19,7 @@ test('I2: spinning props damp a roll or pitch rotation (motors held, no flight c
 });
 
 test('I3: rotor drag is in the body frame: it turns with the quad (in the rotor plane only)', () => {
-  const q = defaultQuad(); q.dragQuadratic = 0; q.pitchSpeed = 1e9; // no inflow effect: drag alone
+  const q = defaultQuad(); q.dragQuadratic = 0; q.pitchSpeed = 1e9; q.propRadius = 0; // no inflow or vortex-ring effect: drag alone
   const c = hoverCmd(q);
   const decel = (quat, vel) => {
     const s = createState(100); s.quat = quat; s.vel = [...vel]; s.motors = [c, c, c, c];
@@ -71,4 +71,14 @@ test('I6: speeding props up twists the frame the other way (yaw), and spinning p
   };
   const gyro = pitchFromRoll(q) - pitchFromRoll(none);   // the uneven props also damp the roll unevenly (I2): take that out
   assert.ok(Math.abs(gyro) > 5 * DEG, `gyroscopic pitch rate ${(gyro / DEG).toFixed(1)} deg/s after 50 ms`);
+});
+
+test('I7: sinking into its own wash costs thrust (vortex ring state); moving sideways out of it does not', () => {
+  const q = defaultQuad(), u = hoverCmd(q), t0 = q.maxThrustPerMotor * u ** q.thrustExponent;
+  const vh = Math.sqrt(t0 / (2 * 1.225 * Math.PI * q.propRadius ** 2));
+  const inflow = (v) => q.maxThrustPerMotor * u ** (q.thrustExponent / 2) * (u ** (q.thrustExponent / 2) + v / q.pitchSpeed); // the inflow law alone, sinking at v
+  const sinking = motorThrust(u, -vh, q), sideways = motorThrust(u, -vh, q, 2 * vh);
+  assert.ok(sinking < 0.85 * Math.min(inflow(vh), 1.25 * t0), `sinking at v_h = ${vh.toFixed(1)} m/s: ${(sinking / t0 * 100).toFixed(0)} % of hover thrust`);
+  assert.ok(sinking < t0, 'less than in a hover (before M12 it was more)');
+  assert.ok(Math.abs(sideways - Math.min(inflow(vh), 1.25 * t0)) < 1e-9, 'no loss when it leaves its wash sideways');
 });

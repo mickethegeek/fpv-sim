@@ -42,13 +42,31 @@ export function rotate(q, v, out = [0, 0, 0]) {
 export function bodyUp(q, out) { return rotate(q, [0, 1, 0], out); }
 
 // Static-plus-inflow thrust of one motor (N). u = motor command 0..1 (after lag), vAxial = airspeed along thrust axis.
-export function motorThrust(u, vAxial, p) {
+export function motorThrust(u, vAxial, p, vInPlane = 0) {
   // u is the ESC command. Prop speed n = u^(e/2), so static thrust (~ n^2) = max * u^e (e from bench tables, docs/feel.md).
   const n = u ** (p.thrustExponent / 2);
-  const t = p.maxThrustPerMotor * n * (n - vAxial / p.pitchSpeed);
-  const cap = 1.25 * p.maxThrustPerMotor * n * n; // descending: momentum theory gives more thrust; capped at +25 %, UNSOURCED (docs/review.md R7). Real quads lose thrust here (vortex ring state).
-  return t < 0 ? 0 : (t > cap ? cap : t);
+  const t0 = p.maxThrustPerMotor * n * n;
+  let t = p.maxThrustPerMotor * n * (n - vAxial / p.pitchSpeed);
+  const cap = 1.25 * t0; // descending: momentum theory gives more thrust; capped at +25 %, UNSOURCED (docs/review.md R7)
+  if (t > cap) t = cap;
+  // Vortex ring state: sinking along the thrust axis into its own wash, between 0 and 2 v_h (v_h = induced speed of hover at this
+  // thrust, momentum theory), mean thrust drops by up to 20 % (Veismann 2021). The shape (worst at v_h) and the fade with
+  // in-plane airspeed (gone at v_h sideways) are UNSOURCED choices (docs/inertia-review.md I7).
+  if (vAxial < 0 && p.propRadius && t0 > 0) {
+    const vh = Math.sqrt(t0 / (2 * AIR_DENSITY * Math.PI * p.propRadius * p.propRadius));
+    const x = -vAxial / vh;
+    if (x < 2) {
+      // Worst at v_h: 20 % under hover thrust (the paper compares with hover). Blended in smoothly (sin^2) from the inflow law at 0 and
+      // at 2 v_h, so a hover keeps the inflow law's damping and nothing jumps.
+      const w = Math.sin(Math.PI * x / 2) ** 2;
+      const inVrs = t + (t0 * (1 - VRS_LOSS) - t) * w;
+      t += (inVrs - t) * Math.max(0, 1 - vInPlane / vh);
+    }
+  }
+  return t < 0 ? 0 : t;
 }
+export const AIR_DENSITY = 1.225; // kg/m^3, ISA sea level
+const VRS_LOSS = 0.2;             // Veismann et al. 2021: "mean thrust losses of up to 20% compared to hover conditions"
 
 const _up = [0, 0, 0], _vb = [0, 0, 0], _db = [0, 0, 0];
 
@@ -80,10 +98,11 @@ export function stepPhysics(s, cmd, dt, p, world) {
   // A motor swinging up gets less thrust, one swinging down more: this is the rotor's damping of roll and pitch, falling
   // straight out of the thrust-vs-airspeed law above (docs/inertia-review.md I2).
   const [w0, , w2] = s.omega;
+  const vIn = Math.sqrt(Math.max(0, rvx * rvx + rvy * rvy + rvz * rvz - vAxial * vAxial));
   let thrust = 0, tx = 0, ty = 0, tz = 0;
   for (let i = 0; i < 4; i++) {
     const m0 = MOTORS[i];
-    const f = motorThrust(s.motors[i], vAxial + d * (w2 * m0.sx - w0 * m0.sz), p);
+    const f = motorThrust(s.motors[i], vAxial + d * (w2 * m0.sx - w0 * m0.sz), p, vIn);
     const m = MOTORS[i];
     thrust += f;
     tx += -m.sz * d * f;

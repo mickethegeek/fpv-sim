@@ -12,6 +12,7 @@ export function defaultQuad() {
     maxThrustPerMotor: (thrustToWeight * mass * 9.80665) / 4, // N static
     motorTau: 0.033,            // s, first-order lag on motor speed, cited (docs/feel.md F8)
     yawTorquePerThrust: 0.0122, // m, derived from [7]
+    propRadius: 0.0635,         // m, 5-inch prop (5 in / 2)
     propInertia: 1.34e-6,       // kg m^2, one 5-inch prop: Emax Avan Flow 5x4.3x3, 13.4 g cm^2 (maker's spec); motor bell not included (docs/inertia-review.md I6)
     propSpeedMax: 3275,         // rad/s at full command: 31277 rpm, T-Motor P2306 V3 1750 KV, T5143S-3 prop, 24.8 V (maker's thrust table)
     dragLinear: 0.3,            // N per m/s, cited [7] (in-plane)

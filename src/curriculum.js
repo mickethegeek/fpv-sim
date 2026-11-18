@@ -59,7 +59,7 @@ export const LEVELS = [
         text: 'A moving drone keeps moving: only the air slows it. The faster the air rushes through the props, the less they push, and that sets the top speed (about 150 km/h for this quad).',
         why: 'Levelled, no motor pushes it back. Only drag acts, so it glides for many metres.' },
       { id: 'f-down', title: 'Coming down', demo: 'descent', sticks: 'Left: just under hover · Right: a little forward',
-        text: 'Drop straight down fast and the drone falls into its own prop wash: real quads shake and lose push. The sim does not model this yet, so practise coming down slowly, or while moving forward.',
+        text: 'Drop straight down fast and the drone falls into its own prop wash and loses push, so it sinks faster still. Come down slowly, or while moving forward.',
         why: 'NASA wind-tunnel tests of a quadcopter found up to 20 % less mean push when sinking into its own wash ("vortex ring state"). Moving forward leaves the wash behind.' },
     ] },
   { id: 'acro', n: 4, title: 'Acro', line: 'The stick sets rotation speed, and you level it yourself',
