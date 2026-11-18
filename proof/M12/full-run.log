@@ -1,20 +1,20 @@
 ok   page ready 
-ok   render loop advancing (12 frames in 1 s, software GL)
+ok   render loop advancing (10 frames in 1 s, software GL)
 ok   M1 sits on the ground disarmed (alt 0.050 m)
-ok   M1 takes off at 50 % throttle (alt 9.13 m, climb 11.11 m/s)
-FAIL M1 near hover at hover throttle (vertical 4.77 m/s, roll 0.0, pitch 0.0)
-ok   M1 angle mode: stick forward tilts nose down and flies forward (pitch -23.9 deg, moved 5.8 m, 31 km/h)
+ok   M1 takes off at 50 % throttle (alt 9.14 m, climb 11.11 m/s)
+ok   M1 near hover at hover throttle (vertical 1.32 m/s, roll 0.0, pitch 0.0)
+ok   M1 angle mode: stick forward tilts nose down and flies forward (pitch -23.9 deg, moved 6.0 m, 29 km/h)
 ok   M1 angle mode: self-levels on release (pitch -0.0, roll -0.0)
 ok   M1 acro: full roll stick spins at about 670 deg/s (660 deg/s)
-ok   M1 acro: holds attitude with sticks centred (no self-level) (roll 129 deg, rate -1.9 deg/s)
+ok   M1 acro: holds attitude with sticks centred (no self-level) (roll 153 deg, rate -1.5 deg/s)
 ok   M1 disarmed in the air: falls and crashes (crashed true)
 ok   M1 state finite 
-     physics steps run in browser: 17158
+     physics steps run in browser: 19191
 ok   M2 keyboard is the fallback and its keys are shown (Settings) 
-ok   M2 arming refused while throttle is up, with a hint (throttle 55 %, hint "Lower the throttle to arm")
+ok   M2 arming refused while throttle is up, with a hint (throttle 56 %, hint "Lower the throttle to arm")
 ok   M2 Space arms with throttle low 
-ok   M2 W raises throttle and the quad takes off (throttle 79 %, alt 31.4 m)
-ok   M2 arrow up flies forward (moved 27.1 m)
+ok   M2 W raises throttle and the quad takes off (throttle 76 %, alt 29.3 m)
+ok   M2 arrow up flies forward (moved 28.9 m)
 ok   M2 M switches to acro 
 ok   M2 R resets to the start, disarmed 
 ok   M2 unknown controller is detected and asks for setup ("Controller needs setup: Test Radio (USB Joystick)")
@@ -25,7 +25,7 @@ ok   M2 setup saved the right axes and inversions {"throttle":{"index":2,"sign":
 ok   M2 setup saved arm switch and mode button [{"type":"axis","index":4,"sign":1},{"type":"button","index":0,"kind":"toggle"}]
 ok   M2 radio: no arming with throttle up (hint "Flip the arm switch off, then on again")
 ok   M2 radio: arm switch arms with throttle low 
-ok   M2 radio: throttle stick lifts the quad (alt 18.0 m)
+ok   M2 radio: throttle stick lifts the quad (alt 20.1 m)
 ok   M2 radio: roll stick right rolls right (angle mode) (roll 28 deg)
 ok   M2 radio: deadzone swallows stick noise 
 ok   M2 radio: mode button switches to acro 
@@ -36,59 +36,59 @@ ok   M3 horizontal field of view is 115 deg (115.0 deg, vertical 82.9)
 ok   M3 on the pad: hint tells how to start, the corner says how to open the menu 
 ok   M3 HUD shows armed, mode, throttle, speed ("ARMED ANGLE FPV THR 15% SPEED 2 km/h ALT 2.3 m GATE 1/7 LAP –:––.–– BEST –:––.––")
 ok   M3 the menu note in the corner fades while armed 
-ok   M3 cruising forward over the field (43 km/h, alt 19.5 m)
-ok   M3 acro: banked view stays banked (roll 28 deg)
+ok   M3 cruising forward over the field (43 km/h, alt 20.6 m)
+ok   M3 acro: banked view stays banked (roll 38 deg)
 ok   M3 hitting a pole is a crash (into pole at z -11.7)
 ok   M3 crash is announced 
 ok   M3 after a short pause: back on the pad, disarmed (crashes 0 -> 1)
 ok   M3 Restart in the pause menu puts the quad back on the pad 
-ok   M3 keyboard flight in FPV: took off and flew forward (alt 49.9 m, 32.3 m down the field)
+ok   M3 keyboard flight in FPV: took off and flew forward (alt 55.9 m, 31.7 m down the field)
 ok   M4 course has 6 to 8 gates (7)
 ok   M4 on the pad: HUD shows gate 1, no lap running, no best yet ("DISARMED ANGLE FPV THR 0% SPEED 0 km/h ALT 0.1 m GATE 1/7 LAP –:––.–– BEST –:––.––")
 ok   M4 gate 1 is highlighted, the others are not 
 ok   M4 guide to the next gate shows while armed ("▲Start: gate 1 · 8 m")
-ok   M4 flying through gate 1 starts the lap clock (z -23.4, alt 0.1 m)
+ok   M4 flying through gate 1 starts the lap clock (z -22.9, alt 0.4 m)
 ok   M4 "Lap started" is shown and gate 2 is now highlighted 
-ok   M4 lap clock runs on the HUD ("ARMED ANGLE FPV THR 16% SPEED 21 km/h ALT 0.1 m GATE 2/7 LAP 0:03.14 BEST –:––.––")
+ok   M4 lap clock runs on the HUD ("ARMED ANGLE FPV THR 16% SPEED 21 km/h ALT 0.4 m GATE 2/7 LAP 0:02.95 BEST –:––.––")
 ok   M4 passing beside a gate does not count (x 4.0, next gate 2)
 ok   M4 hitting a gate post is a crash (into gate at z -57.7)
 ok   M4 crash is announced as a gate 
 ok   M4 after the crash the lap is reset to gate 1 
-ok   M4 autopilot flew a full lap through all gates without crashing (lap 50.13 s)
-ok   M4 lap time is shown with "new best" ("Lap 0:50.13 · new best!")
-ok   M4 best lap saved in the browser (50.13 s)
+ok   M4 autopilot flew a full lap through all gates without crashing (lap 50.11 s)
+ok   M4 lap time is shown with "new best" ("Lap 0:50.11 · new best!")
+ok   M4 best lap saved in the browser (50.11 s)
 ok   M4 a new lap starts straight away 
-ok   M4 best lap survives a page reload ("DISARMED ANGLE FPV THR 0% SPEED 0 km/h ALT 0.1 m GATE 1/7 LAP –:––.–– BEST 0:50.13")
+ok   M4 best lap survives a page reload ("DISARMED ANGLE FPV THR 0% SPEED 0 km/h ALT 0.1 m GATE 1/7 LAP –:––.–– BEST 0:50.11")
      Hover throttle (stick): 15.2 %
      Acro roll, full stick: time to 50 % / 90 % of 670 deg/s: 27 ms / 45 ms
-     Acro roll, full stick: overshoot, rate held: 4.7 %, 665 deg/s
+     Acro roll, full stick: overshoot, rate held: 4.8 %, 665 deg/s
      Acro roll: time to stop after letting go (below 5 %): 48 ms
      Acro pitch, full stick: time to 50 % / 90 % of 670 deg/s: 25 ms / 44 ms
      Acro pitch, full stick: overshoot, rate held: 4.9 %, 664 deg/s
      Acro pitch: time to stop after letting go (below 5 %): 47 ms
-     Acro yaw, full stick: time to 50 % / 90 % of 670 deg/s: 129 ms / 209 ms
-     Acro yaw, full stick: overshoot, rate held: 1.0 %, 670 deg/s
-     Acro yaw: time to stop after letting go (below 5 %): 235 ms
-     Acro roll, 30 % stick: rate held, time to 90 %, overshoot: 75 deg/s, 40 ms, 7.3 %
+     Acro yaw, full stick: time to 50 % / 90 % of 670 deg/s: 105 ms / 183 ms
+     Acro yaw, full stick: overshoot, rate held: 0.3 %, 670 deg/s
+     Acro yaw: time to stop after letting go (below 5 %): 205 ms
+     Acro roll, 30 % stick: rate held, time to 90 %, overshoot: 75 deg/s, 40 ms, 7.4 %
      Angle mode, half roll stick: tilt held (target), time to 90 %: 29.9 deg (30), 204 ms
      Angle mode: overshoot going in, swing past level coming back: 0.0 %, 0.0 deg
-     Angle mode: time to level (within 2 deg) after letting go: 235 ms
+     Angle mode: time to level (within 2 deg) after letting go: 234 ms
      Throttle punch from hover: peak extra acceleration: 6.8 g
      Throttle punch: time to 63 % / 90 % of that (motor lag): 31 ms / 59 ms
      Throttle punch: climb speed after 1 s: 125 km/h
-     Throttle chop from hover: sink rate and drop after 1 s (free fall: 9.8 m/s, 4.9 m): 7.4 m/s, 3.7 m
+     Throttle chop from hover: sink rate and drop after 1 s (free fall: 9.8 m/s, 4.9 m): 7.7 m/s, 3.9 m
      Coasting from 23 km/h after centring the sticks (angle mode): half speed after, below 1 m/s after, distance: 1.6 s, 4.1 s, 12 m
      Top speed in angle mode (60 deg tilt limit, full throttle): 151 km/h
      Falling with motors off: terminal speed: 120 km/h
 ok   M5 feel measured in Chrome: hover throttle 10 to 20 % (15.2 %)
-ok   M5 acro full-stick roll reaches the configured rate without big overshoot (held 665 deg/s, overshoot 4.7 %)
+ok   M5 acro full-stick roll reaches the configured rate without big overshoot (held 665 deg/s, overshoot 4.8 %)
 ok   M5 angle mode holds its tilt and levels without swinging past (held 29.9 of 30 deg, swing-back 0.00 deg)
 ok   M5 step-response plots saved (8 plots)
 ok   M5 first visit starts on the Trainer preset (throttle limit 70 %) (hover 21.4 %)
 ok   M5 panel shows the hover throttle and 8 sliders ("Hovers at 21% throttle. Throttle centre and expo apply to spring-centred sticks (gamepads).")
 ok   M5 PlayStation pad at rest gives hover throttle, no setup needed (throttle 21.4 %)
 ok   M5 pad: stick down then R1 arms 
-FAIL M5 pad: let go of the stick and the quad hovers (angle mode) (alt 37.8 -> 41.9 m, vertical 0.92 m/s)
+ok   M5 pad: let go of the stick and the quad hovers (angle mode) (alt 41.7 -> 43.0 m, vertical 0.29 m/s)
 ok   M6 pad: Share resets; PlayStation button names on screen ("Pull the left stick down and press R1 to arm")
 ok   M5 preset and sliders change the sim {"preset":"freestyle","rateMax":900,"rateCenter":70,"expo":0,"responsiveness":0.5,"floatiness":2,"throttleMid":0.3,"throttleExpo":0,"deadzone":0.05}
 ok   M5 tuning survives a page reload 
@@ -99,17 +99,17 @@ ok   M6 O hides the stick overlay
 ok   M6 V again goes back to FPV 
 ok   M6 ?learn opens lesson 1 with the real-radio line; all 8 lessons can be opened, lesson 1 marked Next ("Lesson 1: Take off, hover, landSmall stick movements. On a real radio the throttle stays where you leave it.Arm to startHover: Left: throttle at hover · Right: tiny taps against any drift")
 ok   M6 lesson 1 in FPV: a good run counts 1 of 3 ("Good run · 1 of 3 in a row in FPV" · "Touchdown 0.4 m/s")
-ok   M6 a hard landing is not a good run and puts the streak back to 0 ("Finished, but not a good run · streak back to 0" · "Touchdown 3.2 m/s (limit 1.5 m/s): throttle was at 12 % in the last second, hover is 21 %. Come down just under hover throttle.")
+ok   M6 a hard landing is not a good run and puts the streak back to 0 ("Finished, but not a good run · streak back to 0" · "Touchdown 3.8 m/s (limit 1.5 m/s): throttle was at 12 % in the last second, hover is 21 %. Come down just under hover throttle.")
 ok   M6 three good runs in a row pass lesson 1 in FPV; lesson 1 stays the next one until line of sight is done too ("Passed in FPV" · "Now the same in line of sight: V switches view")
 ok   M6 lesson 1 passed in both views: lesson 2 is the next one, progress saved ("Lesson passed: Take off, hover, land" · "Next: Hover facing four ways")
 ok   M6 after a pass the next lesson is selected by itself {"id":"directions","state":"ready","step":0,"status":"Arm to start","key":null,"prompt":false}
-ok   M6 lesson 2: nose toward you, held in the box (heading 180°, "Nose toward you: hold 3 s (left and right are swapped) · 1.2 s")
+ok   M6 lesson 2: nose toward you, held in the box (heading 180°, "Nose toward you: hold 3 s (left and right are swapped) · 1.3 s")
 ok   M6 lesson 2 run is good ("Good run · 1 of 3 in a row in line of sight")
-ok   M6 lesson "turns" flown to a good run in los ("Good run · 1 of 3 in a row in line of sight" · "Touchdown 0.4 m/s · Top speed 4.1 m/s")
+ok   M6 lesson "turns" flown to a good run in los ("Good run · 1 of 3 in a row in line of sight" · "Touchdown 0.4 m/s · Top speed 3.6 m/s")
 ok   M6 lesson "outback" flown to a good run in fpv ("Good run · 1 of 3 in a row in FPV" · "Touchdown 0.4 m/s")
 ok   M6 lesson "wind" flown to a good run in fpv ("Good run · 1 of 3 in a row" · "Touchdown 0.4 m/s" · wind 2.6 m/s)
 ok   M6 lesson 6: DISARM NOW is called during the low hover 
-ok   M6 lesson 6: disarmed in time, armed again, spun round at the far ring, came back and landed (heading after the spin -152°, "Touchdown 0.4 m/s · Disarm reaction 0.8 s")
+ok   M6 lesson 6: disarmed in time, armed again, spun round at the far ring, came back and landed (heading after the spin 104°, "Touchdown 0.4 m/s · Disarm reaction 0.9 s")
 ok   M6 lesson 7: choosing it switches to acro; flown to a good run ("Good run · 1 of 3 in a row" · "Touchdown 0.4 m/s")
 ok   M6 with lessons 1 to 7 passed the page opens on the Ready check, no badge yet 
 ok   M6 Ready check: one good run in light wind gives the real-drone ready badge ("REAL-DRONE READY" · "You flew everything in one flight. You can fly a real drone with confidence.")
@@ -121,7 +121,7 @@ ok   M6b the tower shadow is as long as the sun height says and darkens the gras
 ok   M6b open grass is not darkened (ratio 1.000)
 ok   M6b the quad shadow lies where the sun puts it (not straight below) and darkens the grass (quad at 1.50 m, shadow 1.42 m to the side, grass 29 % darker)
 ok   M6b the quad shadow is fainter from 20 m up than from 1.5 m (opacity 0.38 -> 0.18)
-ok   M6b Graphics: High by default (smooth edges), Low is saved and applied after the reload; frame rate shown (1 fps in software GL on high)
+ok   M6b Graphics: High by default (smooth edges), Low is saved and applied after the reload; frame rate shown (2 fps in software GL on high)
 ok   M8 the page opens on the start menu: Learn, Gates, Free fly, Theory, Stick patterns, Settings; the sim stands still behind it (Learn, Gates, Free fly, Theory, Stick patterns, Settings)
 ok   M8 the menu says which controller buttons to use, as PlayStation symbols ("D-pad: move · ✕ select · ◯ back")
 ok   M10 controller in Settings: left / right on Camera tilt changes the tilt (item "uptilt", tilt 27 deg)
@@ -132,13 +132,13 @@ ok   M8 lesson 4 opens although lessons 1 to 3 are not passed {"id":"outback","s
 ok   M8 Options opens the pause menu: Resume, Restart, Replay last run (M10c), Skip, Settings, Back to menu (Resume, Restart, Replay last run, Skip this part, Settings, Back to menu)
 ok   M8 Skip moves on to chapter 5 without flying lesson 4 {"id":"wind","state":"ready","step":0,"status":"Arm to start","key":null,"prompt":false}
 ok   M8 Back to menu, then Gates: the gate course with its lap timer (app gates)
-ok   M8 pausing in the air freezes the flight; Options again resumes it, still armed and moving (alt 23.7 m, paused at z -0.73, after resume z -5.78)
+ok   M8 pausing in the air freezes the flight; Options again resumes it, still armed and moving (alt 24.9 m, paused at z -0.86, after resume z -5.18)
 ok   M8 Restart from the pause menu: back on the pad, disarmed 
 ok   M8 keyboard (Esc, arrows, Enter) and mouse work the menus; Free fly shows no gate guide and no lap timer; Share resets (Esc pause true, back to menu true, clean true)
 ok   M8 Esc opens the pause menu and Esc again closes it; Skip is not offered outside a lesson 
 ok   M9 choosing a lesson opens its chapter: Learn, Watch, Check, Try (Learn, Watch, Check, Try)
 ok   M9 Learn: card 1 of 4, at most 2 sentences, with a live demo and force arrows; the sticks move by themselves ("Four props, one push: Four props push air down, and that push carries the drone. More throttle means more push on all four.", alt 3.6 m)
-ok   M9 the arrows are the real forces: in the hover the four thrust arrows add up to the weight arrow (thrust 1.74 + 1.74 + 1.74 + 1.74 = 6.96 N, weight 6.67 N)
+ok   M9 the arrows are the real forces: in the hover the four thrust arrows add up to the weight arrow (thrust 1.73 + 1.73 + 1.73 + 1.73 = 6.94 N, weight 6.67 N)
 ok   M9 cross goes to the next card, circle back to the one before 
 ok   M9 cards also step with Enter / Backspace and with the mouse 
 ok   M9 after the last card: back on the chapter screen, pointer on Watch, Learn ticked ("WatchThe test pilot flies it. Watch the sticks.")
@@ -157,9 +157,9 @@ ok   M10 the arrows setting is saved in the browser and is a button in Settings 
 ok   M10 the camera is tilted up 12 deg in Learn (beginner value, sourced) and 25 deg in Gates (Learn 12.0, Gates 25.0, "12° in Learn, 25° in Gates and Free fly")
 ok   M10 the setting stays the player's: set to 30 deg it is 30 everywhere, also after a reload (Learn 30.0, Free fly after reload 30.0, "30° (yours)")
 ok   M10 "Camera tilt back to default" gives 12 in Learn / 25 elsewhere again ("12° in Learn, 25° in Gates and Free fly")
-ok   M10 coaching, landed beside the pad: how far, which way, which stick was held and what to do ("You landed 7.7 m to the right of the pad: you were still holding roll right (1.7 s). Release earlier.", landed at x 7.7 m)
-ok   M10 coaching, hard landing: touchdown speed, the throttle in the last second against hover ("Finished, but not a good run · streak back to 0" · "Touchdown 3.3 m/s (limit 1.5 m/s): throttle was at 12 % in the last second, hover is 21 %. Come down just under hover throttle.")
-ok   M10 coaching, throttle cut high up: the sink rate at the ground and the throttle ("You hit the ground at 13.8 m/s: throttle was at 0 %, hover is 21 %. Add throttle earlier to slow the fall.")
+ok   M10 coaching, landed beside the pad: how far, which way, which stick was held and what to do ("You landed 7.5 m to the right of the pad: you held roll right for 1.6 s and never stopped the drift. There are no brakes: roll left briefly, then level.", landed at x 7.5 m)
+ok   M10 coaching, hard landing: touchdown speed, the throttle in the last second against hover ("Finished, but not a good run · streak back to 0" · "Touchdown 3.7 m/s (limit 1.5 m/s): throttle was at 12 % in the last second, hover is 21 %. Come down just under hover throttle.")
+ok   M10 coaching, throttle cut high up: the sink rate at the ground and the throttle ("You hit the ground at 14.3 m/s: throttle was at 0 %, hover is 21 %. Add throttle earlier to slow the fall.")
 ok   M10 a good run gets its numbers, not coaching ("Good run · 1 of 3 in a row in FPV" · "Touchdown 0.4 m/s")
 ok   M10b nose-in: quad drawn 3x with the nose arrow and a nose label, camera raised (scale 3, camera at 7.5 m)
 ok   M10b nose-in-fix: quad drawn 3x with the nose arrow and a nose label, camera raised (scale 3, camera at 7.5 m)
@@ -175,10 +175,10 @@ ok   M10b run 2 (fast): both stops stay marked; much faster needs much more room
 ok   M10b the loop starts again with only the brake line 
 ok   M10d Stick patterns page in the menu lists 8 moves (Hover, Up and down, Turn on the spot, Fly forward, Stop, Nose toward you, Banked turn, Orbit)
 ok   M10d a pattern plays as a card: title, stick formula, live sticks with the throttle value ("Stick patterns · 3 of 8" · "Left: sideways for yaw, smoothly, and ease the throttle a touch · Right: centred" · "throttle 23 %")
-ok   M10d run 1: the whole pattern, captioned; height holds ("Yaw smoothly and ease the throttle a touch: the height stays", 2.72 m)
-ok   M10d run 2: one part forgotten (snapped yaw, throttle kept): it jumps up ("Snapped the yaw and kept the throttle: it jumps up", 4.60 m)
+ok   M10d run 1: the whole pattern, captioned; height holds ("Yaw smoothly and ease the throttle a touch: the height stays", 2.61 m)
+ok   M10d run 2: one part forgotten (snapped yaw, throttle kept): it jumps up ("Snapped the yaw and kept the throttle: it jumps up", 4.42 m)
 ok   M10d Next goes to the next pattern 
-ok   M10d Banked turn draws its ground track and nose lines (whole pattern: it carves round) {"points":57,"ticks":14}
+ok   M10d Banked turn draws its ground track and nose lines (whole pattern: it carves round) {"points":56,"ticks":14}
 ok   M10d the trail restarts for the forgotten-roll run {"points":57,"ticks":14}
 ok   M10d after the last pattern it is back on the patterns page 
 ok   M10d Try shows the pattern reminder for the lesson ("Turn on the spot: Left: sideways for yaw, smoothly, and ease the throttle a touch · Right: centred")
@@ -187,24 +187,25 @@ ok   M10e Learn shows 4 levels, each with a deck, and all 8 lessons under them i
 ok   M10e Level 1 opens its deck: Hover, with the stick pattern, Why? off ("Level 1 · The basics · 1 of 8")
 ok   M10e Enter steps through the basics (4th card: Turn left and right) 
 ok   M10e Why? (Y): the motors line, the force arrows and live faster / slower motor tags ("Why: Props spin two one way, two the other, so their twists cancel. To turn, one diagonal pair speeds up and the other slows: the frame twists the other way.", tags ["▼","▼","▼","▼","nose"])
-ok   M10e Level 3 card "Coming down": demo flies, says the sim does not model it yet; Why? stays on ("Why: NASA wind-tunnel tests of a quadcopter found up to 20 % less mean push when sinking into its own wash ("vortex ring state"). Moving forward leaves the wash behind.")
+FAIL M10e Level 3 card "Coming down": demo flies, says the sim does not model it yet; Why? stays on ("Why: NASA wind-tunnel tests of a quadcopter found up to 20 % less mean push when sinking into its own wash ("vortex ring state"). Moving forward leaves the wash behind.")
 ok   M10e the Why? button switches it off again 
 ok   M10e Done after the last card returns to Learn, the deck ticked (saved) 
 ok   M10f "Momentum and drag": top speed set by prop thrust falling with airspeed, not drag ("A moving drone keeps moving: only the air slows it. The faster the air rushes through the props, the less they push, and that sets the top speed (about 150 km/h for this quad).")
 ok   M10f "Prop torque" Why?: 8 cm tilt lever (X frame), not 11 cm ("Why: A prop's twist is its push times only about 1.2 cm, against about 8 cm of lever for tilting (the 11 cm arm, at 45° in an X frame), so turning needs a big difference between the pairs. Real Betaflight quads show the same "yaw jump" on hard yaw.")
 ok   M10f "Stop" Why?: air drag also brakes ("Why: Tilting back points part of the push against the movement. Apart from air drag, that is the only brake a drone has.")
 ok   M10c Replay with nothing flown yet says so and does not start (Nothing to replay yet: fly first)
-ok   M10c Replay last run (pause menu): plays from the start, bar, sticks and REPLAY shown {"t":0.4166999999999992,"len":4.1660000000002295,"speed":1,"playing":true,"frames":47,"bar":true}
-ok   M10c playing back, the quad flies the recorded path (climbed, sticks replayed) (alt 7.95, recorded mid 5.72)
+ok   M10c Replay last run (pause menu): plays from the start, bar, sticks and REPLAY shown {"t":0.4999,"len":4.050000000000213,"speed":1,"playing":true,"frames":45,"bar":true}
+ok   M10c playing back, the quad flies the recorded path (climbed, sticks replayed) (alt 8.24, recorded mid 5.45)
 ok   M10c slow motion: ↓ twice gives 0.25x 
 ok   M10c Space pauses (time stands still) 
-ok   M10c ← jumps 2 s back (2.424875 → 0.42487500000000034)
+ok   M10c ← jumps 2 s back (2.432999999999999 → 0.4329999999999987)
 ok   M10c scrub to the end: the quad is where the run really ended (within 0.5 m) (0.00 m)
 ok   M10c View button: FPV → line of sight → chase 
 ok   M10c Backspace leaves the replay: quad back on the pad, disarmed, bar gone 
-ok   M10c a crashed run is still there to replay after the reset {"t":0.4165999999999985,"len":1.3639999999999515,"speed":1,"playing":true,"frames":19,"bar":true}
+ok   M10c a crashed run is still there to replay after the reset {"t":0.4165999999999985,"len":1.3199999999999543,"speed":1,"playing":true,"frames":17,"bar":true}
 ok   M12 I2 page physics: props damp a roll (hover motors, no FC) (64 % left after 0.5 s)
 ok   M12 I3/I4 page physics: rotor drag 0.3 at hover prop speed, none with props stopped (hover 0.300, stopped 0.000 N per m/s)
+ok   M12 I7a page physics: sinking 7 m/s straight down loses thrust, moving forward does not (80 % / 125 % of hover thrust)
 ok   M12 falling with throttle cut: airmode still rolls (real Betaflight does too) (roll rate 671 deg/s, alt 42 → 60 m)
 ok   M12 sticks centred: rotation stops (-0.9 deg/s)
 ok   M11 chapter 1 (takeoff) with the controller: parts Learn,Watch,Check,Try; 4 cards with demos; Watch; 2 questions; Try; Skip (1111111 )

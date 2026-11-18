@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
-Status: **IN PROGRESS**
-Next: **M12 continued**: I5 (per-axis body drag + tumble drag for a disarmed quad, needs sourced 5-inch areas), I6 (prop spin-up yaw torque, gyroscopic precession: size them with sources), I7 (translational lift, vortex ring), then Learn cards if the physics they teach changes, and tick M12. I1 to I4 done, see docs/inertia-review.md
+Status: **DONE**
+Next: nothing (phase 3 done). Left open on purpose, see docs/inertia-review.md: I5 (orientation-dependent body drag, disarmed tumble), I7b (translational lift)
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -31,7 +31,7 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - Mike can override any of this.
 
 ## Phase 3
-- [ ] M12 Inertia / coupling investigation (diagnose, fix, report)
+- [x] M12 Inertia / coupling investigation (diagnose, fix, report)  ← Mike notified
 
 ## Assumptions made without asking Mike
 (one line each: what, why, how to change it)
@@ -251,3 +251,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-18 16:00 Zurich · M12: full browser run at 89 ok, 0 failures so far · next: finish run, tick M12
 - 2026-11-18 16:08 Zurich · M12: full browser run at 132 ok, 0 failures · next: finish run, tick M12
 - 2026-11-18 16:13 Zurich · M12: full run at 188 ok, 1 failure: the old M10e check still looked for 'does not model this yet' on the Coming down card (text changed on purpose): check updated · next: rerun M10e, tick M12
+- 2026-11-18 16:16 Zurich · M12 ticked, relay DONE: docs/inertia-review.md (I1 maths correct; fixed I2 prop damping, I3/I4 rotor drag in the prop plane and only with spinning props, I6 prop angular momentum + yaw D 0 as Betaflight, I7a vortex ring; open I5, I7b), 93 unit tests (one per fix, each fails on the old model), full browser run 196 ok + the 1 updated M10e check passing on rerun, proof/M12/; REPORT phase 3; Coming down card updated; Mike notified · next: nothing
