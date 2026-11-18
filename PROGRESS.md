@@ -250,3 +250,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-18 15:54 Zurich · M12: Coming down card checked in Chrome (new text, demo comes down gently, proof/M12/m12-coming-down-card.png); REPORT phase 3 rewritten · next: full run result, tick M12
 - 2026-11-18 16:00 Zurich · M12: full browser run at 89 ok, 0 failures so far · next: finish run, tick M12
 - 2026-11-18 16:08 Zurich · M12: full browser run at 132 ok, 0 failures · next: finish run, tick M12
+- 2026-11-18 16:13 Zurich · M12: full run at 188 ok, 1 failure: the old M10e check still looked for 'does not model this yet' on the Coming down card (text changed on purpose): check updated · next: rerun M10e, tick M12

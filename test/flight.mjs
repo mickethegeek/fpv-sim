@@ -1258,7 +1258,7 @@ if (runs('M10e')) {
   await page.evaluate(() => document.querySelector('#theory-list button[data-act=level-card][data-level=physics][data-i="4"]').click()); await frames(3);
   await until(() => { const x = window.__sim.snapshot(); return x.time > 3; });
   s = await snap();
-  check('M10e Level 3 card "Coming down": demo flies, says the sim does not model it yet; Why? stays on', s.demo === 'descent' && /does not model this yet/.test(s.theory.text || await page.textContent('#theory-text')) && s.why && /NASA/.test(s.whyText || ''), `("${s.whyText}")`);
+  check('M10e Level 3 card "Coming down": demo flies, says it loses push (modelled since M12); Why? stays on', s.demo === 'descent' && /loses push/.test(s.theory.text || await page.textContent('#theory-text')) && s.why && /NASA/.test(s.whyText || ''), `("${s.whyText}")`);
   await shot('105-physics-coming-down-why');
   await page.click('#theory-whybtn'); await frames(3);
   s = await snap();
