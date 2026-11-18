@@ -70,6 +70,8 @@ if (runs('M1')) {
   check('M1 takes off at 50 % throttle', s.pos[1] > 1 && !s.crashed, `(alt ${s.pos[1].toFixed(2)} m, climb ${s.vel[1].toFixed(2)} m/s)`);
   await shot('02-m1-takeoff');
   s = await fly({ ...neutral, throttle: thr(0.3) }, 1500);
+  // M12: no axial rotor drag any more (docs/inertia-review.md I3), only the prop inflow slows a climb (~1.8 s), so give it longer.
+  if (Math.abs(s.vel[1]) >= 3) s = await fly({ ...neutral, throttle: thr(0.3) }, 2000);
   check('M1 near hover at hover throttle', Math.abs(s.vel[1]) < 3 && Math.abs(s.rollDeg) < 3 && Math.abs(s.pitchDeg) < 3, `(vertical ${s.vel[1].toFixed(2)} m/s, roll ${s.rollDeg.toFixed(1)}, pitch ${s.pitchDeg.toFixed(1)})`);
   const z0 = s.pos[2];
   s = await fly({ ...neutral, throttle: thr(0.4), pitch: 0.4 }, 1500);
@@ -430,7 +432,7 @@ if (runs('M5')) {
   await page.evaluate(() => { window.__pad.buttons[5] = { pressed: false, value: 0 }; }); await simWait(100);
   check('M5 pad: stick down then R1 arms', (await snap()).armed);
   await page.evaluate(() => { window.__pad.axes = [0, -0.5, 0, 0]; }); await simWait(1500);      // push up: climb
-  await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0]; }); await simWait(2500);         // let go: should settle near hover
+  await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0]; }); await simWait(4500);         // let go: should settle near hover (M12: only prop inflow slows the climb now, ~1.8 s, docs/inertia-review.md I3)
   s = await snap();
   const y0 = s.pos[1];
   await simWait(2000);
