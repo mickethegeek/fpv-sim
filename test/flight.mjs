@@ -1363,10 +1363,12 @@ if (runs('M12')) {
     for (let i = 0; i < 500; i++) P.stepPhysics(s, [c, c, c, c], 1 / P.PHYSICS_HZ, q);
     q.dragQuadratic = 0;
     const k = (m) => { const x = P.createState(200); x.vel = [10, 0, 0]; x.motors = [m, m, m, m]; P.stepPhysics(x, [m, m, m, m], 1e-3, q); return (10 - x.vel[0]) / 1e-3 * q.mass / 10; };
-    return { left: s.omega[2] / (300 * Q.DEG), dHover: k(c), dStopped: k(0) };
+    const t0 = q.maxThrustPerMotor * c ** q.thrustExponent;
+    return { left: s.omega[2] / (300 * Q.DEG), dHover: k(c), dStopped: k(0), vrs: P.motorThrust(c, -7, q) / t0, vrsFwd: P.motorThrust(c, -7, q, 10) / t0 };
   }, url);
   check('M12 I2 page physics: props damp a roll (hover motors, no FC)', r.left < 0.85 && r.left > 0.5, `(${(r.left * 100).toFixed(0)} % left after 0.5 s)`);
   check('M12 I3/I4 page physics: rotor drag 0.3 at hover prop speed, none with props stopped', Math.abs(r.dHover - 0.3) < 0.01 && Math.abs(r.dStopped) < 1e-6, `(hover ${r.dHover.toFixed(3)}, stopped ${r.dStopped.toFixed(3)} N per m/s)`);
+  check('M12 I7a page physics: sinking 7 m/s straight down loses thrust, moving forward does not', r.vrs < 0.85 && r.vrsFwd > 1, `(${(r.vrs * 100).toFixed(0)} % / ${(r.vrsFwd * 100).toFixed(0)} % of hover thrust)`);
   // The friend's manoeuvre on the page: climb, cut throttle, full roll while falling (acro, airmode), chase view.
   await page.evaluate(() => { window.__sim.reset(); window.__sim.view.chase = true; window.__sim.setMode('acro'); window.__sim.arm(true); });
   let s = await fly({ ...neutral, throttle: 0.9 }, 2000);

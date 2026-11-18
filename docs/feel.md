@@ -32,30 +32,30 @@ Rule from PLAN.md (Mike, 2026-11-16): every number comes from real-life data. Ro
 | Beginner power limit (Trainer preset) | Betaflight throttle limit, type SCALE, "especially useful for FPV beginners", example 80 % [F18]; beginner table for 6S 5-inch: throttle limit 70 %, motor output limit 67 % [F20] | [F18][F20] | throttle limit 70 %: thrust-to-weight 5.6, hover 21.7 %, punch 4.0 g, 111 km/h in angle mode | ok as a tamed 5-inch. **PLAN now asks for a Trainer modelled on a real beginner-class quad: not done** (specs collected in note 7) |
 | Stick deadband | Betaflight default: `deadband = 0`, `yaw_deadband = 0` (radio gimbals) [F21] | [F21] | 5 % on gamepad sticks, rescaled so there is no jump; adjustable 0 to 20 % | **UNSOURCED** for PlayStation sticks: no figure found for their resting error. Mike's controller is the test: lower it until the quad drifts hands-off |
 
-## All measurements (sim today, freestyle preset)
+## All measurements (sim today, freestyle preset; rerun after M12, `node test/feel.mjs`)
 
 | What | Measured |
 |---|---|
 | Hover throttle (stick) | 15.2 % |
-| Acro roll, full stick: time to 50 % / 90 % of 670 deg/s | 26 ms / 45 ms |
-| Acro roll, full stick: overshoot, rate held | 5.8 %, 670 deg/s |
+| Acro roll, full stick: time to 50 % / 90 % of 670 deg/s | 27 ms / 45 ms |
+| Acro roll, full stick: overshoot, rate held | 4.8 %, 665 deg/s |
 | Acro roll: time to stop after letting go (below 5 %) | 48 ms |
-| Acro pitch, full stick: time to 50 % / 90 % of 670 deg/s | 25 ms / 43 ms |
-| Acro pitch, full stick: overshoot, rate held | 6.1 %, 670 deg/s |
+| Acro pitch, full stick: time to 50 % / 90 % of 670 deg/s | 25 ms / 44 ms |
+| Acro pitch, full stick: overshoot, rate held | 4.9 %, 664 deg/s |
 | Acro pitch: time to stop after letting go (below 5 %) | 47 ms |
-| Acro yaw, full stick: time to 50 % / 90 % of 670 deg/s | 129 ms / 207 ms |
-| Acro yaw, full stick: overshoot, rate held | 1.0 %, 670 deg/s |
-| Acro yaw: time to stop after letting go (below 5 %) | 229 ms |
-| Acro roll, 30 % stick: rate held, time to 90 %, overshoot | 75 deg/s, 40 ms, 7.6 % |
-| Angle mode, half roll stick: tilt held (target), time to 90 % | 29.9 deg (30), 203 ms |
+| Acro yaw, full stick: time to 50 % / 90 % of 670 deg/s | 105 ms / 183 ms |
+| Acro yaw, full stick: overshoot, rate held | 0.3 %, 670 deg/s |
+| Acro yaw: time to stop after letting go (below 5 %) | 205 ms |
+| Acro roll, 30 % stick: rate held, time to 90 %, overshoot | 75 deg/s, 40 ms, 7.4 % |
+| Angle mode, half roll stick: tilt held (target), time to 90 % | 29.9 deg (30), 204 ms |
 | Angle mode: overshoot going in, swing past level coming back | 0.0 %, 0.0 deg |
-| Angle mode: time to level (within 2 deg) after letting go | 233 ms |
-| Throttle punch from hover: peak extra acceleration | 6.7 g |
-| Throttle punch: time to 63 % / 90 % of that (motor lag) | 30 ms / 58 ms |
-| Throttle punch: climb speed after 1 s | 119 km/h |
-| Throttle chop from hover: sink rate and drop after 1 s (free fall: 9.8 m/s, 4.9 m) | 6.0 m/s, 3.2 m |
+| Angle mode: time to level (within 2 deg) after letting go | 234 ms |
+| Throttle punch from hover: peak extra acceleration | 6.8 g |
+| Throttle punch: time to 63 % / 90 % of that (motor lag) | 31 ms / 59 ms |
+| Throttle punch: climb speed after 1 s | 125 km/h |
+| Throttle chop from hover: sink rate and drop after 1 s (free fall: 9.8 m/s, 4.9 m) | 7.7 m/s, 3.9 m |
 | Coasting from 23 km/h after centring the sticks (angle mode): half speed after, below 1 m/s after, distance | 1.6 s, 4.1 s, 12 m |
-| Top speed in angle mode (60 deg tilt limit, full throttle) | 145 km/h |
+| Top speed in angle mode (60 deg tilt limit, full throttle) | 151 km/h |
 | Falling with motors off: terminal speed | 120 km/h (was 60 before M12: rotor drag now vanishes with the props stopped, docs/inertia-review.md I4) |
 
 Trainer preset (throttle limit 70 %): hover 21.7 %, punch 4.0 g, climb after 1 s 80 km/h, 111 km/h top speed in angle mode. Rotation numbers are the same as above.
