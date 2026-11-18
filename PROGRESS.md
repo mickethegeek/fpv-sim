@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
-Status: **DONE**
-Next: **nothing** (phase 2 finished 2026-11-17; Mike notified; both relay tasks off)
+Status: **IN PROGRESS**
+Next: **M12 Inertia / coupling investigation** (PLAN.md, Phase 3)
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -29,6 +29,9 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - Then set the PlayStation throttle mid to that hover point.
 - Add a **"Trainer"** preset next to "5-inch freestyle": thrust-to-weight about 4–5, gentler rates, hover about 40 %. Beginners start there; switching presets is one click. Cite where beginner quads sit.
 - Mike can override any of this.
+
+## Phase 3
+- [ ] M12 Inertia / coupling investigation (diagnose, fix, report)
 
 ## Assumptions made without asking Mike
 (one line each: what, why, how to change it)
