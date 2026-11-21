@@ -40,7 +40,14 @@ Your friend's point, checked: `docs/inertia-review.md`; reproduced in `node test
   3. **Props were massless and did not damp rotation.** Now each prop feels its own airflow (damps roll and pitch, I2) and carries angular momentum: speeding props up kicks the yaw, and spinning props couple roll into pitch while yawing hard (I6). Yaw D is now 0, as in Betaflight 4.5.
 - Real and kept: with airmode at zero throttle the quad still flips and rolls at full rate (Betaflight does too); a full yaw at zero throttle still jumps up (Betaflight's yaw jump, now 1.2 m half stick / 5.0 m full from a hover).
 - Felt changes: a climb settles more slowly after you let go (only prop inflow slows it), a throttle chop sinks a little faster, yaw starts quicker, fast vertical drops run away.
-- Still open: body drag by orientation and the tumble of a disarmed quad (I5, needs sourced areas of frame, battery and stopped props); translational lift (I7b).
+- Still open: translational lift (I7b).
+
+### M13 (2026-11-21): the disarmed tumble (I5)
+
+- Drag of the frame, battery and stopped props now depends on which way the air hits them, and on where on the quad it hits: a disarmed quad falls flat at about 79 km/h but nose-down at about 151 km/h (it was 120 km/h whatever the attitude), and a disarmed spin now slows: 600 deg/s while falling is down to 175 deg/s after 3 s (it never slowed before).
+- Most of that slowing comes from the fall itself (the side swinging into the falling air gets hit harder); in still air the air barely slows a spin, which is real: the arm tips only move at about 1.5 m/s.
+- Sizes are from the CNHL 1300 6S battery and the SpeedyBee FS225 frame; arm width, frame length and stopped-blade area are UNSOURCED (no published figure). Windmilling props in the fall are not modelled, so the fall speeds are an upper bound.
+- Flying is unchanged: prop pitch speed retuned 54 → 60 m/s keeps the 151 km/h top speed; hover, rates and coasting are the same. Details: `docs/inertia-review.md` I5.
 
 ## How it was checked
 
@@ -64,8 +71,8 @@ PLAN rule: every number from real-life data. These are the ones still without a 
 | Rate-loop response time | 45 ms to 90 % | Only third-party tuner thresholds found, no primary measurement |
 | Angle-mode lean time | 200 ms | A judgement; no published figure |
 | Yaw authority | 166 ms to 90 % | Follows from the motor model; not checked against a real quad |
-| Falling speed with motors off | 120 km/h (M12; was 60) | No figure found; set by the UNSOURCED quadratic drag alone now that rotor drag needs spinning props |
-| Quadratic body drag | 0.006 N per (m/s)² | Placeholder |
+| Falling speed with motors off | 79 km/h flat, 151 km/h nose-down (M13) | No measured figure found; windmilling props not modelled, so an upper bound |
+| Body drag sizes (M13) | arm width 14 mm, frame centre 100 mm long, 18 cm² blade area per stopped prop | No published figure; battery and frame height, arm thickness and Cd are cited |
 | Crash speed | 6 m/s | A choice |
 | Gamepad stick deadzone | 5 % | No figure for PlayStation sticks; slider in the panel |
 | Lesson limits | landing under 1.5 m/s, "slow" under 8 m/s, disarm within 1.0 s, heading within 20° | Judgements |
@@ -75,7 +82,7 @@ PLAN rule: every number from real-life data. These are the ones still without a 
 | Angle-mode gain (M10f review) | 10 deg/s per degree | Betaflight 4.5 uses 5 plus angle feedforward and a filter; the sim has no feedforward, so 10 is tuned to a similar lean (docs/review.md R1) |
 | Thrust when sinking (M10f review, fixed in M12) | up to 20 % under hover thrust when sinking at 0 to 2 v_h (Veismann 2021); the blend shape and the fade with forward speed are UNSOURCED | docs/inertia-review.md I7a |
 | Mass (M10f review) | 680 g | 10 g above the cited 625 to 670 g (docs/review.md R5) |
-| Prop pitch speed | 54 m/s (M12; was 65) | Tuned so level top speed lands on the cited 150 km/h |
+| Prop pitch speed | 60 m/s (M13; 54 in M12, 65 before) | Tuned so level top speed lands on the cited 150 km/h |
 | Yaw-jump height | 1.2 m (half yaw) / 4.2 m (full yaw) in 2 s | Real yaw jump is cited, its size is not |
 
 Independent physics review (M10f, 2026-11-17): every parameter and card claim rechecked against primary sources; findings and fixes in `docs/review.md`.

@@ -42,7 +42,7 @@ Not copied from Betaflight: the PID loop itself. Betaflight's default gains (rol
 | Motor time constant | 33 ms | cited | NeuroBEM paper (`docs/feel.md` F8) |
 | Thrust against command | max x command^1.35 | cited (fit) | middle of two 2207 6S bench tables, 1.24 and 1.45 (`docs/feel.md` F5, F26, note 2) |
 | Idle command | 5.5 % | cited | Betaflight default `digitalIdleOffsetValue = 550` (of 10000 = full output; DShot) (`docs/feel.md` F25) |
-| Quadratic body drag | 0.006 N per (m/s)² | **UNSOURCED** | placeholder, equal to a drag area of about 0.01 m² |
+| Body drag (frame, battery, stopped props) | per element, drag area 97 / 228 / 62 cm² (side / flat / nose-on, props stopped) | partly cited (M13) | battery and frame sizes, arm thickness, Cd 1.05 box and 1.28 plate cited; arm width, frame length and stopped-blade area **UNSOURCED** (`src/bodydrag.js`, `docs/inertia-review.md` I5). Was 0.006 N per (m/s)², uncited, the same on every axis |
 | Prop pitch speed at full throttle | tuned | tuned | Chosen so level top speed lands on the cited 150 km/h. See below. |
 
 ## Model choices
