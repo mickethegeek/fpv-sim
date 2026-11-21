@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
-Status: **DONE**
-Next: nothing (phase 3 done). Left open on purpose, see docs/inertia-review.md: I5 (orientation-dependent body drag, disarmed tumble), I7b (translational lift)
+Status: **IN PROGRESS**
+Next: **M13 Disarmed tumble and body drag (I5)** (PLAN.md)
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -32,6 +32,8 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 
 ## Phase 3
 - [x] M12 Inertia / coupling investigation (diagnose, fix, report)  ← Mike notified
+
+- [ ] M13 Disarmed tumble and body drag (I5)  ← message Mike when done
 
 ## Assumptions made without asking Mike
 (one line each: what, why, how to change it)
