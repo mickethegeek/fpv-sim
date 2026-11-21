@@ -48,6 +48,7 @@ Your friend's point, checked: `docs/inertia-review.md`; reproduced in `node test
 - Most of that slowing comes from the fall itself (the side swinging into the falling air gets hit harder); in still air the air barely slows a spin, which is real: the arm tips only move at about 1.5 m/s.
 - Sizes are from the CNHL 1300 6S battery and the SpeedyBee FS225 frame; arm width, frame length and stopped-blade area are UNSOURCED (no published figure). Windmilling props in the fall are not modelled, so the fall speeds are an upper bound.
 - Flying is unchanged: prop pitch speed retuned 54 → 60 m/s keeps the 151 km/h top speed; hover, rates and coasting are the same. Details: `docs/inertia-review.md` I5.
+- Checked: 96 unit tests (3 new for I5, each failing on the M12 model); full browser run 199 checks ok, 1 old check (M5 pad hover) given more settling time and passing on rerun, plus the new M13 block flown on the page (`proof/M13/`, log `proof/M13/full-run.log`).
 
 ## How it was checked
 

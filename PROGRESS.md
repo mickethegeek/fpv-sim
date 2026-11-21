@@ -1,7 +1,7 @@
 # PROGRESS — the relay's log (newest at the bottom)
 
-Status: **IN PROGRESS**
-Next: **M13 Disarmed tumble and body drag (I5)** (PLAN.md)
+Status: **DONE**
+Next: **nothing** (M13 done; Mike decides what comes next)
 Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud sandbox, see Assumptions)
 
 ## Milestones
@@ -33,10 +33,12 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 ## Phase 3
 - [x] M12 Inertia / coupling investigation (diagnose, fix, report)  ← Mike notified
 
-- [ ] M13 Disarmed tumble and body drag (I5)  ← message Mike when done
+- [x] M13 Disarmed tumble and body drag (I5)  ← Mike notified
 
 ## Assumptions made without asking Mike
 (one line each: what, why, how to change it)
+- M13: arm width 14 mm, frame centre 100 mm long, 18 cm² blade area per stopped prop, and the fade of stopped-blade drag as props spin up to idle are UNSOURCED (no published figure). Change `defaultBodyGeom()` in `src/bodydrag.js` / `propStopN`.
+- M13: `dragQuadratic` in `src/params.js` is now a scale on the element body drag (1 = as built, 0 = off), not N per (m/s)²; the Feel tuning floatiness still divides it.
 - M12: the cited rotor-drag coefficient (0.3 N per m/s) is taken to hold at hover prop speed and scales linearly with prop speed (Martin 2014). Change `dragBody` / the `nHover` reference in `src/physics.js`.
 - Live link is assumed to be https://mickethegeek.github.io/fpv-sim/ (Pages from `main` root). The relay sandbox cannot reach github.io or the Pages API (proxy 403), so no leg can confirm it is switched on. If the link 404s: repo Settings → Pages → Deploy from branch → `main` / root. Tell Mike this in the M3 message.
 - three.js r170 vendored as `vendor/three.module.min.js` (latest stable fetched from npm). Change by replacing the file.
@@ -258,3 +260,4 @@ Live link: https://mickethegeek.github.io/fpv-sim/ (not checkable from the cloud
 - 2026-11-21 11:45 Zurich · M13: 3 unit tests (flat falls slower than edge-on, a disarmed spin slows and much faster while falling, spinning props not counted as stopped blades), all 3 fail on the M12 model; browser block M13 passes in Chrome (fall 19.1 flat vs 23.7 m/s edge-on after 3 s; disarmed 600 deg/s spin on the page 501 → 290 deg/s in 2 s), proof/M13/m13-*.png looked at; 96 unit tests · next: docs, full browser run, tick M13
 - 2026-11-21 11:46 Zurich · M13: docs: inertia-review I5 moved to fixed (every size with its source or UNSOURCED, effects, what is not modelled: windmilling props), physics.md and feel.md rows, REPORT M13 section and UNSOURCED table; full browser run going · next: full run result, tick M13, message Mike
 - 2026-11-21 11:57 Zurich · M13: full browser run at 123 ok, 1 failure: M5 pad hover drifted 1.6 m (limit 1.5) because the climb settles a little slower with pitchSpeed 60; wait 4.5 → 6.5 s, M5 block rerun alone passes (proof/M13rerun) · next: finish full run, tick M13
+- 2026-11-21 12:18 Zurich · M13 ticked, relay DONE: body drag of frame, battery and stopped props per element in the body frame (src/bodydrag.js): disarmed fall 79 km/h flat vs 151 nose-down, a 600 deg/s disarmed spin while falling slows to 175 deg/s in 3 s (never before); pitchSpeed 60 keeps 151 km/h top speed; 96 unit tests (3 new, fail on the M12 model); full browser run 199 ok + 1 old check (M5 pad hover) given more time and passing on rerun; M13 block made robust (fresh page) and passing with M5/M12 (proof/M13rerun); flight.mjs 'only' takes a list (M5,M12,M13); docs/inertia-review I5, REPORT; Mike notified · next: nothing

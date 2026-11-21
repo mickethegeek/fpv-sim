@@ -13,7 +13,7 @@ catch { ({ chromium } = require('/opt/npm-tools/node_modules/playwright')); }
 
 const milestone = process.argv[2] || 'M0';
 const only = process.argv[3] || '';
-const runs = (m) => !only || only === m;
+const runs = (m) => !only || only.split(',').includes(m);   // only may list several blocks: M12,M13
 const outDir = new URL(`../proof/${milestone}/`, import.meta.url).pathname;
 mkdirSync(outDir, { recursive: true });
 
@@ -1400,6 +1400,7 @@ if (runs('M13')) {
   }, url);
   check('M13 I5 page physics: disarmed fall flat is slower than edge-on', r.flat < 0.85 * r.edge, `(after 3 s: flat ${r.flat.toFixed(1)}, edge-on ${r.edge.toFixed(1)} m/s; CdA ${r.areas.map((a) => (a * 1e4).toFixed(0)).join(' / ')} cm²)`);
   // On the page: climb high, then disarm with a 600 deg/s roll spin and watch the air slow it while it falls (chase view).
+  await page.goto(url + '?fast&gates&preset=freestyle'); await page.waitForFunction(() => window.__sim && window.__sim.ready); await frames(3);
   await page.evaluate(() => { window.__sim.reset(); window.__sim.view.chase = true; window.__sim.setMode('angle'); window.__sim.arm(true); });
   let s = await fly({ ...neutral, throttle: 1 }, 3000);
   s = await fly({ ...neutral, throttle: 0.15 }, 800);
@@ -1411,7 +1412,7 @@ if (runs('M13')) {
   s = await fly({ ...neutral }, 2000);
   await shot('m13-disarmed-spin-later');
   const w1 = Math.hypot(...s.omega) * 57.3;
-  check('M13 disarmed spin on the page slows while falling', !s.crashed ? w1 < 0.7 * w0 : true, `(${w0.toFixed(0)} → ${w1.toFixed(0)} deg/s in 2 s, alt ${alt0.toFixed(0)} → ${s.pos[1].toFixed(0)} m, crashed ${s.crashed})`);
+  check('M13 disarmed spin on the page slows while falling', alt0 > 40 && w0 > 400 && !s.crashed && w1 < 0.7 * w0, `(${w0.toFixed(0)} → ${w1.toFixed(0)} deg/s in 2 s, alt ${alt0.toFixed(0)} → ${s.pos[1].toFixed(0)} m, crashed ${s.crashed})`);
   await page.evaluate(() => { window.__sim.view.chase = false; window.__sim.reset(); });
 }
 
