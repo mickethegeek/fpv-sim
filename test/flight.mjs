@@ -1390,6 +1390,31 @@ if (runs('M12')) {
   await shot('m12-coming-down-card');
 }
 
+// --- M13: body drag of frame, battery and stopped props (I5), on the modules the page serves, then a disarmed spin flown on the page ---
+if (runs('M13')) {
+  const r = await page.evaluate(async (u) => {
+    const P = await import(u + 'src/physics.js'), Q = await import(u + 'src/params.js'), B = await import(u + 'src/bodydrag.js');
+    const q = Q.defaultQuad();
+    const fall = (quat) => { const s = P.createState(500); s.quat = quat; for (let i = 0; i < 3000; i++) P.stepPhysics(s, [0, 0, 0, 0], 1e-3, q); return -s.vel[1]; };
+    return { flat: fall([0, 0, 0, 1]), edge: fall([0, 0, Math.SQRT1_2, Math.SQRT1_2]), areas: B.dragAreas(q) };
+  }, url);
+  check('M13 I5 page physics: disarmed fall flat is slower than edge-on', r.flat < 0.85 * r.edge, `(after 3 s: flat ${r.flat.toFixed(1)}, edge-on ${r.edge.toFixed(1)} m/s; CdA ${r.areas.map((a) => (a * 1e4).toFixed(0)).join(' / ')} cm²)`);
+  // On the page: climb high, then disarm with a 600 deg/s roll spin and watch the air slow it while it falls (chase view).
+  await page.evaluate(() => { window.__sim.reset(); window.__sim.view.chase = true; window.__sim.setMode('angle'); window.__sim.arm(true); });
+  let s = await fly({ ...neutral, throttle: 1 }, 3000);
+  s = await fly({ ...neutral, throttle: 0.15 }, 800);
+  const alt0 = s.pos[1];
+  await page.evaluate(() => { window.__sim.arm(false); window.__sim.sim.state.omega = [0, 0, -600 * Math.PI / 180]; });
+  s = await fly({ ...neutral }, 300);
+  await shot('m13-disarmed-spin-start');
+  const w0 = Math.abs(s.omega[2]) * 57.3;
+  s = await fly({ ...neutral }, 2000);
+  await shot('m13-disarmed-spin-later');
+  const w1 = Math.hypot(...s.omega) * 57.3;
+  check('M13 disarmed spin on the page slows while falling', !s.crashed ? w1 < 0.7 * w0 : true, `(${w0.toFixed(0)} → ${w1.toFixed(0)} deg/s in 2 s, alt ${alt0.toFixed(0)} → ${s.pos[1].toFixed(0)} m, crashed ${s.crashed})`);
+  await page.evaluate(() => { window.__sim.view.chase = false; window.__sim.reset(); });
+}
+
 if (runs('M11')) {
   await page.evaluate(() => { try { localStorage.clear(); } catch {} });
   await page.goto(url + '?fast');

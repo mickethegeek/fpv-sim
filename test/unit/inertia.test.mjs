@@ -82,3 +82,29 @@ test('I7: sinking into its own wash costs thrust (vortex ring state); moving sid
   assert.ok(sinking < t0, 'less than in a hover (before M12 it was more)');
   assert.ok(Math.abs(sideways - Math.min(inflow(vh), 1.25 * t0)) < 1e-9, 'no loss when it leaves its wash sideways');
 });
+
+// M13 (I5): body drag of frame, battery and stopped props, element by element (src/bodydrag.js). Both tests fail on the
+// M12 model (one quadratic drag number the same on every axis, no drag torque).
+test('I5: a disarmed quad falls slower flat than edge-on', () => {
+  const q = defaultQuad();
+  const fall = (quat) => { const s = createState(500); s.quat = quat; for (let i = 0; i < 3000; i++) stepPhysics(s, [0, 0, 0, 0], DT, q); return -s.vel[1]; };
+  const flat = fall([0, 0, 0, 1]), edge = fall([0, 0, Math.SQRT1_2, Math.SQRT1_2]), nose = fall([Math.SQRT1_2, 0, 0, Math.SQRT1_2]);
+  assert.ok(flat < 0.85 * edge && edge < nose, `after 3 s: flat ${flat.toFixed(1)}, edge-on ${edge.toFixed(1)}, nose down ${nose.toFixed(1)} m/s`);
+});
+
+test('I5: a disarmed spin slows down, much faster while falling', () => {
+  const q = defaultQuad();
+  const spin = (vy) => { const s = createState(500); s.vel = [0, vy, 0]; s.omega = [0, 0, 600 * DEG];
+    for (let i = 0; i < 1000; i++) { stepPhysics(s, [0, 0, 0, 0], DT, q); s.vel[1] = vy; } return s.omega[2] / (600 * DEG); };
+  const still = spin(0), falling = spin(-20);
+  assert.ok(still < 0.999, `in still air ${still}`);            // tips move at ~1.5 m/s only: very little
+  assert.ok(falling < 0.7, `falling at 20 m/s: ${(falling * 100).toFixed(0)} % of the spin left after 1 s`);
+});
+
+test('I5: spinning props are not counted as stopped blades', () => {
+  const q = defaultQuad(), c = hoverCmd(q);
+  const k = (m) => { const s = createState(500); s.vel = [0, -10, 0]; s.motors = [m, m, m, m]; q.pitchSpeed = 1e9; q.propRadius = 0; q.maxThrustPerMotor = 1e-9;
+    stepPhysics(s, [m, m, m, m], DT, q); return ((s.vel[1] + 10) / DT + 9.80665) * q.mass / 100; };   // CdA * rho / 2
+  const stopped = k(0), spinning = k(c);
+  assert.ok(spinning < 0.7 * stopped, `drag stopped ${stopped.toFixed(5)} vs spinning ${spinning.toFixed(5)}`);
+});
