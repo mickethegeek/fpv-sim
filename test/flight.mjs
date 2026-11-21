@@ -432,7 +432,7 @@ if (runs('M5')) {
   await page.evaluate(() => { window.__pad.buttons[5] = { pressed: false, value: 0 }; }); await simWait(100);
   check('M5 pad: stick down then R1 arms', (await snap()).armed);
   await page.evaluate(() => { window.__pad.axes = [0, -0.5, 0, 0]; }); await simWait(1500);      // push up: climb
-  await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0]; }); await simWait(4500);         // let go: should settle near hover (M12: only prop inflow slows the climb now, ~1.8 s, docs/inertia-review.md I3)
+  await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0]; }); await simWait(6500);         // let go: should settle near hover (M12: only prop inflow slows the climb now, ~1.8 s, docs/inertia-review.md I3; M13: pitchSpeed 60 makes that ~2 s)
   s = await snap();
   const y0 = s.pos[1];
   await simWait(2000);
