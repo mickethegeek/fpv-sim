@@ -1,0 +1,21 @@
+| Hover throttle (stick) | 15.3 % |
+| Acro roll, full stick: time to 50 % / 90 % of 670 deg/s | 27 ms / 45 ms |
+| Acro roll, full stick: overshoot, rate held | 4.9 %, 666 deg/s |
+| Acro roll: time to stop after letting go (below 5 %) | 48 ms |
+| Acro pitch, full stick: time to 50 % / 90 % of 670 deg/s | 25 ms / 44 ms |
+| Acro pitch, full stick: overshoot, rate held | 5.0 %, 665 deg/s |
+| Acro pitch: time to stop after letting go (below 5 %) | 47 ms |
+| Acro yaw, full stick: time to 50 % / 90 % of 670 deg/s | 105 ms / 183 ms |
+| Acro yaw, full stick: overshoot, rate held | 0.3 %, 670 deg/s |
+| Acro yaw: time to stop after letting go (below 5 %) | 203 ms |
+| Acro roll, 30 % stick: rate held, time to 90 %, overshoot | 75 deg/s, 40 ms, 7.4 % |
+| Angle mode, half roll stick: tilt held (target), time to 90 % | 29.9 deg (30), 204 ms |
+| Angle mode: overshoot going in, swing past level coming back | 0.0 %, 0.0 deg |
+| Angle mode: time to level (within 2 deg) after letting go | 234 ms |
+| Throttle punch from hover: peak extra acceleration | 6.8 g |
+| Throttle punch: time to 63 % / 90 % of that (motor lag) | 31 ms / 60 ms |
+| Throttle punch: climb speed after 1 s | 127 km/h |
+| Throttle chop from hover: sink rate and drop after 1 s (free fall: 9.8 m/s, 4.9 m) | 7.6 m/s, 3.9 m |
+| Coasting from 24 km/h after centring the sticks (angle mode): half speed after, below 1 m/s after, distance | 1.6 s, 4.3 s, 13 m |
+| Top speed in angle mode (60 deg tilt limit, full throttle) | 151 km/h |
+| Falling with motors off: terminal speed | 79 km/h |

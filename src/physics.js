@@ -5,6 +5,7 @@
 //   Orientation: unit quaternion [x, y, z, w], body -> world.
 //   omega: body-frame angular velocity, rad/s. +X = nose up, +Y = yaw left, +Z = right wing up.
 //   Motors: 0 front-right, 1 back-right, 2 back-left, 3 front-left. Speed 0..1.
+import { bodyDrag } from './bodydrag.js';
 export const PHYSICS_HZ = 1000;
 export const GRAVITY = 9.80665;
 
@@ -68,7 +69,7 @@ export function motorThrust(u, vAxial, p, vInPlane = 0) {
 export const AIR_DENSITY = 1.225; // kg/m^3, ISA sea level
 const VRS_LOSS = 0.2;             // Veismann et al. 2021: "mean thrust losses of up to 20% compared to hover conditions"
 
-const _up = [0, 0, 0], _vb = [0, 0, 0], _db = [0, 0, 0];
+const _up = [0, 0, 0], _vb = [0, 0, 0], _db = [0, 0, 0], _bf = [0, 0, 0], _bt = [0, 0, 0], _bfw = [0, 0, 0];
 
 // Advance the state by dt seconds. cmd = commanded motor speeds [4], each 0..1. Mutates and returns state.
 // world (optional): { hit(pos) -> truthy when the quad touches an obstacle } (see world.js). Any obstacle hit is a crash.
@@ -110,8 +111,7 @@ export function stepPhysics(s, cmd, dt, p, world) {
     ty += m.spin * p.yawTorquePerThrust * f;
   }
   // Drag. Linear part in the BODY frame (rotor drag, Faessler 2018 Eq. 2: -R D R^T v): per body axis [x, y = thrust axis, z],
-  // so it turns with the quad (docs/inertia-review.md I3). Quadratic part stays the same on every axis (UNSOURCED).
-  const speed = Math.hypot(rvx, rvy, rvz);
+  // so it turns with the quad (docs/inertia-review.md I3). Body drag (quadratic, per element) below.
   // Rotor drag grows with prop speed: per rotor -lambda * omega_i * (in-plane airspeed) (Martin 2014 Eq. 1; NeuroBEM: it "depends
   // on the propeller speed"). The cited coefficients hold at hover prop speed; stopped props give none (docs/inertia-review.md I4).
   let nSum = 0;
@@ -122,12 +122,17 @@ export function stepPhysics(s, cmd, dt, p, world) {
   const kx = kb[0] * rs, ky = kb[1] * rs, kz = kb[2] * rs;
   const qc = [-s.quat[0], -s.quat[1], -s.quat[2], s.quat[3]];
   rotate(qc, [rvx, rvy, rvz], _vb);
+  // Body drag of frame, battery and stopped props, element by element in the body frame (src/bodydrag.js, docs/inertia-review.md I5).
+  // Props count as stopped blades below about idle speed (n < propStopN), fading out as they spin up (UNSOURCED blend).
+  const nStop = p.propStopN ?? 0.132;
+  bodyDrag(p, _vb, s.omega, p.dragQuadratic, Math.max(0, 1 - nSum / 4 / nStop), _bf, _bt);
+  rotate(s.quat, _bf, _bfw);
   _vb[0] *= kx; _vb[1] *= ky; _vb[2] *= kz;
   rotate(s.quat, _vb, _db);
-  const dq = p.dragQuadratic * speed;
-  const ax = (thrust * _up[0] - _db[0] - dq * rvx) / p.mass;
-  const ay = (thrust * _up[1] - _db[1] - dq * rvy) / p.mass - GRAVITY;
-  const az = (thrust * _up[2] - _db[2] - dq * rvz) / p.mass;
+  const ax = (thrust * _up[0] - _db[0] + _bfw[0]) / p.mass;
+  const ay = (thrust * _up[1] - _db[1] + _bfw[1]) / p.mass - GRAVITY;
+  const az = (thrust * _up[2] - _db[2] + _bfw[2]) / p.mass;
+  tx += _bt[0]; ty += _bt[1]; tz += _bt[2];
 
   // Angular: I * domega = torque - omega x (I * omega + H) - dH/dt, H = prop angular momentum (0, hNew, 0) in body axes.
   const [ix, iy, iz] = p.inertia;

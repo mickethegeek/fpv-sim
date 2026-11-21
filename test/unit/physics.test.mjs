@@ -35,7 +35,7 @@ test('free fall accelerates at g', () => {
   for (let i = 0; i < 20; i++) stepPhysics(s, [0, 0, 0, 0], DT, q);
   const a = -s.vel[1] / 0.02;
   assert.ok(Math.abs(a - GRAVITY) / GRAVITY < 0.01, `acceleration ${a}`);
-  assert.equal(s.vel[0], 0); assert.equal(s.vel[2], 0);
+  assert.ok(Math.abs(s.vel[0]) < 1e-12 && Math.abs(s.vel[2]) < 1e-12); // body drag elements cancel to rounding
 });
 
 test('hover throttle is 12 to 20 % and actually hovers', () => {

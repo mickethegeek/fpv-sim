@@ -17,9 +17,9 @@ export function defaultQuad() {
     propSpeedMax: 3275,         // rad/s at full command: 31277 rpm, T-Motor P2306 V3 1750 KV, T5143S-3 prop, 24.8 V (maker's thrust table)
     dragLinear: 0.3,            // N per m/s, cited [7] (in-plane)
     dragBody: [0.3, 0, 0.3],    // N per m/s at hover prop speed, body x, y (thrust axis), z: rotor drag acts in the rotor plane only (Martin 2014; Faessler 2018 sets dz = 0); in-plane 0.3 = k_vx, k_vy of [7]; scales with prop speed (docs/inertia-review.md I3, I4)
-    dragQuadratic: 0.006,       // N per (m/s)^2, uncited
+    dragQuadratic: 1,           // scale on the body drag of frame, battery and stopped props (src/bodydrag.js, geometry and sources there; 0 = off). Was 0.006 N per (m/s)^2 the same on every axis, uncited, before M13
     thrustExponent: 1.35,       // static thrust = max * command^1.35: middle of two 2207 6S bench tables, 1.24 and 1.45 (docs/feel.md, note 2)
-    pitchSpeed: 54,             // m/s at full throttle, tuned for ~150 km/h level top speed [8] (65 before M12: drag model changed)
+    pitchSpeed: 60,             // m/s at full throttle, tuned for ~150 km/h level top speed [8] (65 before M12, 54 in M12, 60 since M13: drag model changed)
     crashSpeed: 6,              // m/s impact speed that counts as a crash (assumption)
     groundHeight: 0.05,         // m, height of the centre of mass when sitting on the ground
   };
